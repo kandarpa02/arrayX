@@ -1,5 +1,5 @@
 from typing import Protocol
-from neonet.src.struc import tensor
+from neonet._src.struc import tensor
 import numpy as np
 
 class TensorObj(Protocol):

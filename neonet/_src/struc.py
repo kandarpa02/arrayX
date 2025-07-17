@@ -13,7 +13,7 @@ def safe_input(x):
             "use NumPy arrays instead for CPU usage")
     return x
         
-
+        
 class tensor:
     def __init__(self, data, _ctx=()):
         self.data = Tensor(data)
