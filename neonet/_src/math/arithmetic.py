@@ -1,48 +1,42 @@
 from ..custom_typing import TensorObj
-from ..autograd import Node, Tape, TapeContext, Policy
+from ..autograd import Node, TapeContext, Policy
 
 from neonet._src.TEMPORARY import xp
 
 # add
 class addition(Policy):
-    @classmethod
-    def forward(cls, x, y):
-        cls.ctx.save_tensors(x, y)
+    def forward(self, x, y):
+        self.ctx.save(x, y)
         return x + y
 
-    @classmethod
-    def backward(cls, grad):
-        x, y = cls.ctx.saved_tensors
-        return 1*grad, 1*grad
+    def backward(self, grad):
+        x, y = self.ctx.release
+        return grad, grad
 
 def add(x:TensorObj, y:TensorObj):
     op = addition()
-    out = op.fwd(x, y)
+    out = op.forward(x, y)
 
-    node = Node(out, (x, y), op.bwd)
+    node = Node(out, (x, y), op.backward)
     TapeContext.add_node(node)
-    # print(node)
     return out
 
 
 # mul 
-
 class multiplication(Policy):
-    @classmethod
-    def forward(cls, x, y):
-        cls.ctx.save_tensors(x, y)
+    def forward(self, x, y):
+        self.ctx.save(x, y)
         return x * y
 
-    @classmethod
-    def backward(cls, grad):
-        x, y = cls.ctx.saved_tensors
+    def backward(self, grad):
+        x, y = self.ctx.release
         return y*grad, x*grad
 
 def mul(x:TensorObj, y:TensorObj):
     op = multiplication()
-    out = op.fwd(x, y)
+    out = op.forward(x, y)
 
-    node = Node(out, (x, y), op.bwd)
+    node = Node(out, (x, y), op.backward)
     TapeContext.add_node(node)
 
     return out

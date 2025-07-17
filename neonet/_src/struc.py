@@ -1,7 +1,6 @@
 from ._object import Tensor, context
-# from .custom_typing import TensorObj
 import numpy as np
-
+from neonet.backend import get_xp
 
 def safe_input(x):
     if not isinstance(x, tensor):
@@ -15,9 +14,10 @@ def safe_input(x):
         
         
 class tensor:
-    def __init__(self, data, _ctx=()):
-        self.data = Tensor(data)
+    def __init__(self, data, _ctx=(), device:str='cpu'):
+        self.data = Tensor(data) if not isinstance(data, tensor) else data
         self.ctx = context(_ctx)
+        self.device  = device
         self.id = id(self)
 
     def numpy(self):
@@ -36,11 +36,6 @@ class tensor:
         else:
             return self.data.shape()
         
-
-    def __repr__(self) -> str:
-        return f"Tensor({self.data})"
-
-
     def __add__(self, other):
         self = safe_input(self)
         other = safe_input(other)
@@ -71,4 +66,31 @@ class tensor:
 
 
     
-    
+    def __repr__(self):
+        """
+        String representation of the deriv.array object.
+        """
+        xp = get_xp(self.device)
+        prefix = " " * len("Tensor(")
+        arr_str = xp.array2string(
+            self.data.value,
+            precision=4,
+            suppress_small=True,
+            threshold=6,        
+            edgeitems=3,       
+            max_line_width=80, 
+            separator=', ',     
+            prefix=prefix     
+        )
+        # extras = []
+        # if self._back.__name__ != "noop":
+        #     extras.append(f"grad_fn=<{self._back.__name__}>")
+        # if self.need_grad:
+        #     extras.append(f"need_grad={self.need_grad!r}")
+        # if self.var_name != '':
+        #     extras.append(f"variable={self.var_name}")
+        # if extras:
+        #     return f"array({arr_str}, " + ", ".join(extras) + ")"
+        # else:
+        #     return f"array({arr_str})"
+        return f"Tensor({arr_str})"

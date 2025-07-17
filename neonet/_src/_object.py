@@ -1,9 +1,10 @@
 from typing import Any, NamedTuple, Self as Self
 from dataclasses import dataclass
+from neonet.backend import get_xp
 import numpy as np
 
 class Tensor(NamedTuple):
-    value : np.ndarray
+    value : Any
 
     def __repr__(self) -> str:
         return f"{self.value}"
@@ -16,7 +17,7 @@ class Tensor(NamedTuple):
     
     @property
     def numpy(self):
-        return self.value
+        return np.asarray(self.value)
 
     def _repl(self, new_value:(int | float)) -> Self:
         return self._replace(value = new_value)
