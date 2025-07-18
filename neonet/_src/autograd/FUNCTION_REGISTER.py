@@ -1,6 +1,13 @@
 from typing import Any
-from .._object import context
+from dataclasses import dataclass
 
+@dataclass
+class context:
+    def save(self, *args):
+        self.data = args
+    @property
+    def release(self):
+        return self.data
 
 class Policy:
     def __init__(self):

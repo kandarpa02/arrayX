@@ -1,16 +1,25 @@
 from neonet._src.autograd import Node, Tape, TapeContext
 from typing import Callable
-from neonet._src.TEMPORARY import xp
+import numpy as np
+# from neonet.numpy import array
+# from neonet.backend import get_xp
+
+def define_device(x):
+    device = 'cpu'
+    if not isinstance(x.value, np.ndarray):
+        device = 'cuda'
+    return device
 
 def value_and_grad(fn: Callable):
     def wrapped_function(*args):
         tape = Tape()
         TapeContext.push(tape.nodes)
         out = fn(*args)
+        device = define_device(out)
         TapeContext.pop()
-        
+
         grad_dict = {}
-        grad_dict[id(out)] = xp.ones_like(out.numpy()) 
+        grad_dict[id(out)] = out.ones_like()
         
         for node in reversed(tape.nodes):
             node_out_grad = grad_dict.get(id(node.output))
@@ -29,9 +38,6 @@ def value_and_grad(fn: Callable):
                     grad_dict[pid] = grad
         
         arg_grads = {arg: grad_dict.get(id(arg), 0) for arg in args}
-        return out, arg_grads
+        return out, arg_grads, tape.nodes
 
     return wrapped_function
-
-
-

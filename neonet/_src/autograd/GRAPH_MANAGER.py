@@ -1,8 +1,7 @@
 from typing import NamedTuple, Callable, Any
-from neonet._src.custom_typing import TensorObj
 
 class Node:
-    def __init__(self, output:TensorObj, parents:tuple, bwd_fn:Callable):
+    def __init__(self, output, parents:tuple, bwd_fn:Callable):
         self.output = output
         self.parents = parents
         self.bwd_fn = bwd_fn

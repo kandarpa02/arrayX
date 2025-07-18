@@ -3,7 +3,7 @@ import os
 
 
 setup(
-    name="NeoNet",
+    name="neonet",
     version="0.0.1a1",
     author="Kandarpa Sarkar",
     author_email="kandarpaexe@gmail.com",
