@@ -1,7 +1,7 @@
 from typing import NamedTuple, Callable, Any
 
 class Node:
-    def __init__(self, output, parents:tuple, bwd_fn:Callable):
+    def __init__(self, output, parents:tuple|list, bwd_fn:Callable):
         self.output = output
         self.parents = parents
         self.bwd_fn = bwd_fn

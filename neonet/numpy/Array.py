@@ -83,6 +83,52 @@ class Array:
 
     def __eq__(self, other): return isinstance(other, Array) and self._id == other._id
 
+    def __len__(self):
+        """Returns the number of elements along the first axis."""
+        return len(self.value)
+
+    def __getitem__(self, index):
+        """Indexing access to value."""
+        return self.value[index]
+
+    def __ne__(self, other):
+        """Non-equality check."""
+        if isinstance(other, self.__class__):
+            return self.value != other.value
+        return NotImplemented
+
+    def __lt__(self, other):
+        """Less-than comparison."""
+        if isinstance(other, self.__class__):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        """Less-than or equal comparison."""
+        if isinstance(other, self.__class__):
+            return self.value <= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        """Greater-than comparison."""
+        if isinstance(other, self.__class__):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        """Greater-than or equal comparison."""
+        if isinstance(other, self.__class__):
+            return self.value >= other.value
+        return NotImplemented
+
+    def __hash__(self):
+        """Object hash based on id."""
+        return id(self)
+    
+    def __neg__(self):
+        return array(-self.value)
+
+
 
     def __add__(self, other):
         b = safe_input(other)
@@ -98,6 +144,7 @@ class Array:
     def __rmul__(self, other):
         return self.__mul__(other)
 
-    
     def ones_like(self):
         return Array(self.xp.ones_like(self.value))
+
+    

@@ -1,1 +1,1 @@
-from ..numpy.functional import array
+from ..numpy.functional import array, full
