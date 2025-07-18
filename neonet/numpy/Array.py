@@ -65,8 +65,8 @@ class Array:
     def xp(self):
         return get_xp(self.device)
     
-    def to(self, device: str, copy=True):
-        return Array(self.xp.asarray(self.value, copy=copy), device=device)
+    def to(self, device: str):
+        return Array(self.xp.asarray(self.value), device=device)
 
 
     def numpy(self):
