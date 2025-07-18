@@ -22,7 +22,7 @@ from neo.functions import fn_forward
 
 # You can define any funcion and its backward rule
 # with autograd.Policy module, its inner working a bit
-# verbose, I wil make everythng clear once it is complete
+# verbose, I will make everythng clear once it is complete
 
 class IF_IT_WORKS_DONT_TOUCH_IT(autograd.Policy):
     def forward(self, X, Y, b):
