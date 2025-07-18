@@ -10,7 +10,7 @@ setup(
     description="An autodiff library for personal use",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/kandarpa02/NeoNet.git",
+    url="https://github.com/kandarpa02/neonet.git",
     packages=find_packages(),
     python_requires=">=3.8",
     classifiers=[
