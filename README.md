@@ -1,18 +1,14 @@
-# neo
-### More functional than PyTorch less complex than JAX 
-
----
+# *#neo*
+### *More functional than PyTorch less complex than JAX*
 
 #### Design Principle:
 **neonet** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch**. 
 
---- 
 
 #### The Backend Math:
 Leading ML frameworks use C/C++ and CUDA as backend but, which is great but while developing **neonet** I thought learning C/C++ then working on the framework will take so long and there is already **NumPy** which is backed by `BLAS` library and **CuPy** which uses `cuBLAS` under the hood. So I integrated them for **CPU** and **GPU** acceleration. 
 In future I will integrate **Triton** to enable equation fusing and `Jit` compilation (*GPU only*)
 
----
 
 #### Minimal Example:
 Here is a minimal example how we can define new backward logic and compute grads with **neonet**
