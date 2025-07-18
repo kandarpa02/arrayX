@@ -6,7 +6,7 @@
 
 
 #### The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend but, which is great but while developing **neonet** I thought learning C/C++ then working on the framework will take so long and there is already **NumPy** which is backed by `BLAS` library and **CuPy** which uses `cuBLAS` under the hood. So I integrated them for **CPU** and **GPU** acceleration. 
+Leading ML frameworks use C/C++ and CUDA as backend but, which is great but while developing **neonet** I thought learning C/C++ then working on the framework will take so long and there is already **NumPy** which is backed by `BLAS` library and **CuPy** which uses `cuBLAS` under the hood. So I integrated them for **CPU** and **GPU** acceleration.
 In future I will integrate **Triton** to enable equation fusing and `Jit` compilation (*GPU only*)
 
 
@@ -42,7 +42,7 @@ Y = neo.randn((4,2), device='cuda')
 b = neo.randn((2,), device='cuda')
 
 
-forward = fn_forward(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & record nodes
+forward = fn_forward(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & record nodes 
 
 out, grads = autograd.value_and_grad(forward)(X, Y, b)
 print("Output :\n", out, "\n")
