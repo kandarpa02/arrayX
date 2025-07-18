@@ -1,6 +1,5 @@
 from typing import Any
 from .._object import context
-from dataclasses import dataclass
 
 
 class Policy:
@@ -13,5 +12,3 @@ class Policy:
     def backward(self, grad):
         raise NotImplementedError
 
-    
-    

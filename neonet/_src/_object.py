@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from neonet.backend import get_xp
 import numpy as np
 
+
 class Tensor(NamedTuple):
     value : Any
 

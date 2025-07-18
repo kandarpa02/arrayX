@@ -1,2 +1,1 @@
-from ._src import autograd
-from ._src.random.random import *
+from neonet._src import autograd

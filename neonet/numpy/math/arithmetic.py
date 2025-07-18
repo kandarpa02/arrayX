@@ -1,7 +1,7 @@
 from ..custom_typing import TensorObj
 from ..autograd import Node, TapeContext, Policy
-
-from neonet._src.TEMPORARY import xp
+from ..struc import tensor
+from neonet.backend import get_xp
 
 # add
 class addition(Policy):
@@ -11,15 +11,7 @@ class addition(Policy):
 
     def backward(self, grad):
         x, y = self.ctx.release
-        return grad, grad
-
-def add(x:TensorObj, y:TensorObj):
-    op = addition()
-    out = op.forward(x, y)
-
-    node = Node(out, (x, y), op.backward)
-    TapeContext.add_node(node)
-    return out
+        return tensor(grad), tensor(grad)
 
 
 # mul 
@@ -32,8 +24,25 @@ class multiplication(Policy):
         x, y = self.ctx.release
         return y*grad, x*grad
 
-def mul(x:TensorObj, y:TensorObj):
+
+
+
+
+
+
+def add(x, y):
+    op = addition()
+    assert x.device == y.device, "Both tensors must be in same device"
+    out = op.forward(x, y)
+
+    node = Node(out, (x, y), op.backward)
+    TapeContext.add_node(node)
+    return out
+
+
+def mul(x, y):
     op = multiplication()
+    assert x.device == y.device, "Both tensors must be in same device"
     out = op.forward(x, y)
 
     node = Node(out, (x, y), op.backward)

@@ -15,10 +15,12 @@ def safe_input(x):
         
 class tensor:
     def __init__(self, data, _ctx=(), device:str='cpu'):
-        self.data = Tensor(data) if not isinstance(data, tensor) else data
+        self.xp = get_xp(device)
+        self.data = Tensor(self.xp.asarray(data)) if not isinstance(data, tensor) else data
         self.ctx = context(_ctx)
         self.device  = device
         self.id = id(self)
+        self.xp = get_xp(device)
 
     def numpy(self):
         return self.data.numpy
@@ -52,8 +54,6 @@ class tensor:
         out = tensor((a * b), (self, other))
         return out
     
-
-
     def __radd__(self, other):
         self = safe_input(self)
         other = safe_input(other)
@@ -64,15 +64,13 @@ class tensor:
         other = safe_input(other)
         return self.__mul__(other)
 
-
-    
     def __repr__(self):
         """
         String representation of the deriv.array object.
         """
-        xp = get_xp(self.device)
+        
         prefix = " " * len("Tensor(")
-        arr_str = xp.array2string(
+        arr_str = self.xp.array2string(
             self.data.value,
             precision=4,
             suppress_small=True,
@@ -82,15 +80,4 @@ class tensor:
             separator=', ',     
             prefix=prefix     
         )
-        # extras = []
-        # if self._back.__name__ != "noop":
-        #     extras.append(f"grad_fn=<{self._back.__name__}>")
-        # if self.need_grad:
-        #     extras.append(f"need_grad={self.need_grad!r}")
-        # if self.var_name != '':
-        #     extras.append(f"variable={self.var_name}")
-        # if extras:
-        #     return f"array({arr_str}, " + ", ".join(extras) + ")"
-        # else:
-        #     return f"array({arr_str})"
         return f"Tensor({arr_str})"

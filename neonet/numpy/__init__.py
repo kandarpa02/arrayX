@@ -1,0 +1,1 @@
+from ..numpy.functional import array
