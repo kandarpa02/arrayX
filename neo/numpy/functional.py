@@ -1,5 +1,5 @@
-from neonet.numpy.Array import Array
-from neonet.backend import get_xp
+from neo.numpy.Array import Array
+from neo.backend import get_xp
 import numpy as np
 
 def array(data, device=None) -> Array:

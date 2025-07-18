@@ -1,4 +1,4 @@
-from neonet._src.autograd import Node, Tape, TapeContext
+from neo._src.autograd import Node, Tape, TapeContext
 from typing import Callable
 import numpy as np
 # from neonet.numpy import array
@@ -24,7 +24,7 @@ def if_xnary(grads):
         grads = map(rectify_shapes, list(grads))
     else:
         grads = grads.reshape(1) if (grads.ndim < 1) else grads
-        
+
     return grads
 
 

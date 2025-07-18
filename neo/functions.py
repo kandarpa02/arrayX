@@ -1,5 +1,5 @@
-from neonet._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
-from neonet.numpy.Array import Array
+from neo._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
+from neo.numpy.Array import Array
 from typing import Callable
 
 def fn_forward(fn_object:Callable):

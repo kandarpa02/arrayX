@@ -1,5 +1,5 @@
-from neonet.backend import get_xp
-from neonet.numpy import array
+from neo.backend import get_xp
+from neo.numpy import array
 
 def randn(shape, device=None):
     xp = get_xp(device)

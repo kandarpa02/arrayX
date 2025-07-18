@@ -1,5 +1,5 @@
-from neonet._src.autograd import Node, TapeContext, Policy
-from neonet.backend import get_xp
+from neo._src.autograd import Node, TapeContext, Policy
+from neo.backend import get_xp
 
 
 # add

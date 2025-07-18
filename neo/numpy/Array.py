@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
-from neonet.backend import get_xp
-from neonet.numpy.math.arithmetic import *
+from neo.backend import get_xp
+from neo.numpy.math.arithmetic import *
 import numpy as np
 
 __all__ = []
