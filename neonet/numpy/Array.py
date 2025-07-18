@@ -66,7 +66,19 @@ class Array:
         return get_xp(self.device)
     
     def to(self, device: str):
-        return Array(self.xp.asarray(self.value), device=device)
+        target_xp = get_xp(device) 
+        value = self.value
+
+        if self.device == 'cuda' and device == 'cpu':
+            value = self.value.get()  
+
+        elif self.device == 'cpu' and device == 'cuda':
+            value = target_xp.asarray(self.value) 
+        else:
+            value = target_xp.asarray(self.value)
+
+        return Array(value, device=device)
+
 
 
     def numpy(self):
