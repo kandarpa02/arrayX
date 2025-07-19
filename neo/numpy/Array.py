@@ -33,7 +33,6 @@ class Array:
     _id: int = field(default_factory=lambda: uuid4().int, init=False, repr=False)
 
     def __post_init__(self):
-        # Device fallback
         if self.device == 'cuda' and not HAS_CUPY:
             warnings.warn("[Neo] CUDA not available. Falling back to CPU.")
             self.device = 'cpu'
@@ -42,13 +41,16 @@ class Array:
         dtype_obj = get_dtype(self.dtype, self.device)
 
         try:
-            # Prevent invalid cast from cupy → numpy accidentally
-            if not isinstance(self.value, xp.ndarray) or self.value.dtype != dtype_obj:
-                self.value = xp.array(self.value, dtype=dtype_obj)
+            # Avoid redundant casting if already correct type and backend
+            if not isinstance(self.value, xp.ndarray):
+                self.value = xp.asarray(self.value, dtype=dtype_obj)
+            elif self.value.dtype != dtype_obj:
+                self.value = self.value.astype(dtype_obj)
         except Exception as e:
             warnings.warn(f"[Neo] Failed to cast array to {self.dtype}: {e}. Falling back to float32.")
             self.dtype = 'float32'
-            self.value = xp.array(self.value, dtype=xp.float32)
+            self.value = xp.asarray(self.value, dtype=xp.float32)
+
 
 
 
