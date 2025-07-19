@@ -9,8 +9,11 @@ def define_device(x):
         device = 'cuda'
     return device
 
-@dataclass
+# @dataclass
 class context:
+    def __init__(self):
+        self.fingerprint = self.data[0]
+
     def save(self, *args):
         self.data = args
 
@@ -21,7 +24,7 @@ class context:
 class Policy:
     def __init__(self):
         self.ctx = context()
-        self.nx = get_xp(define_device(self.ctx.data[0]))
+        self.lib = get_xp(define_device(self.ctx.fingerprint))
     
     def forward(self, *args):
         raise NotImplementedError
