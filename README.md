@@ -10,7 +10,7 @@
 ---
 
 
-***#More functional than PyTorch less complex than JAX***
+***# neo: more functional than PyTorch less complex than JAX***
 
 ### Design Principle:
 **neonet** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch**. 
