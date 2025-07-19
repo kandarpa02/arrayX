@@ -1,8 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
-from neo.backend import get_xp
-from neo.numpy.math.arithmetic import *
+from neo.backend import get_xp, HAS_CUPY
+from neo.numpy.math.arithmetic_policy import *
+from neo.numpy.math.log_policy import *
+from neo.numpy.math.unary_policy import *
+from neo.numpy.math.reductions_policy import *
+from neo.functions import neo_function
 import numpy as np
 
 __all__ = []
@@ -16,31 +20,44 @@ def safe_input(x):
     return x
 
 
-def add(x, y):
-    op = addition()
-    out_val = op.forward(x.value, y.value) 
-    out = Array(out_val, device=x.device) 
-    
-    node = Node(out, (x, y), op.backward)
-    TapeContext.add_node(node)
-    return out
-  
+import warnings
+from ..config import get_dtype, DTYPE_MAP
 
-def mul(x, y):
-    op = multiplication()
-    out_val = op.forward(x.value, y.value)
-    out = Array(out_val, device=x.device)
-    
-    node = Node(out, (x, y), op.backward)
-    TapeContext.add_node(node)
-    return out
-
+DEFAULT_DTYPE = "float32"
 
 @dataclass
 class Array:
     value: Any
-    device: str | None = 'cpu'
+    device: str = 'cpu'
+    dtype: str = DEFAULT_DTYPE  # this is the string identifier like 'float32', 'bfloat16', etc.
     _id: int = field(default_factory=lambda: uuid4().int, init=False, repr=False)
+
+    def __post_init__(self):
+        # Device fallback
+        if self.device == 'cuda' and not HAS_CUPY:
+            warnings.warn("[Neo] CUDA not available. Falling back to CPU.")
+            self.device = 'cpu'
+
+        # Convert value to correct dtype and backend
+        xp = self.xp
+        dtype_obj = get_dtype(self.dtype, self.device)
+        try:
+            self.value = xp.asarray(self.value, dtype=dtype_obj)
+        except Exception as e:
+            warnings.warn(f"[Neo] Failed to cast array to {self.dtype}: {e}. Falling back to float32.")
+            self.dtype = 'float32'
+            self.value = xp.asarray(self.value, dtype=xp.float32)
+
+    def astype(self, new_dtype: str) -> "Array":
+        if new_dtype not in DTYPE_MAP:
+            warnings.warn(f"Unsupported dtype '{new_dtype}', falling back to {DEFAULT_DTYPE}.")
+            new_dtype = DEFAULT_DTYPE
+
+        backend = 'cupy' if self.device == 'cuda' else 'numpy'
+        target_dtype = self.xp.__dict__[DTYPE_MAP[new_dtype][backend]]
+        new_value = self.xp.asarray(self.value, dtype=target_dtype)
+        return Array(new_value, device=self.device, dtype=new_dtype)
+
 
 
     def __repr__(self):
@@ -55,29 +72,35 @@ class Array:
             separator=', ',
             prefix=prefix
         )
-        return f"Array({arr_str})"
+        return f"Array({arr_str}, dtype={self.value.dtype}, device='{self.device}')"
 
     def __str__(self):
         return str(self.value)
-    
 
     @property
     def xp(self):
         return get_xp(self.device)
-    
+
     def to(self, device: str):
-        target_xp = get_xp(device) 
-        value = self.value
+        if device == self.device:
+            return self
 
+        if device == 'cuda' and not HAS_CUPY:
+            warnings.warn("[Neo] CUDA not available. Staying on CPU.")
+            return self
+
+        target_xp = get_xp(device)
+        dtype_obj = get_dtype(self.dtype, device)
+
+        # Move data
         if self.device == 'cuda' and device == 'cpu':
-            value = self.value.get()  
-
+            value = self.value.get()
         elif self.device == 'cpu' and device == 'cuda':
-            value = target_xp.asarray(self.value) 
+            value = target_xp.asarray(self.value, dtype=dtype_obj)
         else:
-            value = target_xp.asarray(self.value)
+            value = target_xp.asarray(self.value, dtype=dtype_obj)
 
-        return Array(value, device=device)
+        return Array(value=value, device=device, dtype=self.dtype)
 
 
 
@@ -87,8 +110,8 @@ class Array:
     @property
     def shape(self): return self.value.shape
 
-    @property
-    def dtype(self): return self.value.dtype
+    # @property
+    # def dtype(self): return self.d_type
 
 
     def __hash__(self): return hash(self._id)
@@ -138,25 +161,40 @@ class Array:
         return id(self)
     
     def __neg__(self):
-        return array(-self.value)
-
-
+        return neo_function(negative_op)(self)
 
     def __add__(self, other):
         b = safe_input(other)
-        return add(self, b)
+        return neo_function(addition)(self, b)
+    
+    def __sub__(self, other):
+        b = safe_input(other)
+        return neo_function(subtraction)(self, b)
     
     def __mul__(self, other):
         b = safe_input(other)
-        return mul(self, b) 
+        return neo_function(multiplication)(self, b)
+    
+    def __truediv__(self, other):
+        b = safe_input(other)
+        return neo_function(division)(self, b)
 
     def __radd__(self, other):
         return self.__add__(other)
+    
+    def __rsub__(self, other):
+        return self.__sub__(other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
+    
+    def __rdiv__(self, other):
+        return self.__truediv__(other)
+    
 
-    def ones_like(self):
-        return Array(self.xp.ones_like(self.value))
+
+    def ones_like(self, dtype='float32'): return Array(self.xp.ones_like(self.value))
+
+    def zeros_like(self, dtype='float32'): return Array(self.xp.zeros_like(self.value))
 
     
