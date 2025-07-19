@@ -7,6 +7,9 @@
 </p>
 
 
+---
+
+
 ***#More functional than PyTorch less complex than JAX***
 
 ### Design Principle:
