@@ -17,11 +17,11 @@
 
 
 ### The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend but, which is great but while developing **neonet** I thought learning C/C++ then working on the framework will take so long and there is already **NumPy** which is backed by `BLAS` library and **CuPy** which uses `cuBLAS` under the hood. So I integrated them for **CPU** and **GPU** acceleration.
+Leading ML frameworks use C/C++ and CUDA as backend but, which is great but while developing **neonet** I thought; learning C/C++ and then working on the framework will take so long and there is already **NumPy** which is backed by `BLAS` library and **CuPy** which uses `cuBLAS` under the hood. So I integrated them for **CPU** and **GPU** acceleration.
 In future I will integrate **Triton** to enable equation fusing and `Jit` compilation (*GPU only*)
 
 
-### Benchmark: Backward Pass (100 runs)
+### Benchmark: Backward Pass for 100 runs (smaller is better)
 | Device | Neo | PyTorch | Verdict |
 |--------|-----|---------|---------|
 | CUDA   | 0.8731s | 0.8330s | PyTorch |
