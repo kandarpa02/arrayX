@@ -12,7 +12,7 @@ def define_device(x):
 # @dataclass
 class context:
     def __init__(self):
-        self.fingerprint = self.data[0]
+        self.fingerprint = self.release[0]
 
     def save(self, *args):
         self.data = args
