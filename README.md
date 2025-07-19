@@ -24,7 +24,7 @@ In future I will integrate **Triton** to enable equation fusing and `Jit` compil
 ### Benchmark: Backward Pass (100 runs)
 | Device | Neo | PyTorch | Verdict |
 |--------|-----|---------|---------|
-| CUDA   | 0.8731s | 0.8330s | Torch |
+| CUDA   | 0.8731s | 0.8330s | PyTorch |
 | CPU    | 25.76s  | 29.30s  | Neo |
 
 
@@ -35,7 +35,7 @@ Here is a minimal example how we can define new backward logic and compute grads
 import neo
 import neo.numpy as nep
 from neo import autograd
-from neo.functions import fn_forward
+from neo.functions import neo_function
 
 
 # You can define any funcion and its backward rule
@@ -60,7 +60,7 @@ Y = neo.randn((4,2), device='cuda')
 b = neo.randn((2,), device='cuda')
 
 
-forward = fn_forward(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & record nodes 
+forward = neo_function(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & record nodes 
 
 out, grads = autograd.session.value_and_grad(forward)(X, Y, b)
 print("Output :\n", out, "\n")
