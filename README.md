@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="neo/media/neo_d1.png">
+    <source media="(prefers-color-scheme: dark)" srcset="neo/media/neo_d_git1.png">
     <source media="(prefers-color-scheme: light)" srcset="neo/media/neo_l1.png">
     <img alt="Neo Logo" src="neo_logo_light.png" width="800">
   </picture>
