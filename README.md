@@ -60,7 +60,7 @@ Y = neo.randn((4,2), device='cuda')
 b = neo.randn((2,), device='cuda')
 
 
-forward = neo_function(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & record nodes 
+forward = neo_function(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & records nodes 
 
 out, grads = autograd.session.value_and_grad(forward)(X, Y, b)
 print("Output :\n", out, "\n")
