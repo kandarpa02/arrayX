@@ -7,7 +7,8 @@ def neo_function(fn_object: Callable):
     from neo.numpy.Array import Array
 
     def wrapped(*arrays):
-        op = fn_object()
+        device = arrays[0].device
+        op = fn_object(device)
         valargs = []
         boolargs = []
 
@@ -21,7 +22,7 @@ def neo_function(fn_object: Callable):
 
         newargs = valargs + boolargs
         out_val = op.forward(*newargs)
-        out = Array(out_val, device=arrays[0].device)
+        out = Array(out_val, device=device)
 
         node = GRAPH_MANAGER.Node(out, arrays, op.backward)
         GRAPH_MANAGER.TapeContext.add_node(node)
