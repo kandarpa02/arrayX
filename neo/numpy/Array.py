@@ -33,7 +33,7 @@ class Array:
     _id: int = field(default_factory=lambda: uuid4().int, init=False, repr=False)
 
     def __post_init__(self):
-        # fallback
+        # Device fallback
         if self.device == 'cuda' and not HAS_CUPY:
             warnings.warn("[Neo] CUDA not available. Falling back to CPU.")
             self.device = 'cpu'
@@ -42,21 +42,19 @@ class Array:
         dtype_obj = get_dtype(self.dtype, self.device)
 
         try:
+            # Prevent invalid cast from cupy → numpy accidentally
             if not isinstance(self.value, xp.ndarray) or self.value.dtype != dtype_obj:
-                self.value = xp.asarray(self.value, dtype=dtype_obj)
+                self.value = xp.array(self.value, dtype=dtype_obj)
         except Exception as e:
             warnings.warn(f"[Neo] Failed to cast array to {self.dtype}: {e}. Falling back to float32.")
             self.dtype = 'float32'
+            self.value = xp.array(self.value, dtype=xp.float32)
 
-            if isinstance(self.value, xp.ndarray):
-                self.value = self.value.astype(xp.float32)
-            else:
-                self.value = xp.asarray(self.value, dtype=xp.float32)
-                
+
 
     def astype(self, new_dtype: str) -> "Array":
         if new_dtype not in DTYPE_MAP:
-            warnings.warn(f"[Neo] Unsupported dtype '{new_dtype}', falling back to {DEFAULT_DTYPE}.")
+            warnings.warn(f"Unsupported dtype '{new_dtype}', falling back to {DEFAULT_DTYPE}.")
             new_dtype = DEFAULT_DTYPE
 
         xp = self.xp
@@ -64,10 +62,11 @@ class Array:
         target_dtype = xp.__dict__[DTYPE_MAP[new_dtype][backend]]
 
         try:
-            new_value = xp.asarray(self.value, dtype=target_dtype)
+            new_value = self.value.astype(target_dtype)
         except Exception as e:
-            warnings.warn(f"[Neo] Failed to cast to {new_dtype}: {e}. Keeping original value.")
-            return self
+            warnings.warn(f"[Neo] astype failed: {e}. Falling back to float32.")
+            new_value = self.value.astype(xp.float32)
+            new_dtype = 'float32'
 
         return Array(new_value, device=self.device, dtype=new_dtype)
 
