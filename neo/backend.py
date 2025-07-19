@@ -8,16 +8,14 @@ except ImportError:
     cp = None
     HAS_CUPY = False
 
-def get_xp(device):
+def get_xp(device: str):
     if device is None or device == 'cpu':
         return np
     elif device == 'cuda':
         if not HAS_CUPY:
-            warnings.warn(
-                "CUDA backend requested, not available. Falling back to NumPy.",
-                RuntimeWarning
+            raise RuntimeError(
+                "CUDA backend requested, but CuPy is not installed."
             )
-            return np
         return cp
     else:
         raise ValueError(f"Unknown device: {device}")

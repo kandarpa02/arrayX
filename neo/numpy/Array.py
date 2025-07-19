@@ -40,11 +40,15 @@ class Array:
         dtype_obj = get_dtype(self.dtype, self.device)
 
         try:
-            # Unwrap if it's a nested Array object
+            # Unwrap nested Array
             if hasattr(self.value, "value"):
                 self.value = self.value.value
 
-            # If already an xp array with correct dtype
+            # Defensive check: CuPy on CPU
+            if self.device == 'cuda' and isinstance(self.value, np.ndarray):
+                raise TypeError("[Neo] NumPy array assigned to CUDA device. Use CuPy or convert with `cp.asarray`.")
+
+            # If already correct backend
             if isinstance(self.value, xp.ndarray):
                 if self.value.dtype != dtype_obj:
                     self.value = self.value.astype(dtype_obj)
@@ -206,10 +210,12 @@ class Array:
     def __rdiv__(self, other):
         return self.__truediv__(other)
     
+    def ones_like(self, dtype='float32') -> "Array":
+        return Array(self.xp.ones_like(self.value, dtype=get_dtype(dtype, self.device)),
+                    device=self.device, dtype=dtype)
 
-
-    def ones_like(self, dtype='float32'): return Array(self.xp.ones_like(self.value))
-
-    def zeros_like(self, dtype='float32'): return Array(self.xp.zeros_like(self.value))
+    def zeros_like(self, dtype='float32') -> "Array":
+        return Array(self.xp.zeros_like(self.value, dtype=get_dtype(dtype, self.device)),
+                    device=self.device, dtype=dtype)
 
     
