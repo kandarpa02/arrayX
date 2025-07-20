@@ -7,6 +7,6 @@ def randn(shape, device=None, dtype = 'float32'):
 
 def randint(low, high=None, size=None, device=None, dtype = 'float32'):
     xp = get_xp(device)
-    return array(xp.asarray(xp.random.randint(low, high, size)), dtype=dtype device=device)
+    return array(xp.asarray(xp.random.randint(low, high, size)), dtype=dtype, device=device)
 
 __all__ = []
