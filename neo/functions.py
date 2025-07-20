@@ -1,9 +1,19 @@
 from neo._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
 # from neo.numpy.Array import Array 
 from typing import Callable
+import warnings
+
+
+def neo_function(fn):
+    warnings.warn(
+        "'@neo_function' is deprecated. Please use '@function' instead.",
+        DeprecationWarning,
+        stacklevel=2 
+    )
+    return function(fn)  
 
     
-def neo_function(fn_object: Callable):
+def function(fn_object: Callable):
     from neo.numpy.Array import Array
 
     def wrapped(*arrays):

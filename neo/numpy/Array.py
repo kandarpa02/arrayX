@@ -6,7 +6,7 @@ from neo.numpy.math.arithmetic_policy import *
 from neo.numpy.math.log_policy import *
 from neo.numpy.math.unary_policy import *
 from neo.numpy.math.reductions_policy import *
-from neo.functions import neo_function
+from neo.functions import function
 import numpy as np
 
 __all__ = []
@@ -34,7 +34,7 @@ class Array:
 
     def __post_init__(self):
         if self.device == 'cuda' and not HAS_CUPY:
-            raise RuntimeError("[Neo] CUDA requested but CuPy is not available.")
+            raise RuntimeError("[Neo] CUDA requested but not available.")
 
         xp = self.xp
         dtype_obj = get_dtype(self.dtype, self.device)
@@ -180,23 +180,23 @@ class Array:
         return id(self)
     
     def __neg__(self):
-        return neo_function(negative_op)(self)
+        return function(negative_op)(self)
 
     def __add__(self, other):
         b = safe_input(other)
-        return neo_function(addition)(self, b)
+        return function(addition)(self, b)
     
     def __sub__(self, other):
         b = safe_input(other)
-        return neo_function(subtraction)(self, b)
+        return function(subtraction)(self, b)
     
     def __mul__(self, other):
         b = safe_input(other)
-        return neo_function(multiplication)(self, b)
+        return function(multiplication)(self, b)
     
     def __truediv__(self, other):
         b = safe_input(other)
-        return neo_function(division)(self, b)
+        return function(division)(self, b)
 
     def __radd__(self, other):
         return self.__add__(other)

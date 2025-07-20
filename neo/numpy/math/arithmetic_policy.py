@@ -1,7 +1,7 @@
 from neo._src.autograd import Node, TapeContext, Policy
 from neo.backend import get_xp
 from .log_policy import log_e
-from neo.functions import neo_function
+from neo.functions import function
 from .helpers import define_device
 
 
@@ -70,7 +70,7 @@ class power(Policy):
     
     def backward(self, grad):
         x, y, z = self.ctx.release
-        return (y * x ** (y-1)) * grad, (z * neo_function(log_e)(x)) * grad
+        return (y * x ** (y-1)) * grad, (z * function(log_e)(x)) * grad
     
 
 class negative(Policy):
