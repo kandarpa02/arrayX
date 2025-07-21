@@ -153,7 +153,7 @@ class Array:
     # def dtype(self): return self.d_type
 
 
-    def __eq__(self, other): return self.value == other.value
+    def __eq__(self, other): return isinstance(other, Array) and self.value == other.value
 
     def __len__(self):
         """Returns the number of elements along the first axis."""
