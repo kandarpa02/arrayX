@@ -18,7 +18,7 @@ def if_xnary(grads):
         if g.ndim == 0:
             return g.reshape(1)
         elif g.ndim == 1:
-            return g[None, :]  # e.g. (D,) → (1, D)
+            return g[None, :]
         return g
 
     if isinstance(grads, tuple):
@@ -32,38 +32,40 @@ def value_and_grad(fn: Callable, debug=False):
         TapeContext.push(tape.nodes)
         out = fn(*args)
         TapeContext.pop()
-
+        
         device = define_device(out.value)
         xp = get_xp(device=device)
-
-        out_grad = xp.ones_like(out.value, dtype=out.value.dtype)  # shape-matching seed gradient
+        
+        if xp.isscalar(out.value):
+            out_grad = xp.array(1.0, dtype=out.value.dtype)
+        else:
+            out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
+        
         grad_dict = {id(out): out_grad}
-        if debug:
-            print("grad_dict_init\n", grad_dict)
-
+        
         for node in reversed(tape.nodes):
             node_out_grad = grad_dict.get(id(node.output))
             if node_out_grad is None:
                 continue
-
+                
             grad_inputs = node.bwd_fn(grad=node_out_grad)
             if grad_inputs is None:
                 continue
-
-            grad_inputs = if_xnary(grad_inputs)
-
+                
+            # Handle both scalar and array gradients
+            if not isinstance(grad_inputs, tuple):
+                grad_inputs = (grad_inputs,)
+                
             for parent, grad in zip(node.parents, grad_inputs):
+                if grad is None:
+                    continue
+                    
                 pid = id(parent)
                 if pid in grad_dict:
                     grad_dict[pid] += grad
                 else:
                     grad_dict[pid] = grad
-        if debug:
-            print("grad_dict_post (shape) \n", grad_dict)
-
-        # arg_grads = {arg: grad_dict.get(id(arg), 0) for arg in args}
-        return out, tuple(grad_dict.values())
-
+                    
+        return out, tuple(grad_dict.get(id(arg)) for arg in args)
+    
     return wrapped_function
-
-
