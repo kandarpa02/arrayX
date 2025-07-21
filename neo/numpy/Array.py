@@ -139,8 +139,6 @@ class Array:
     # def dtype(self): return self.d_type
 
 
-    def __hash__(self): return hash(self._id)
-
     def __eq__(self, other): return isinstance(other, Array) and self._id == other._id
 
     def __len__(self):
