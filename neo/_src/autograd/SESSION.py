@@ -26,7 +26,7 @@ def if_xnary(grads):
     else:
         return _fix(grads)
 
-def value_and_grad(fn: Callable):
+def value_and_grad(fn: Callable, debug=False):
     def wrapped_function(*args):
         tape = Tape()
         TapeContext.push(tape.nodes)
@@ -38,6 +38,8 @@ def value_and_grad(fn: Callable):
 
         out_grad = xp.ones_like(out.value, dtype=out.value.dtype)  # shape-matching seed gradient
         grad_dict = {id(out): out_grad}
+        if debug:
+            print("grad_dict_init\n", grad_dict)
 
         for node in reversed(tape.nodes):
             node_out_grad = grad_dict.get(id(node.output))
@@ -56,6 +58,8 @@ def value_and_grad(fn: Callable):
                     grad_dict[pid] += grad
                 else:
                     grad_dict[pid] = grad
+        if debug:
+            print("grad_dict_post\n", grad_dict)
 
         # arg_grads = {arg: grad_dict.get(id(arg), 0) for arg in args}
         return out, tuple(*grad_dict.values())
