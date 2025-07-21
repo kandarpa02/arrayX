@@ -30,6 +30,6 @@ def reshape(data: Array, *shape):
     return Array(xp.reshape(data.value, shape), device=data.device, dtype=data.dtype)
 
 def argmax(data: Array, axis=None):
-    xp = get_xp(define_device(data))
+    xp = get_xp(define_device(data.value))
     out = xp.argmax(data.value, axis=axis) 
     return Array(out, device=data.device, dtype="int32")
