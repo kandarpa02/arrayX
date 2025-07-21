@@ -33,3 +33,12 @@ def argmax(data: Array, axis=None):
     xp = get_xp(define_device(data.value))
     out = xp.argmax(data.value, axis=axis) 
     return Array(out, device=data.device, dtype="int32")
+
+def zeros(shape, device='cpu', dtype='float32') -> Array:
+    xp = get_xp(device)
+    return Array(xp.zeros(shape), dtype=dtype, device=device)
+
+
+def ones(shape, device='cpu', dtype='float32') -> Array:
+    xp = get_xp(device)
+    return Array(xp.ones(shape), dtype=dtype, device=device)
