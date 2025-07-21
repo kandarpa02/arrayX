@@ -25,7 +25,8 @@ def if_xnary(grads):
         return tuple(_fix(g) for g in grads)
     else:
         return _fix(grads)
-
+    
+    
 def value_and_grad(fn: Callable, debug=False):
     def wrapped_function(*args):
         tape = Tape()
@@ -47,25 +48,30 @@ def value_and_grad(fn: Callable, debug=False):
             node_out_grad = grad_dict.get(id(node.output))
             if node_out_grad is None:
                 continue
-                
+
             grad_inputs = node.bwd_fn(grad=node_out_grad)
             if grad_inputs is None:
                 continue
-                
-            # Handle both scalar and array gradients
+
             if not isinstance(grad_inputs, tuple):
                 grad_inputs = (grad_inputs,)
                 
             for parent, grad in zip(node.parents, grad_inputs):
                 if grad is None:
                     continue
-                    
+
                 pid = id(parent)
                 if pid in grad_dict:
                     grad_dict[pid] += grad
                 else:
                     grad_dict[pid] = grad
-                    
-        return out, grad_dict
-    
+
+        input_grads = {}
+        for arg in args:
+            grad = grad_dict.get(id(arg))
+            if grad is not None:
+                input_grads[arg] = grad
+
+        return out, input_grads
+
     return wrapped_function
