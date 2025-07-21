@@ -57,8 +57,16 @@ def value_and_grad(fn: Callable):
                 else:
                     grad_dict[pid] = grad
 
-        arg_grads = {arg: grad_dict.get(id(arg), 0) for arg in args}
-        return out, arg_grads
+        arg_grads = {}
+
+        for arg in args:
+            if isinstance(arg, dict):
+                for k, v in arg.items():
+                    arg_grads.setdefault(arg, {})[k] = grad_dict.get(id(v), 0)
+            else:
+                arg_grads[arg] = grad_dict.get(id(arg), 0)
+
+                return out, arg_grads
 
     return wrapped_function
 
