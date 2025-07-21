@@ -66,6 +66,6 @@ def value_and_grad(fn: Callable, debug=False):
                 else:
                     grad_dict[pid] = grad
                     
-        return out, tuple(grad_dict.get(id(arg)) for arg in args)
+        return out, tuple(grad_dict.values())
     
     return wrapped_function
