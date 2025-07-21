@@ -129,6 +129,9 @@ class Array:
     @property
     def shape(self): return self.value.shape
 
+    def reshape(self, *args):
+        return self.xp.reshape(self.value, args)
+
     # @property
     # def dtype(self): return self.d_type
 
