@@ -28,3 +28,7 @@ def reshape(data: Array, *shape):
     
     xp = get_xp(define_device(data))
     return Array(xp.reshape(data.value, shape), device=data.device, dtype=data.dtype)
+
+def argmax(data:Array, axis=None):
+    xp = get_xp(define_device(data))
+    return Array(xp.argmax(data.value), device=data.device, dtype=data.dtype)
