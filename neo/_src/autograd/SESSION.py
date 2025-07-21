@@ -1,6 +1,7 @@
 from neo._src.autograd import Node, Tape, TapeContext
 from typing import Callable
 import numpy as np
+# from neonet.numpy import array
 from neo.backend import get_xp
 
 def define_device(x):
@@ -25,22 +26,6 @@ def if_xnary(grads):
     else:
         return _fix(grads)
 
-def flatten_args(args):
-    flat = []
-
-    def _flatten(x):
-        if isinstance(x, (list, tuple)):
-            for item in x:
-                _flatten(item)
-        elif isinstance(x, dict):
-            for item in x.values():
-                _flatten(item)
-        else:
-            flat.append(x)
-
-    _flatten(args)
-    return flat
-
 def value_and_grad(fn: Callable):
     def wrapped_function(*args):
         tape = Tape()
@@ -51,7 +36,7 @@ def value_and_grad(fn: Callable):
         device = define_device(out.value)
         xp = get_xp(device=device)
 
-        out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
+        out_grad = xp.ones_like(out.value, dtype=out.value.dtype)  # shape-matching seed gradient
         grad_dict = {id(out): out_grad}
 
         for node in reversed(tape.nodes):
@@ -72,8 +57,9 @@ def value_and_grad(fn: Callable):
                 else:
                     grad_dict[pid] = grad
 
-        flat_args = flatten_args(args)
-        flat_grads = [grad_dict.get(id(arg), 0) for arg in flat_args]
-        return out, flat_grads
+        # arg_grads = {arg: grad_dict.get(id(arg), 0) for arg in args}
+        return out, tuple(*grad_dict.values())
 
     return wrapped_function
+
+
