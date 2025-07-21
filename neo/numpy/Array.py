@@ -37,18 +37,28 @@ class Array:
             raise RuntimeError("[Neo] CUDA requested but not available.")
 
         xp = self.xp
-        dtype_obj = get_dtype(self.dtype, self.device)
 
+        # If dtype was not explicitly set, infer from value
+        if self.dtype is None or self.dtype == DEFAULT_DTYPE:
+            try:
+                # Try to infer dtype from actual value
+                if isinstance(self.value, (np.ndarray, cp.ndarray)):
+                    self.dtype = str(self.value.dtype)
+                else:
+                    # Fallback to float32
+                    self.dtype = DEFAULT_DTYPE
+            except Exception:
+                self.dtype = DEFAULT_DTYPE
+
+        dtype_obj = get_dtype(self.dtype, self.device)
+        
         try:
-            # Unwrap nested Array
             if hasattr(self.value, "value"):
                 self.value = self.value.value
 
-            # Defensive check: CuPy on CPU
             if self.device == 'cuda' and isinstance(self.value, np.ndarray):
-                raise TypeError("[Neo] NumPy array assigned to CUDA device. Use CuPy or convert with `cp.asarray`.")
+                raise TypeError("[Neo] NumPy array assigned to CUDA device.")
 
-            # If already correct backend
             if isinstance(self.value, xp.ndarray):
                 if self.value.dtype != dtype_obj:
                     self.value = self.value.astype(dtype_obj)
@@ -57,6 +67,7 @@ class Array:
 
         except Exception as e:
             raise TypeError(f"[Neo] Failed to cast array to {self.dtype}: {e}")
+
 
 
 
