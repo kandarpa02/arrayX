@@ -11,14 +11,16 @@ import numpy as np
 
 __all__ = []
 
-def safe_input(x):
+def safe_input(self, x):
     if not isinstance(x, Array):
-        try:
-            x = Array(x)
-        except Exception:
-            raise ValueError(f"{x} is not a valid dtype to convert to Array")
+        if isinstance(x, (int, float)):
+            x = Array(np.array(x), device=self.device, dtype=self.dtype)
+        else:
+            try:
+                x = Array(x, device=self.device, dtype=self.dtype)
+            except Exception:
+                raise ValueError(f"{type(x)} is not convertible to Array")
     return x
-
 
 import warnings
 from ..config import get_dtype, DTYPE_MAP
@@ -38,37 +40,38 @@ class Array:
 
         xp = self.xp
 
-        # If dtype was not explicitly set, infer from value
+        # Determine dtype
         if self.dtype is None or self.dtype == DEFAULT_DTYPE:
             try:
-                # Try to infer dtype from actual value
-                if isinstance(self.value, (np.ndarray, cp.ndarray)):
+                if hasattr(self.value, "dtype"):
                     self.dtype = str(self.value.dtype)
                 else:
-                    # Fallback to float32
                     self.dtype = DEFAULT_DTYPE
             except Exception:
                 self.dtype = DEFAULT_DTYPE
 
-        dtype_obj = get_dtype(self.dtype, self.device)
-        
         try:
             if hasattr(self.value, "value"):
                 self.value = self.value.value
 
-            if self.device == 'cuda' and isinstance(self.value, np.ndarray):
+            # Explicit scalar handling
+            if isinstance(self.value, (int, float, complex, bool)):
+                # Create device-specific scalar array
+                if self.device == 'cuda':
+                    self.value = cp.array(self.value, dtype=getattr(cp, self.dtype))
+                else:
+                    self.value = np.array(self.value, dtype=getattr(np, self.dtype))
+            elif self.device == 'cuda' and isinstance(self.value, np.ndarray):
                 raise TypeError("[Neo] NumPy array assigned to CUDA device.")
-
-            if isinstance(self.value, xp.ndarray):
-                if self.value.dtype != dtype_obj:
-                    self.value = self.value.astype(dtype_obj)
+            elif isinstance(self.value, xp.ndarray):
+                if self.value.dtype != getattr(xp, self.dtype):
+                    self.value = self.value.astype(getattr(xp, self.dtype))
             else:
-                self.value = xp.asarray(self.value, dtype=dtype_obj)
+                # Handle non-scalar types
+                self.value = xp.asarray(self.value, dtype=getattr(xp, self.dtype))
 
         except Exception as e:
             raise TypeError(f"[Neo] Failed to cast array to {self.dtype}: {e}")
-
-
 
 
     def astype(self, new_dtype: str) -> "Array":
@@ -198,19 +201,19 @@ class Array:
         return function(negative_op)(self)
 
     def __add__(self, other):
-        b = safe_input(other)
+        b = safe_input(self, other)
         return function(addition)(self, b)
     
     def __sub__(self, other):
-        b = safe_input(other)
+        b = safe_input(self, other)
         return function(subtraction)(self, b)
     
     def __mul__(self, other):
-        b = safe_input(other)
+        b = safe_input(self, other)
         return function(multiplication)(self, b)
     
     def __truediv__(self, other):
-        b = safe_input(other)
+        b = safe_input(self, other)
         return function(division)(self, b)
 
     def __radd__(self, other):
