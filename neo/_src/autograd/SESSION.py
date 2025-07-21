@@ -26,7 +26,7 @@ def if_xnary(grads):
     else:
         return _fix(grads)
     
-    
+
 def value_and_grad(fn: Callable, debug=False):
     def wrapped_function(*args):
         tape = Tape()
@@ -37,11 +37,13 @@ def value_and_grad(fn: Callable, debug=False):
         device = define_device(out.value)
         xp = get_xp(device=device)
         
-        if xp.isscalar(out.value):
-            out_grad = xp.array(1.0, dtype=out.value.dtype)
-        else:
-            out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
-        
+        # if xp.isscalar(out.value):
+        #     out_grad = xp.array(1.0, dtype=out.value.dtype)
+        # else:
+        #     out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
+
+        out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
+
         grad_dict = {id(out): out_grad}
         
         for node in reversed(tape.nodes):
