@@ -22,6 +22,9 @@ def full(shape, data, device='cpu', dtype='float32') -> Array:
     return Array(xp.full(shape, data), dtype=dtype, device=device)
 
 
-def reshape(data:Array, shape:tuple):
+def reshape(data: Array, *shape):
+    if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+        shape = shape[0]
+    
     xp = get_xp(define_device(data))
-    return Array(xp.reshape(data.value, shape))
+    return Array(xp.reshape(data.value, shape), device=data.device, dtype=data.dtype)

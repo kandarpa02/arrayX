@@ -129,8 +129,11 @@ class Array:
     @property
     def shape(self): return self.value.shape
 
-    def reshape(self, *args):
-        return Array(self.xp.reshape(self.value, args), device=self.device, dtype=self.dtype)
+
+    def reshape(self, *shape):
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return Array(self.xp.reshape(self.value, shape), device=self.device, dtype=self.dtype)
 
     # @property
     # def dtype(self): return self.d_type
