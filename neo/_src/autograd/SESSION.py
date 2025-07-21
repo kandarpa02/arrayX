@@ -59,10 +59,10 @@ def value_and_grad(fn: Callable, debug=False):
                 else:
                     grad_dict[pid] = grad
         if debug:
-            print("grad_dict_post\n", grad_dict)
+            print("grad_dict_post \n", grad_dict)
 
         # arg_grads = {arg: grad_dict.get(id(arg), 0) for arg in args}
-        return out, tuple(*grad_dict.values())
+        return out, tuple(grad_dict.values())
 
     return wrapped_function
 
