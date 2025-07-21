@@ -130,7 +130,7 @@ class Array:
     def shape(self): return self.value.shape
 
     def reshape(self, *args):
-        return self.xp.reshape(self.value, args)
+        return Array(self.xp.reshape(self.value, args), device=self.device, dtype=self.dtype)
 
     # @property
     # def dtype(self): return self.d_type
