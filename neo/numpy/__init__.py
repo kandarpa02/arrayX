@@ -1,1 +1,1 @@
-from ..numpy.functional import array, full
+from ..numpy.functional import array, full, reshape, argmax
