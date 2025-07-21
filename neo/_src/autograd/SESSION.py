@@ -20,12 +20,18 @@ def unpack_tuple(tup):
 
 
 def if_xnary(grads):
-    if isinstance(grads, tuple):
-        grads = map(rectify_shapes, list(grads))
-    else:
-        grads = grads.reshape(1) if (grads.ndim < 1) else grads
+    def _fix(g):
+        if g.ndim == 0:
+            return g.reshape(1)
+        elif g.ndim == 1:
+            return g[None, :]  # promotes to (1, D) if needed
+        return g
 
-    return grads
+
+    if isinstance(grads, tuple):
+        return tuple(_fix(g) for g in grads)
+    else:
+        return _fix(grads)
 
 
 def value_and_grad(fn: Callable):
