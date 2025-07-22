@@ -13,10 +13,10 @@ def get_cache_key(fn: Callable, args: tuple):
     try:
         key_data = (
             fn.__name__,
-            tuple((id(a), getattr(a, "value", a).shape) for a in args),
+            tuple((id(a), getattr(a, "value", None).shape) for a in args),
         )
         return hashlib.sha1(pickle.dumps(key_data)).hexdigest()
-    except Exception:
+    except Exception as e:
         return None
 
 def value_and_grad(fn: Callable):
@@ -29,16 +29,26 @@ def value_and_grad(fn: Callable):
 
         if use_cache:
             tape_nodes = GRAPH_CACHE[key]
-            out = GRAPH_CACHE.get(f"{key}_output")
         else:
             tape = Tape()
             TapeContext.push(tape.nodes)
             out = fn(*args)
             TapeContext.pop()
-            tape_nodes = tape.nodes
+
+            # Sanitize tape to avoid caching values
+            sanitized_nodes = [
+                Node(output=None, parents=node.parents, bwd_fn=node.bwd_fn)
+                for node in tape.nodes
+            ]
+
             if key:
-                GRAPH_CACHE[key] = tape_nodes
-                GRAPH_CACHE[f"{key}_output"] = out
+                GRAPH_CACHE[key] = sanitized_nodes
+            tape_nodes = tape.nodes  # still use the original (fresh) one for this run
+
+        # Always run forward again for fresh values
+        TapeContext.push([])
+        out = fn(*args)
+        TapeContext.pop()
 
         out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
         grad_dict = {id(out): out_grad}
@@ -54,7 +64,7 @@ def value_and_grad(fn: Callable):
 
             if not isinstance(grad_inputs, tuple):
                 grad_inputs = (grad_inputs,)
-                
+
             for parent, grad in zip(node.parents, grad_inputs):
                 if grad is None:
                     continue
