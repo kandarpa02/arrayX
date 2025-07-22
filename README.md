@@ -61,6 +61,8 @@ Eventually, I also plan to integrate **Triton** for equation fusion and `jit`-co
 
 ### Experiment: 3-Layer MLP on MNIST
 
+Here is the colab link of the test, you can inspect that too [`neo-mnist`](https://drive.google.com/file/d/1mp5-0ZaFidrBdPWbzSt391DQaoAVujHp/view?usp=sharing)
+
 - Architecture: `784 → 256 → 64 → 10`
 - Optimizer: Vanilla Gradient Descent (`Neo`), SGD (`Torch`)
 - LR: `0.5`
