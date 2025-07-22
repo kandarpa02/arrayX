@@ -15,7 +15,7 @@
 
 ### Overview
 
-**Neo** is an experimental machine learning system designed with an emphasis on **minimalism**, **functional design**, and **performance clarity**. At its core, it implements a fully custom **reverse-mode autodiff engine** called:
+**neo** is an experimental machine learning system designed with an emphasis on **minimalism**, **functional design**, and **performance clarity**. At its core, it implements a fully custom **reverse-mode autodiff engine** called:
 
 ### `Eager Functional Reverse-Mode Autodiff (EFRMA)`
 
@@ -26,7 +26,7 @@ This system:
 - Lets you define **custom gradients** via `autograd.Policy`,
 - Optimizes execution overhead by avoiding dynamic metadata or nested Python object trees.
 
-Unlike PyTorch, **Neo Arrays do not store**:
+Unlike PyTorch, **neo Arrays do not store**:
 - `.grad`
 - `.grad_fn`
 - Backward hooks
@@ -37,17 +37,17 @@ This leads to:
 - Simpler tracing
 - Explicit, functional-style programs
 
-Neo is not a full ML framework—but a **research-grade functional autodiff system**, targeting researchers and autodiff hobbyists who want *clarity over abstraction*.
+neo is not a full ML framework, but a **research-grade functional autodiff system**, targeting researchers and autodiff hobbyists who want *clarity over abstraction*.
 
 
 ### Design Principle:
-**neonet** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch**. 
+**neo** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch**. 
 
 
 ### The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend, which is great — but while developing **neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I leveraged **NumPy** (which uses `BLAS`) for CPU and **CuPy** (which wraps `cuBLAS`) for GPU acceleration — making prototyping fast and efficient.
+Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I leveraged **NumPy** (which uses `BLAS`) for CPU and **CuPy** (which wraps `cuBLAS`) for GPU acceleration, making prototyping fast and efficient.
 
-**Note:** For now, Neo uses NumPy/CuPy as the backend array libraries. In the near future, these will be replaced by `torch.Tensor.detach()` — using **only the raw Torch tensor object**, without its autograd, module system, or Python overhead — to achieve high-performance array math on both CPU and GPU.
+**Note:** For now, Neo uses NumPy/CuPy as the backend array libraries. In the near future, these will be replaced by `torch.Tensor.detach()` using **only the raw Torch tensor object**, without its autograd, module system, or Python overhead to achieve high-performance array math on both CPU and GPU.
 
 Eventually, I also plan to integrate **Triton** for equation fusion and `jit`-compiled GPU kernels.
 
@@ -98,7 +98,7 @@ Epoch: 10 Train Acc: 0.9949  Val Acc: 0.9755  (13.89s)
 
 
 #### Minimal Example:
-Here is a minimal example how we can define new backward logic and compute grads with **neonet**
+Here is a minimal example how we can define new backward logic and compute grads with **neo**
 
 ```python
 import neo
@@ -200,13 +200,13 @@ Matrix b_JAX_grad:
 **I am building this for my personal use so I picked my favourite features only! For that this library might feel verbose, still I encourage y'll to try it out, its fun ⌁**
 
 
-### Why Neo?
+### Why neo?
 
-Neo is intentionally *not* built to be production-ready but to:
+neo is intentionally *not* built to be production-ready but to:
 - Study the anatomy of modern autodiff
 - Create a functional playground to tinker with gradients
 - Allow you to define your own rules, math, and optimization stack
 
 ---
 
-**I am building this for personal research, so Neo reflects my favorite abstractions. It may feel verbose, but every layer is transparent—and fun ⌁**
+**I am building this for personal research, so neo reflects my favorite abstractions. It may feel verbose, but every layer is transparentand fun ⌁**
