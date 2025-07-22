@@ -1,9 +1,10 @@
 from neo._src.autograd import Policy
 from neo.backend import get_xp
 from .helpers import define_device
+from neo.functions import function
 
-
-class sum_op(Policy):
+@function
+class sum(Policy):
     def forward(self, x, axis=None, keepdims=False):
         self.ctx.save(x, axis, keepdims)
         xp = get_xp(device=define_device(x))
@@ -18,8 +19,8 @@ class sum_op(Policy):
             grad = xp.expand_dims(grad, axis=axis)
         return xp.ones_like(x) * grad
 
-
-class mean_op(Policy):
+@function
+class mean(Policy):
     def forward(self, x, axis=None, keepdims=False):
         self.ctx.save(x, axis, keepdims)
         xp = get_xp(device=define_device(x))
@@ -32,8 +33,8 @@ class mean_op(Policy):
             grad = xp.expand_dims(grad, axis=axis)
         return xp.ones_like(x) * grad / N
 
-
-class max_op(Policy):
+@function
+class max(Policy):
     def forward(self, x, axis=None, keepdims=False):
         xp = get_xp(device=define_device(x))
         out = xp.max(x, axis=axis, keepdims=keepdims)

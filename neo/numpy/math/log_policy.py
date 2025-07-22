@@ -1,8 +1,10 @@
 from neo._src.autograd import Policy
 from neo.backend import get_xp
 from .helpers import define_device
+from neo.functions import function
 
-class log_e(Policy):
+@function
+class log(Policy):
     def forward(self, x):
         self.ctx.save(x)
         return self.lib.log(x)
@@ -11,8 +13,8 @@ class log_e(Policy):
         x, = self.ctx.release
         return grad / x
 
-
-class log_10(Policy):
+@function
+class log10(Policy):
     def forward(self, x):
         self.ctx.save(x)
         return self.lib.log10(x)

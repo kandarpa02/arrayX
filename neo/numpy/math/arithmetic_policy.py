@@ -3,7 +3,7 @@ from neo.backend import get_xp
 from .log_policy import log_e
 from neo.functions import function
 from .helpers import define_device
-
+from neo.functions import function
 
 # neo/
 # └── math/
@@ -84,8 +84,8 @@ class negative(Policy):
         return -grad
     
 
-
-class matmul_op(Policy):
+@function
+class matmul(Policy):
     def forward(self, X, Y):
         self.ctx.save(X, Y)
         return X @ Y

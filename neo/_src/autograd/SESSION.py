@@ -36,11 +36,6 @@ def value_and_grad(fn: Callable, debug=False):
         
         device = define_device(out.value)
         xp = get_xp(device=device)
-        
-        # if xp.isscalar(out.value):
-        #     out_grad = xp.array(1.0, dtype=out.value.dtype)
-        # else:
-        #     out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
 
         out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
 
