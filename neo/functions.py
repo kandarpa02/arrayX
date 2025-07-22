@@ -12,12 +12,18 @@ def neo_function(fn):
     )
     return function(fn)  
 
+def define_device(x):
+    import numpy as np
+    device = 'cpu'
+    if not isinstance(x, np.ndarray):
+        device = 'cuda'
+    return device
     
 def function(fn_object: Callable):
     from neo.numpy.Array import Array
 
     def wrapped(*arrays):
-        device = arrays[0].device
+        device = define_device(arrays[0])
         xp = get_xp(device=device)
         op = fn_object(device)
         valargs = []
