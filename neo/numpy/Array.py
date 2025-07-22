@@ -6,6 +6,7 @@ from neo.numpy.math.arithmetic_policy import *
 from neo.numpy.math.log_policy import *
 from neo.numpy.math.unary_policy import *
 from neo.numpy.math.reductions_policy import *
+from neo.functions import function
 import numpy as np
 
 __all__ = []
@@ -197,23 +198,23 @@ class Array:
         return id(self)
     
     def __neg__(self):
-        return neg(self)
+        return function(negative_op)(self)
 
     def __add__(self, other):
         b = safe_input(self, other)
-        return add(self, b)
+        return function(addition)(self, b)
     
     def __sub__(self, other):
         b = safe_input(self, other)
-        return sub(self, b)
+        return function(subtraction)(self, b)
     
     def __mul__(self, other):
         b = safe_input(self, other)
-        return mul(self, b)
+        return function(multiplication)(self, b)
     
     def __truediv__(self, other):
         b = safe_input(self, other)
-        return div(self, b)
+        return function(division)(self, b)
 
     def __radd__(self, other):
         return self.__add__(other)

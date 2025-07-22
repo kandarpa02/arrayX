@@ -1,4 +1,5 @@
 from neo._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
+# from neo.numpy.Array import Array 
 from typing import Callable
 import warnings
 from neo.backend import get_xp
@@ -11,17 +12,12 @@ def neo_function(fn):
     )
     return function(fn)  
 
-def define_device(x):
-    import numpy as np
-    device = 'cpu'
-    if not isinstance(x, np.ndarray):
-        device = 'cuda'
-    return device
     
 def function(fn_object: Callable):
     from neo.numpy.Array import Array
+
     def wrapped(*arrays):
-        device = define_device(arrays[0])
+        device = arrays[0].device
         xp = get_xp(device=device)
         op = fn_object(device)
         valargs = []

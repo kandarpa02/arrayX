@@ -1,8 +1,6 @@
 from neo._src.autograd import Policy
 from neo.backend import get_xp
 from .helpers import define_device
-from neo.functions import function
-
 
 class negative_op(Policy):
     def forward(self, x):
@@ -14,8 +12,8 @@ class negative_op(Policy):
     def backward(self, grad):
         return -grad
 
-@function
-class absolute(Policy):
+
+class absolute_op(Policy):
     def forward(self, x):
         self.ctx.save(x)
         device = define_device(x)
@@ -28,8 +26,8 @@ class absolute(Policy):
         xp = get_xp(device=device)
         return grad * xp.sign(x)
 
-@function
-class sign(Policy):
+
+class signum_op(Policy):
     def forward(self, x):
         self.ctx.save()
         device = define_device(x)
@@ -41,8 +39,8 @@ class sign(Policy):
         xp = get_xp(device=device)
         return xp.zeros_like(grad)
 
-@function
-class exp(Policy):
+
+class exponential_op(Policy):
     def forward(self, x):
         self.ctx.save(x)
         device = define_device(x)
@@ -55,8 +53,8 @@ class exp(Policy):
         xp = get_xp(device=device)
         return xp.exp(x) * grad
 
-@function
-class sqrt(Policy):
+
+class sqrt_op(Policy):
     def forward(self, x):
         self.ctx.save(x)
         device = define_device(x)
