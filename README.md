@@ -17,7 +17,7 @@
 
 **neo** is an experimental machine learning system designed with an emphasis on **minimalism**, **functional design**, and **performance clarity**. At its core, it implements a fully custom **reverse-mode autodiff engine** called:
 
-### `Eager Functional Reverse-Mode Autodiff (EFRMA)`
+### Eager Functional Reverse-Mode Autodiff (EFRMA)
 
 This system:
 
@@ -66,7 +66,7 @@ Eventually, I also plan to integrate **Triton** for equation fusion and `jit`-co
 - LR: `0.5`
 - Batch size: `64 (train)`, `1000 (val)`
 
-> **Remark:** Despite Neo being built entirely in Python (including its autodiff system and optimizer), it still achieves **~95–98% of PyTorch's performance** on a 3-layer MLP for MNIST, thanks to its clean reversed-mode design and raw array backends (NumPy/CuPy). The performance gap mainly comes from Python-side overhead and lack of fused ops, which can be further optimized in future versions.
+> **Remark:** Despite Neo being built entirely in Python (including its autodiff system and just a standard gradient descent optimizer), it still achieves **~95–98% of PyTorch's performance** on a 3-layer MLP for MNIST, thanks to its clean reversed-mode design and raw array backends (NumPy/CuPy). The performance gap mainly comes from Python-side overhead and lack of fused ops, which can be further optimized in future versions.
 
 #### Neo
 ```
