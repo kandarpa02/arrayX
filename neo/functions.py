@@ -1,5 +1,4 @@
 from neo._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
-# from neo.numpy.Array import Array 
 from typing import Callable
 import warnings
 from neo.backend import get_xp
@@ -21,7 +20,6 @@ def define_device(x):
     
 def function(fn_object: Callable):
     from neo.numpy.Array import Array
-
     def wrapped(*arrays):
         device = define_device(arrays[0])
         xp = get_xp(device=device)

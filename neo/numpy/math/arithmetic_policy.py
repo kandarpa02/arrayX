@@ -1,9 +1,8 @@
 from neo._src.autograd import Node, TapeContext, Policy
 from neo.backend import get_xp
-from .log_policy import log_e
+from .log_policy import log
 from neo.functions import function
 from .helpers import define_device
-from neo.functions import function
 
 # neo/
 # └── math/
@@ -19,7 +18,8 @@ from neo.functions import function
 
 
 # add
-class addition(Policy):
+@function
+class add(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
         return x + y
@@ -30,7 +30,8 @@ class addition(Policy):
     
 
 # sub
-class subtraction(Policy):
+@function
+class sub(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
         return x - y
@@ -41,7 +42,8 @@ class subtraction(Policy):
 
 
 # mul 
-class multiplication(Policy):
+@function
+class mul(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
         return x * y
@@ -52,7 +54,8 @@ class multiplication(Policy):
     
 
 # div
-class division(Policy):
+@function
+class div(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
         return x / y
@@ -61,7 +64,7 @@ class division(Policy):
         x, y = self.ctx.release
         return 1/y * grad, -x/(y**2) * grad
 
-
+@function
 class power(Policy):
     def forward(self, x, y):
         z = x ** y
@@ -70,10 +73,10 @@ class power(Policy):
     
     def backward(self, grad):
         x, y, z = self.ctx.release
-        return (y * x ** (y-1)) * grad, (z * function(log_e)(x)) * grad
+        return (y * x ** (y-1)) * grad, (z * function(log)(x)) * grad
     
-
-class negative(Policy):
+@function
+class neg(Policy):
     def forward(self, x):
         self.ctx.save()
         device = define_device(x)
