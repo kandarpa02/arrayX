@@ -1,12 +1,6 @@
 from typing import Any
 from dataclasses import dataclass
 
-def define_device(x):
-    import numpy as np
-    device = 'cpu'
-    if not isinstance(x, np.ndarray):
-        device = 'cuda'
-    return device
 
 @dataclass
 class context:
@@ -16,15 +10,12 @@ class context:
     def release(self):
         return self.data
 
-class Policy:
-    def __init__(self, device='cpu'):
-        self.ctx = context()
-        self.device = device
+from neo._torch import neolib
 
-    @property
-    def lib(self):
-        from neo.backend import get_xp
-        return get_xp(self.device)
+class Policy:
+    def __init__(self):
+        self.ctx = context()
+        self.neolib = neolib
     
     def forward(self, *args):
         raise NotImplementedError

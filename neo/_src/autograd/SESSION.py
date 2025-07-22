@@ -1,10 +1,6 @@
 from neo._src.autograd import Node, Tape, TapeContext
 from typing import Callable
-import numpy as np
-from neo.backend import get_xp
-
-def define_device(x):
-    return 'cpu' if isinstance(x, np.ndarray) else 'cuda'
+from neo._torch import neolib
 
 def rectify_shapes(val):
     return val.reshape(1) if val.ndim < 1 else val
@@ -32,11 +28,8 @@ def value_and_grad(fn: Callable, debug=False):
         TapeContext.push(tape.nodes)
         out = fn(*args)
         TapeContext.pop()
-        
-        device = define_device(out.value)
-        xp = get_xp(device=device)
 
-        out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
+        out_grad = neolib.ones_like(out.data)
 
         grad_dict = {id(out): out_grad}
         

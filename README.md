@@ -12,6 +12,7 @@
 
 ***# neo: more functional than PyTorch less complex than JAX***
 
+## *This readme is outdated, backend is being changed, will update this soon!*
 
 ### Overview
 

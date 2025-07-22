@@ -1,22 +1,21 @@
 from neo._src.autograd import Policy
-from neo.backend import get_xp
-from .helpers import define_device
+import torch
+from ..math import neolib
 
 class log_e(Policy):
     def forward(self, x):
         self.ctx.save(x)
-        return self.lib.log(x)
+        return neolib.log(x)
     
     def backward(self, grad):
         x, = self.ctx.release
         return grad / x
 
-
 class log_10(Policy):
     def forward(self, x):
         self.ctx.save(x)
-        return self.lib.log10(x)
+        return neolib.log10(x)
 
     def backward(self, grad):
         x, = self.ctx.release
-        return grad / (x * self.lib.log(10))
+        return grad / (x * torch.log(torch.tensor(10)))

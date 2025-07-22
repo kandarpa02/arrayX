@@ -1,9 +1,6 @@
 from neo._src.autograd import Node, TapeContext, Policy
-from neo.backend import get_xp
-from .log_policy import log_e
-from neo.functions import function
 from .helpers import define_device
-
+from ..math import neolib
 
 # neo/
 # └── math/
@@ -15,7 +12,6 @@ from .helpers import define_device
 #     ├── reductions.py        # sum, mean, max 
 #     ├── wrappers.py          # User-facing wrappers for Policy ops
 #     └── utils.py             # EPSILON, clamp, safe_log, etc.
-
 
 
 # add
@@ -62,7 +58,7 @@ class division(Policy):
         return 1/y * grad, -x/(y**2) * grad
 
 
-class power(Policy):
+class power_op(Policy):
     def forward(self, x, y):
         z = x ** y
         self.ctx.save(x, y, z)
@@ -70,14 +66,13 @@ class power(Policy):
     
     def backward(self, grad):
         x, y, z = self.ctx.release
-        return (y * x ** (y-1)) * grad, (z * function(log_e)(x)) * grad
+        return (y * x ** (y-1)) * grad, (z * neolib.log(x)) * grad
     
 
 class negative(Policy):
     def forward(self, x):
         self.ctx.save()
         device = define_device(x)
-        xp = get_xp(device=device)
         return -x
     
     def backward(self, grad):

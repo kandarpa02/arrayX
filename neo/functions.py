@@ -1,8 +1,7 @@
 from neo._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
-# from neo.numpy.Array import Array 
+from neo._torch import neolib
 from typing import Callable
 import warnings
-from neo.backend import get_xp
 
 def neo_function(fn):
     warnings.warn(
@@ -12,31 +11,21 @@ def neo_function(fn):
     )
     return function(fn)  
 
-def define_device(x):
-    import numpy as np
-    device = 'cpu'
-    if not isinstance(x, np.ndarray):
-        device = 'cuda'
-    return device
-    
 def function(fn_object: Callable):
-    from neo.numpy.Array import Array
+    from neo._torch.lite_tensor import LiteTensor
 
     def unwrap(data):
-        return data.value if isinstance(data, Array) else data
+        return data.data if isinstance(data, LiteTensor) else data
 
-    def wrapped(*arrays):
-        d = unwrap(arrays[0])
-        device = define_device(d)
-        xp = get_xp(device=device)
-        op = fn_object(device)
+    def wrapped(*values):
+        op = fn_object()
         valargs = []
         boolargs = []
 
-        for arg in arrays:
-            if isinstance(arg, Array):
-                valargs.append(arg.value)
-            elif isinstance(arg, xp.ndarray):
+        for arg in values:
+            if isinstance(arg, LiteTensor):
+                valargs.append(arg.data)
+            elif isinstance(arg, neolib.Tensor):
                 valargs.append(arg)
             elif isinstance(arg, (bool, type(None), int)): 
                 boolargs.append(arg)
@@ -45,9 +34,9 @@ def function(fn_object: Callable):
 
         newargs = valargs + boolargs
         out_val = op.forward(*newargs)
-        out = Array(out_val, device=device)
+        out = LiteTensor(out_val)
 
-        node = GRAPH_MANAGER.Node(out, arrays, op.backward)
+        node = GRAPH_MANAGER.Node(out, values, op.backward)
         GRAPH_MANAGER.TapeContext.add_node(node)
         return out
 
