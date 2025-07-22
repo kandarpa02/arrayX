@@ -12,9 +12,6 @@ def neo_function(fn):
     )
     return function(fn)  
 
-def unwrap(data):
-    return data.value if isinstance(data, Array) else data
-
 def define_device(x):
     import numpy as np
     device = 'cpu'
@@ -24,6 +21,9 @@ def define_device(x):
     
 def function(fn_object: Callable):
     from neo.numpy.Array import Array
+
+    def unwrap(data):
+        return data.value if isinstance(data, Array) else data
 
     def wrapped(*arrays):
         d = unwrap(arrays[0])
