@@ -213,6 +213,11 @@ class Array:
         b = safe_input(self, other)
         return function(multiplication)(self, b)
     
+    def __pow__(self, other):
+        b = safe_input(self, other)
+        return function(power)(self, b)
+
+    
     def __truediv__(self, other):
         b = safe_input(self, other)
         return function(division)(self, b)
@@ -228,6 +233,9 @@ class Array:
     
     def __rdiv__(self, other):
         return self.__truediv__(other)
+    
+    def __rpow__(self, other):
+        return self.__pow__(other)
     
     def ones_like(self, dtype='float32') -> "Array":
         return Array(self.xp.ones_like(self.value, dtype=get_dtype(dtype, self.device)),
