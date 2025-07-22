@@ -197,8 +197,6 @@ Matrix b_JAX_grad:
 [3. 3.]"""
 
 ```
-**I am building this for my personal use so I picked my favourite features only! For that this library might feel verbose, still I encourage y'll to try it out, its fun ⌁**
-
 
 ### Why neo?
 
