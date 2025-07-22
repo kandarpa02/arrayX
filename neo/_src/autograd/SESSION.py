@@ -29,21 +29,28 @@ def value_and_grad(fn: Callable):
 
         if use_cache:
             tape_nodes = GRAPH_CACHE[key]
+            # You must run a fresh forward to get actual outputs
+            TapeContext.push([])
+            out = fn(*args)
+            tape_nodes = TapeContext.pop()
         else:
             tape = Tape()
             TapeContext.push(tape.nodes)
             out = fn(*args)
             TapeContext.pop()
 
-            # Sanitize tape to avoid caching values
-            sanitized_nodes = [
-                Node(output=None, parents=node.parents, bwd_fn=node.bwd_fn)
-                for node in tape.nodes
-            ]
-
+            # Cache a sanitized copy
             if key:
-                GRAPH_CACHE[key] = sanitized_nodes
-            tape_nodes = tape.nodes  # still use the original (fresh) one for this run
+                GRAPH_CACHE[key] = [
+                    Node(output=None, parents=node.parents, bwd_fn=node.bwd_fn)
+                    for node in tape.nodes
+                ]
+
+            tape_nodes = tape.nodes  # use real tape for this run
+
+                    # if key:
+                    #     GRAPH_CACHE[key] = sanitized_nodes
+                    # tape_nodes = tape.nodes  # still use the original (fresh) one for this run
 
         # Always run forward again for fresh values
         TapeContext.push([])
