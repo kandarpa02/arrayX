@@ -12,13 +12,44 @@
 
 ***# neo: more functional than PyTorch less complex than JAX***
 
+
+### Overview
+
+**Neo** is an experimental machine learning system designed with an emphasis on **minimalism**, **functional design**, and **performance clarity**. At its core, it implements a fully custom **reverse-mode autodiff engine** called:
+
+### `Eager Functional Reverse-Mode Autodiff (EFRMA)`
+
+This system:
+
+- Tracks computations via a stateless **eager trace** (like a tape),
+- Uses explicit `value_and_grad` evaluations (no global flags or magic),
+- Lets you define **custom gradients** via `autograd.Policy`,
+- Optimizes execution overhead by avoiding dynamic metadata or nested Python object trees.
+
+Unlike PyTorch, **Neo Arrays do not store**:
+- `.grad`
+- `.grad_fn`
+- Backward hooks
+- Recursive metadata
+
+This leads to:
+- Lower Python overhead
+- Simpler tracing
+- Explicit, functional-style programs
+
+Neo is not a full ML framework—but a **research-grade functional autodiff system**, targeting researchers and autodiff hobbyists who want *clarity over abstraction*.
+
+
 ### Design Principle:
 **neonet** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch**. 
 
 
 ### The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend but, which is great but while developing **neonet** I thought; learning C/C++ and then working on the framework will take so long and there is already **NumPy** which is backed by `BLAS` library and **CuPy** which uses `cuBLAS` under the hood. So I integrated them for **CPU** and **GPU** acceleration.
-In future I will integrate **Triton** to enable equation fusing and `Jit` compilation (*GPU only*)
+Leading ML frameworks use C/C++ and CUDA as backend, which is great — but while developing **neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I leveraged **NumPy** (which uses `BLAS`) for CPU and **CuPy** (which wraps `cuBLAS`) for GPU acceleration — making prototyping fast and efficient.
+
+**Note:** For now, Neo uses NumPy/CuPy as the backend array libraries. In the near future, these will be replaced by `torch.Tensor.detach()` — using **only the raw Torch tensor object**, without its autograd, module system, or Python overhead — to achieve high-performance array math on both CPU and GPU.
+
+Eventually, I also plan to integrate **Triton** for equation fusion and `jit`-compiled GPU kernels.
 
 
 ### Benchmark: Backward Pass for 100 runs (smaller is better)
@@ -26,6 +57,44 @@ In future I will integrate **Triton** to enable equation fusing and `Jit` compil
 |--------|-----|---------|---------|
 | CUDA   | 0.8731s | 0.8330s | PyTorch |
 | CPU    | 25.76s  | 29.30s  | Neo |
+
+
+### Experiment: 3-Layer MLP on MNIST
+
+- Architecture: `784 → 256 → 64 → 10`
+- Optimizer: Vanilla Gradient Descent (`Neo`), SGD (`Torch`)
+- LR: `0.5`
+- Batch size: `64 (train)`, `1000 (val)`
+
+> **Remark:** Despite Neo being built entirely in Python (including its autodiff system and optimizer), it still achieves **~95–98% of PyTorch's performance** on a 3-layer MLP for MNIST, thanks to its clean reversed-mode design and raw array backends (NumPy/CuPy). The performance gap mainly comes from Python-side overhead and lack of fused ops, which can be further optimized in future versions.
+
+#### Neo
+```
+Epoch: 1  Train Acc: 0.8641  Val Acc: 0.8076  (17.14s)
+Epoch: 2  Train Acc: 0.9282  Val Acc: 0.8728  (17.72s)
+Epoch: 3  Train Acc: 0.9422  Val Acc: 0.8845  (16.86s)
+Epoch: 4  Train Acc: 0.9491  Val Acc: 0.8883  (17.51s)
+Epoch: 5  Train Acc: 0.9536  Val Acc: 0.9036  (16.84s)
+Epoch: 6  Train Acc: 0.9577  Val Acc: 0.9030  (17.38s)
+Epoch: 7  Train Acc: 0.9592  Val Acc: 0.9106  (16.95s)
+Epoch: 8  Train Acc: 0.9615  Val Acc: 0.9135  (17.02s)
+Epoch: 9  Train Acc: 0.9657  Val Acc: 0.9117  (17.30s)
+Epoch: 10 Train Acc: 0.9660  Val Acc: 0.9211  (16.86s)
+```
+
+#### PyTorch
+```
+Epoch: 1  Train Acc: 0.9277  Val Acc: 0.9607  (14.19s)
+Epoch: 2  Train Acc: 0.9677  Val Acc: 0.9469  (13.42s)
+Epoch: 3  Train Acc: 0.9784  Val Acc: 0.9705  (13.43s)
+Epoch: 4  Train Acc: 0.9833  Val Acc: 0.9737  (13.56s)
+Epoch: 5  Train Acc: 0.9851  Val Acc: 0.9671  (13.50s)
+Epoch: 6  Train Acc: 0.9879  Val Acc: 0.9756  (13.51s)
+Epoch: 7  Train Acc: 0.9915  Val Acc: 0.9766  (13.72s)
+Epoch: 8  Train Acc: 0.9946  Val Acc: 0.9752  (14.41s)
+Epoch: 9  Train Acc: 0.9940  Val Acc: 0.9792  (13.81s)
+Epoch: 10 Train Acc: 0.9949  Val Acc: 0.9755  (13.89s)
+```
 
 
 #### Minimal Example:
@@ -129,3 +198,15 @@ Matrix b_JAX_grad:
 
 ```
 **I am building this for my personal use so I picked my favourite features only! For that this library might feel verbose, still I encourage y'll to try it out, its fun ⌁**
+
+
+### Why Neo?
+
+Neo is intentionally *not* built to be production-ready but to:
+- Study the anatomy of modern autodiff
+- Create a functional playground to tinker with gradients
+- Allow you to define your own rules, math, and optimization stack
+
+---
+
+**I am building this for personal research, so Neo reflects my favorite abstractions. It may feel verbose, but every layer is transparent—and fun ⌁**
