@@ -1,66 +1,46 @@
 from neo._src.autograd import Node, Tape, TapeContext
-from neo._src.autograd._graph_cache import GRAPH_CACHE
-from neo.backend import get_xp
 from typing import Callable
 import numpy as np
-import hashlib
-import pickle
+from neo.backend import get_xp
 
 def define_device(x):
     return 'cpu' if isinstance(x, np.ndarray) else 'cuda'
 
-def get_cache_key(fn: Callable, args: tuple):
-    try:
-        key_data = (
-            fn.__name__,
-            tuple((id(a), getattr(a, "value", None).shape) for a in args),
-        )
-        return hashlib.sha1(pickle.dumps(key_data)).hexdigest()
-    except Exception as e:
-        return None
+def rectify_shapes(val):
+    return val.reshape(1) if val.ndim < 1 else val
 
-def value_and_grad(fn: Callable):
-    def wrapped(*args):
-        device = define_device(args[0].value)
-        xp = get_xp(device=device)
+def unpack_tuple(tup):
+    return {f'x{i+1}': value for i, value in enumerate(tup)}
 
-        key = get_cache_key(fn, args)
-        use_cache = key in GRAPH_CACHE if key else False
+def if_xnary(grads):
+    def _fix(g):
+        if g.ndim == 0:
+            return g.reshape(1)
+        elif g.ndim == 1:
+            return g[None, :]
+        return g
 
-        if use_cache:
-            tape_nodes = GRAPH_CACHE[key]
-            # You must run a fresh forward to get actual outputs
-            TapeContext.push([])
-            out = fn(*args)
-            tape_nodes = TapeContext.pop()
-        else:
-            tape = Tape()
-            TapeContext.push(tape.nodes)
-            out = fn(*args)
-            TapeContext.pop()
+    if isinstance(grads, tuple):
+        return tuple(_fix(g) for g in grads)
+    else:
+        return _fix(grads)
+    
 
-            # Cache a sanitized copy
-            if key:
-                GRAPH_CACHE[key] = [
-                    Node(output=None, parents=node.parents, bwd_fn=node.bwd_fn)
-                    for node in tape.nodes
-                ]
-
-            tape_nodes = tape.nodes  # use real tape for this run
-
-                    # if key:
-                    #     GRAPH_CACHE[key] = sanitized_nodes
-                    # tape_nodes = tape.nodes  # still use the original (fresh) one for this run
-
-        # Always run forward again for fresh values
-        TapeContext.push([])
+def value_and_grad(fn: Callable, debug=False):
+    def wrapped_function(*args):
+        tape = Tape()
+        TapeContext.push(tape.nodes)
         out = fn(*args)
         TapeContext.pop()
+        
+        device = define_device(out.value)
+        xp = get_xp(device=device)
 
         out_grad = xp.ones_like(out.value, dtype=out.value.dtype)
-        grad_dict = {id(out): out_grad}
 
-        for node in reversed(tape_nodes):
+        grad_dict = {id(out): out_grad}
+        
+        for node in reversed(tape.nodes):
             node_out_grad = grad_dict.get(id(node.output))
             if node_out_grad is None:
                 continue
@@ -71,19 +51,23 @@ def value_and_grad(fn: Callable):
 
             if not isinstance(grad_inputs, tuple):
                 grad_inputs = (grad_inputs,)
-
+                
             for parent, grad in zip(node.parents, grad_inputs):
                 if grad is None:
                     continue
-                pid = id(parent)
-                grad_dict[pid] = grad_dict.get(pid, 0) + grad
 
-        input_grads = {
-            arg: grad_dict[id(arg)]
-            for arg in args
-            if id(arg) in grad_dict
-        }
+                pid = id(parent)
+                if pid in grad_dict:
+                    grad_dict[pid] += grad
+                else:
+                    grad_dict[pid] = grad
+
+        input_grads = {}
+        for arg in args:
+            grad = grad_dict.get(id(arg))
+            if grad is not None:
+                input_grads[arg] = grad
 
         return out, input_grads
 
-    return wrapped
+    return wrapped_function
