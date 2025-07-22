@@ -1,9 +1,11 @@
 from neo.numpy.Array import Array
 from ..config import get_dtype
-
 from neo.backend import get_xp
 import numpy as np
 
+
+def unwrap(data):
+    return data.value if isinstance(data, Array) else data
 
 def define_device(x):
     import numpy as np
@@ -42,21 +44,36 @@ def ones(shape, device='cpu', dtype='float32') -> Array:
     xp = get_xp(device)
     return Array(xp.ones(shape), dtype=dtype, device=device)
 
-def zeros_like(data, dtype='float32')-> Array:
-    if isinstance(data, Array):
-        device = define_device(data.value)
-    else:
-        device = define_device(data)
-
+def zeros_like(data, dtype='float32') -> Array:
+    raw = unwrap(data)
+    device = define_device(raw)
     xp = get_xp(device=device)
-    return Array(xp.zeros_like(data), dtype=dtype, device=device)
+    return Array(xp.zeros_like(raw, dtype=dtype), dtype=dtype, device=device)
 
 
-def ones_like(data, dtype='float32')-> Array:
-    if isinstance(data, Array):
-        device = define_device(data.value)
-    else:
-        device = define_device(data)
-
+def ones_like(data, dtype='float32') -> Array:
+    raw = unwrap(data)
+    device = define_device(raw)
     xp = get_xp(device=device)
-    return Array(xp.ones_like(data), dtype=dtype, device=device)
+    return Array(xp.ones_like(raw, dtype=dtype), dtype=dtype, device=device)
+
+
+def full_like(data, fill_value, dtype='float32') -> Array:
+    raw = unwrap(data)
+    device = define_device(raw)
+    xp = get_xp(device=device)
+    return Array(xp.full_like(raw, fill_value, dtype=dtype), dtype=dtype, device=device)
+
+
+def rand_like(data, dtype='float32') -> Array:
+    raw = unwrap(data)
+    device = define_device(raw)
+    xp = get_xp(device=device)
+    return Array(xp.random.rand(*raw.shape).astype(dtype), dtype=dtype, device=device)
+
+
+def randn_like(data, dtype='float32') -> Array:
+    raw = unwrap(data)
+    device = define_device(raw)
+    xp = get_xp(device=device)
+    return Array(xp.random.randn(*raw.shape).astype(dtype), dtype=dtype, device=device)
