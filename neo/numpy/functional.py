@@ -38,7 +38,14 @@ def zeros(shape, device='cpu', dtype='float32') -> Array:
     xp = get_xp(device)
     return Array(xp.zeros(shape), dtype=dtype, device=device)
 
+def zeros_like(shape, device='cpu', dtype='float')-> Array:
+    xp = get_xp(device=device)
+    return Array(xp.zeros_like(shape), dtype=dtype, device=device)
 
 def ones(shape, device='cpu', dtype='float32') -> Array:
     xp = get_xp(device)
     return Array(xp.ones(shape), dtype=dtype, device=device)
+
+def ones_like(shape, device='cpu', dtype='float')-> Array:
+    xp = get_xp(device=device)
+    return Array(xp.ones_like(shape), dtype=dtype, device=device)
