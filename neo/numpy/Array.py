@@ -14,7 +14,8 @@ __all__ = []
 def safe_input(self, x):
     if not isinstance(x, Array):
         if isinstance(x, (int, float)):
-            x = Array(np.array(x), device=self.device, dtype=self.dtype)
+            xp = get_xp(device=self.device) 
+            x = Array(xp.array(x, dtype=self.dtype), device=self.device, dtype=self.dtype)
         else:
             try:
                 x = Array(x, device=self.device, dtype=self.dtype)
