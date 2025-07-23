@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 GRAPH_MANAGER.cpp
+neo/neomizer/SGD/*.cpp
+
+sgd_c.cpp
 # Distribution / packaging
 .Python
 build/
