@@ -25,7 +25,7 @@ def if_xnary(grads):
 def value_and_grad(fn: Callable):
     def wrapped_function(*args):
         tape = Tape()
-        TapeContext.push(tape.nodes)
+        TapeContext.push(tape)
         out = fn(*args)
         TapeContext.pop()
 
@@ -33,7 +33,7 @@ def value_and_grad(fn: Callable):
 
         grad_dict = {id(out): out_grad}
         
-        for node in reversed(tape.nodes):
+        for node in reversed(tape):
             node_out_grad = grad_dict.get(id(node.output))
             if node_out_grad is None:
                 continue

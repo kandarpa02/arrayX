@@ -1,4 +1,4 @@
-from neo._src.autograd import GRAPH_MANAGER, FUNCTION_REGISTER
+from neo._src.autograd import FUNCTION_REGISTER
 from neo._torch import neolib
 from typing import Callable
 import warnings
@@ -13,6 +13,7 @@ def neo_function(fn):
 
 def function(fn_object: Callable):
     from neo._torch.lite_tensor import LiteTensor
+    from NeoNet.neo._src.autograd import GRAPH_MANAGER
 
     def unwrap(data):
         return data.data if isinstance(data, LiteTensor) else data
