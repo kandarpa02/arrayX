@@ -22,7 +22,7 @@ def if_xnary(grads):
         return _fix(grads)
     
 
-def value_and_grad(fn: Callable, debug=False):
+def value_and_grad(fn: Callable):
     def wrapped_function(*args):
         tape = Tape()
         TapeContext.push(tape.nodes)

@@ -1,20 +1,7 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="neo/media/neo_d_git1.png">
-    <source media="(prefers-color-scheme: light)" srcset="neo/media/neo_l1.png">
-    <img alt="Neo Logo" src="neo_logo_light.png" width="auto">
-  </picture>
-</p>
 
-
----
-
-
-***# neo: more functional than PyTorch less complex than JAX***
+# neo
 
 ## *This readme is outdated, backend is being changed, will update this soon!*
-
-### Overview
 
 **neo** is an experimental machine learning system designed with an emphasis on **minimalism**, **functional design**, and **performance clarity**. At its core, it implements a fully custom **reverse-mode autodiff engine** called:
 
