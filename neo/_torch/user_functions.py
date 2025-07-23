@@ -119,3 +119,9 @@ def cat(tensors, dim=0):
 
 def stack(tensors, dim=0):
     return Lite(neolib.stack([t.data for t in tensors], dim=dim))
+
+def argmax(x, dim=None, keepdim=False):
+    return Lite(neolib.argmax(x.data, dim=dim, keepdim=keepdim))
+
+def argmin(x, dim=None, keepdim=False):
+    return Lite(neolib.argmin(x.data, dim=dim, keepdim=keepdim))
