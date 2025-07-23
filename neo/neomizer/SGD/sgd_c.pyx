@@ -1,4 +1,3 @@
-# distutils: language = c++
 import torch
 
 cdef class FunctionalSGD:
@@ -12,10 +11,13 @@ cdef class FunctionalSGD:
         self.nesterov = nesterov
 
     def step(self, object param, object grad, dict state):
-        velocity = state.get("velocity", torch.zeros_like(param))
-        velocity.mul_(self.momentum).add_(grad)
+        cdef object velocity = state.get("velocity", torch.zeros_like(param))
+
+        velocity = velocity.mul_(self.momentum).add_(grad)
+
         if self.nesterov:
-            update = grad + self.momentum * velocity
+            update = grad.add(velocity, alpha=self.momentum)
         else:
             update = velocity
+            
         return param - self.lr * update, {"velocity": velocity}
