@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Kandarpa Sarkar
+# This file is part of the NeoNet project and is licensed under the MIT License.
+# See the LICENSE file in the root directory for more information.
+
 from neo._src.autograd import Node, Tape, TapeContext
 from typing import Callable
 from neo._torch import neolib

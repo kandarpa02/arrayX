@@ -21,15 +21,19 @@ setup(
     url="https://github.com/kandarpa02/neonet.git",
     packages=find_packages(),
     ext_modules=ext_modules,
+    install_requires=[
+        "torch>=2.0",
+        "numpy>=1.22"
+    ],
     python_requires=">=3.8",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries",
     ],
-    license="Apache-2.0",
+    license="MIT",
     zip_safe=False,
 )

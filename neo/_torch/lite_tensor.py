@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Kandarpa Sarkar
+# This file is part of the NeoNet project and is licensed under the MIT License.
+# See the LICENSE file in the root directory for more information.
+
 from typing import NamedTuple
 from torch import tensor, Tensor, dtype as Dtype
 from neo._torch import neolib
