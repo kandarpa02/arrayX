@@ -1,5 +1,4 @@
 from neo._src.autograd import Policy
-from neo.backend import get_xp
 from .helpers import define_device
 from ..math import neolib
 
