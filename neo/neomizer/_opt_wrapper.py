@@ -24,11 +24,12 @@ class NeoOptimizer:
         )
 
     def step(self, grads: dict[Any, torch.Tensor]) -> dict[Any, Any]:
-        grad = grads.get(p, None)
-        if grad is not None:
-            if grad.shape != p.data.shape:
-                grad = grad.expand_as(p.data) 
-            p.data.grad = grad
+        for p in self.params.values():
+            grad = grads.get(p, None)
+            if grad is not None:
+                if grad.shape != p.data.shape:
+                    grad = grad.expand_as(p.data)
+                p.data.grad = grad
 
 
         self.optimizer.step()
