@@ -2,7 +2,6 @@ from typing import NamedTuple
 from torch import tensor, Tensor, dtype as Dtype
 from neo._torch import neolib
 from .functions import *
-# from .d_config import _dtype
 import numpy as np
 
 def safe_input(self, x):
@@ -11,11 +10,27 @@ def safe_input(self, x):
             x = LiteTensor(x, d_type=self.dtype, device=self.device)
     return x
 
-def _dtype(d_type):
-    return getattr(torch, d_type) if isinstance(d_type, str) else d_type
+def _device(arg):
+    if arg is None:
+        return None
+    if isinstance(arg, torch.device):
+        return arg
+    if isinstance(arg, str):
+        return torch.device(arg)
+    raise TypeError(f"Invalid device: {arg}")
 
-def _device(device):
-    return torch.device(device) if isinstance(device, str) else device
+def _dtype(arg):
+    if arg is None:
+        return None
+    if isinstance(arg, torch.dtype):
+        return arg
+    if isinstance(arg, str):
+        try:
+            return getattr(torch, arg)
+        except AttributeError:
+            raise TypeError(f"Invalid dtype string: '{arg}'")
+    raise TypeError(f"Invalid dtype: {arg}")
+
 
 class LiteTensor:
     def __init__(
@@ -57,7 +72,7 @@ class LiteTensor:
     def __str__(self):
         prefix = " " * len("LiteTensor(")
         arr_str = np.array2string(
-            self.data.numpy(),
+            self.data.cpu().numpy(),
             precision=4,
             suppress_small=True,
             threshold=6,
@@ -67,6 +82,53 @@ class LiteTensor:
             prefix=prefix
         )
         return f"LiteTensor({arr_str})"
+    
+    def to(self, *args, **kwargs):
+        """
+        - .to(dtype)
+        - .to(device)
+        - .to(device, dtype)
+        - .to(other_tensor)
+        - .to(dtype=dtype, device=device)
+        """
+        if len(args) == 1:
+            arg = args[0]
+            if isinstance(arg, LiteTensor):
+                return LiteTensor(self.data.to(arg.data.device, arg.data.dtype))
+            elif isinstance(arg, torch.Tensor):
+                return LiteTensor(self.data.to(arg.device, arg.dtype))
+            elif isinstance(arg, (str, torch.device)):
+                return LiteTensor(self.data.to(device=_device(arg)))
+            elif isinstance(arg, (torch.dtype, str)):
+                return LiteTensor(self.data.to(dtype=_dtype(arg)))
+            else:
+                raise TypeError(f"Unsupported type for .to(): {type(arg)}")
+        
+        elif len(args) == 2:
+            device = _device(args[0])
+            dtype = _dtype(args[1])
+            return LiteTensor(self.data.to(device=device, dtype=dtype))
+
+        elif not args and kwargs:
+            device = _device(kwargs.get("device")) if "device" in kwargs else None
+            dtype = _dtype(kwargs.get("dtype")) if "dtype" in kwargs else None
+            return LiteTensor(self.data.to(device=device, dtype=dtype))
+        
+        else:
+            raise TypeError("Invalid arguments passed to .to()")
+        
+
+    def cuda(self, device=None):
+        """Moves the tensor to CUDA. Optionally specify device like 0 or 'cuda:1'."""
+        return LiteTensor(self.data.cuda(device=device))
+
+    def cpu(self):
+        """Moves the tensor to CPU."""
+        return LiteTensor(self.data.cpu())
+
+    def numpy(self):
+        """Returns the underlying tensor as a NumPy array. Must be on CPU."""
+        return self.data.detach().cpu().numpy()
 
     
     def reshape(self, *shape):
