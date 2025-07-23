@@ -1,0 +1,85 @@
+import torch
+from typing import Any, Callable
+from torch.optim import (
+    SGD as _SGD,
+    Adam as _Adam,
+    AdamW as _AdamW,
+    Adadelta as _Adadelta,
+    Adagrad as _Adagrad,
+    Adamax as _Adamax,
+    ASGD as _ASGD,
+    LBFGS as _LBFGS,
+    NAdam as _NAdam,
+    RAdam as _RAdam,
+    RMSprop as _RMSprop,
+    Rprop as _Rprop
+)
+
+class NeoOptimizer:
+    def __init__(self, params: dict[Any, Any], torch_opt_cls: Callable, **kwargs):
+        self.params = params  
+        self.optimizer = torch_opt_cls(
+            [p.data for p in params.values()],
+            **kwargs
+        )
+
+    def step(self, grads: dict[Any, torch.Tensor]) -> dict[Any, Any]:
+        for p in self.params.values():
+            p.data.grad = grads.get(p, None)
+
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+
+        for p in self.params.values():
+            p.data = p.data.detach().requires_grad_()
+
+        return self.params
+
+
+class SGD(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _SGD, **kwargs)
+
+class Adam(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _Adam, **kwargs)
+
+class AdamW(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _AdamW, **kwargs)
+
+class Adadelta(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _Adadelta, **kwargs)
+
+class Adagrad(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _Adagrad, **kwargs)
+
+class Adamax(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _Adamax, **kwargs)
+
+class ASGD(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _ASGD, **kwargs)
+
+class LBFGS(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _LBFGS, **kwargs)
+
+class NAdam(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _NAdam, **kwargs)
+
+class RAdam(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _RAdam, **kwargs)
+
+class RMSprop(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _RMSprop, **kwargs)
+
+class Rprop(NeoOptimizer):
+    def __init__(self, params, **kwargs):
+        super().__init__(params, _Rprop, **kwargs)
