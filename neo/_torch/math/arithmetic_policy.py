@@ -1,5 +1,4 @@
 from neo._src.autograd import Node, TapeContext, Policy
-from .helpers import define_device
 from ..math import neolib
 
 # neo/
@@ -72,7 +71,6 @@ class power_op(Policy):
 class negative(Policy):
     def forward(self, x):
         self.ctx.save()
-        device = define_device(x)
         return -x
     
     def backward(self, grad):
