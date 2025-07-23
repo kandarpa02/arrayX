@@ -58,7 +58,7 @@ class LiteTensor:
     def __repr__(self):
         prefix = " " * len("LiteTensor(")
         arr_str = np.array2string(
-            self.data.numpy(),
+            self.data.cpu().numpy(),
             precision=4,
             suppress_small=True,
             threshold=6,
