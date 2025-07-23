@@ -231,4 +231,8 @@ class LiteTensor:
     
     def ones_like(self):
         out = neolib.ones_like(self.data)
-        return LiteTensor(out, dtype=out.dtype, device=out.device)
+        return LiteTensor(out)
+    
+    def zeros_like(self):
+        out = neolib.zeros_like(self.data)
+        return LiteTensor(out)
