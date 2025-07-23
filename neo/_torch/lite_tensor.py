@@ -33,14 +33,7 @@ def _dtype(arg):
 
 
 class LiteTensor:
-    def __init__(
-            self, 
-            data,
-            d_type = '',
-            device = '',
-
-              ):
-        
+    def __init__(self, data, d_type='', device=''):
         if not isinstance(data, Tensor):
             dtype = _dtype(d_type) if d_type else None
             dev = _device(device) if device else None
@@ -48,8 +41,15 @@ class LiteTensor:
         else:
             self.data = data.detach()
 
+            # Apply dtype/device conversion even if input is a tensor
+            dtype = _dtype(d_type) if d_type else None
+            dev = _device(device) if device else None
+            if dtype or dev:
+                self.data = self.data.to(dtype=dtype, device=dev)
+
         self.d_type = self.data.dtype
         self.device = self.data.device
+
 
     @property
     def dtype(self):
