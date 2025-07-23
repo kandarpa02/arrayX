@@ -17,7 +17,7 @@ def neo_function(fn):
 
 def function(fn_object: Callable):
     from neo._torch.lite_tensor import LiteTensor
-    from NeoNet.neo._src.autograd import GRAPH_MANAGER
+    from neo._src.autograd import GRAPH_MANAGER
 
     def unwrap(data):
         return data.data if isinstance(data, LiteTensor) else data
