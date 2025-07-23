@@ -55,9 +55,9 @@ def value_and_grad(fn: Callable):
 
                 pid = id(parent)
                 if pid in grad_dict:
-                    grad_dict[pid] += grad
+                    grad_dict[pid].add_(grad) 
                 else:
-                    grad_dict[pid] = grad
+                    grad_dict[pid] = grad.clone()  
 
         input_grads = {}
         for arg in args:

@@ -4,3 +4,4 @@ from neo._torch.functions import *
 
 from neo._torch.user_functions import *
 from neo._torch.random import *
+from neo._torch import neolib
