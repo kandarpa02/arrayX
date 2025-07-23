@@ -1,43 +1,88 @@
 from neo._torch.lite_tensor import LiteTensor
 from neo._torch import neolib
+from ._helper import _dtype, _device
 
 def Lite(data, dtype='', device=''):
     return LiteTensor(data=data, d_type=dtype, device=device)
 
+
 # === Tensor Constructors ===
 
 def full(shape, fill_value, dtype='', device=''):
-    return Lite(neolib.full(shape, fill_value, dtype=dtype or None, device=device or None))
+    return Lite(neolib.full(
+        shape, fill_value,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def ones(shape, dtype='', device=''):
-    return Lite(neolib.ones(shape, dtype=dtype or None, device=device or None))
+    return Lite(neolib.ones(
+        shape,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def zeros(shape, dtype='', device=''):
-    return Lite(neolib.zeros(shape, dtype=dtype or None, device=device or None))
+    return Lite(neolib.zeros(
+        shape,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def arange(start, end=None, step=1, dtype='', device=''):
-    return Lite(neolib.arange(start, end, step, dtype=dtype or None, device=device or None))
+    dtype = _dtype(dtype) if dtype else None
+    device = _device(device) if device else None
+
+    if end is None:
+        return Lite(neolib.arange(0, start, step, dtype=dtype, device=device))
+    else:
+        return Lite(neolib.arange(start, end, step, dtype=dtype, device=device))
+
 
 def empty(shape, dtype='', device=''):
-    return Lite(neolib.empty(shape, dtype=dtype or None, device=device or None))
+    return Lite(neolib.empty(
+        shape,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def rand(shape, dtype='', device=''):
-    return Lite(neolib.rand(shape, dtype=dtype or None, device=device or None))
+    return Lite(neolib.rand(
+        shape,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def randn(shape, dtype='', device=''):
-    return Lite(neolib.randn(shape, dtype=dtype or None, device=device or None))
+    return Lite(neolib.randn(
+        shape,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 
 # === _like Constructors ===
 
 def ones_like(x, dtype='', device=''):
-    return Lite(neolib.ones_like(x.data, dtype=dtype or None, device=device or None))
+    return Lite(neolib.ones_like(
+        x.data,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def zeros_like(x, dtype='', device=''):
-    return Lite(neolib.zeros_like(x.data, dtype=dtype or None, device=device or None))
+    return Lite(neolib.zeros_like(
+        x.data,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 def empty_like(x, dtype='', device=''):
-    return Lite(neolib.empty_like(x.data, dtype=dtype or None, device=device or None))
+    return Lite(neolib.empty_like(
+        x.data,
+        dtype=_dtype(dtype) if dtype else None,
+        device=_device(device) if device else None
+    ))
 
 
 # === Shape/View/Manipulation Ops ===
