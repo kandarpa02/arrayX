@@ -7,7 +7,13 @@ ext_modules = cythonize([
         name="neo._src.autograd.GRAPH_MANAGER",
         sources=["neo/_src/autograd/GRAPH_MANAGER.pyx"],
         language="c++",
-    )
+    ),
+    Extension(
+        name="neo.neomizer.SGD.sgd_c",
+        sources=["neo/neomizer/SGD/sgd_c.pyx"],
+        language="c++",
+    ),
+    
 ])
 
 setup(
