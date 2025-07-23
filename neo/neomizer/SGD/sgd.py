@@ -12,14 +12,14 @@ class SGD:
     def step(self, params: dict, grads: dict) -> dict:
         new_params = {}
         for name, param in params.items():
-            # Get gradient using current parameter tensor as key
+
             grad = grads.get(param)
             if grad is not None:
-                # Retrieve state for this parameter by name
+
                 param_state = self.state.get(name, {})
-                # Compute updated parameter and new state
+
                 updated_param, new_state = self._backend.step(param, grad, param_state)
-                # Store new state and updated parameter
+                
                 self.state[name] = new_state
                 new_params[name] = updated_param
             else:
