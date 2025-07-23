@@ -17,28 +17,31 @@ from torch.optim import (
 
 class NeoOptimizer:
     def __init__(self, params: dict[Any, Any], torch_opt_cls: Callable, **kwargs):
-        self.params = params  
-        self.optimizer = torch_opt_cls(
-            [p.data for p in params.values()],
-            **kwargs
-        )
+        self.params = params
+        self.torch_params = [torch.nn.Parameter(p.data.detach().clone().requires_grad_()) for p in params.values()]
+
+        self._param_map = dict(zip(params.keys(), self.torch_params))
+
+        self.optimizer = torch_opt_cls(self.torch_params, **kwargs)
 
     def step(self, grads: dict[Any, torch.Tensor]) -> dict[Any, Any]:
-        for p in self.params.values():
-            grad = grads.get(p, None)
-            if grad is not None:
-                if grad.shape != p.data.shape:
-                    grad = grad.expand_as(p.data)
-                p.data.grad = grad
+        for key, torch_p in self._param_map.items():
+            lite_tensor = self.params[key]
+            grad = grads.get(lite_tensor, None)
 
+            if grad is not None:
+                if grad.shape != torch_p.shape:
+                    grad = grad.expand_as(torch_p)
+                torch_p.grad = grad
 
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-        for p in self.params.values():
-            p.data = p.data.detach().requires_grad_()
+        for key, torch_p in self._param_map.items():
+            self.params[key].data = torch_p.detach().clone().requires_grad_()
 
         return self.params
+
 
 
 class SGD(NeoOptimizer):
