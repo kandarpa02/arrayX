@@ -18,12 +18,18 @@ from neo import neolib
 class linear(Policy):
     def forward(self, X, w, b):
         self.ctx.save(X, w)
-        return neolib.addmm(b, X, w.T)
+        return neolib.addmm(b, X, w.T)  # out alloc unavoidable here unless passed
 
     def backward(self, grad):
         X, w = self.ctx.release
-        dx = grad @ w            # (batch, out) @ (out, in) -> (batch, in)
-        dw = grad.T @ X          # (out, batch) @ (batch, in) -> (out, in)
-        db = grad.sum(0)         # Sum over batch dimension
+
+        dx = neolib.empty((X.shape[0], w.shape[1]), device=X.device, dtype=X.dtype)
+        neolib.matmul(grad, w, out=dx)
+
+        dw = neolib.empty((w.shape[0], X.shape[1]), device=X.device, dtype=X.dtype)
+        neolib.matmul(grad.T, X, out=dw)
+
+        db = grad.sum(0)  # sum result is usually small, no need for out=
+
         del self.ctx
         return dx, dw, db

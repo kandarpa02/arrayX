@@ -6,15 +6,15 @@ from ._act._act_fn import *
 @function
 class relu(Policy):
     def forward(self, X):
-        self.ctx.save(X)
-        return X.relu_() 
+        out = X.relu()              
+        self.ctx.save(out)          
+        return out
 
     def backward(self, grad):
-        X, = self.ctx.release
-        grad[X <= 0] = 0 
+        out, = self.ctx.release
+        grad.masked_fill_(out <= 0, 0)
         del self.ctx
         return grad
-
 
 
 @function
