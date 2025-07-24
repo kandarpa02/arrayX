@@ -54,12 +54,13 @@ class LiteTensor:
         self.d_type = self.data.dtype
         self.device = self.data.device
 
-
     @property
     def dtype(self):
         return self.d_type
-
+    
     def __repr__(self):
+        if self.data is None:
+            return f"lite_tensor(None@{hex(id(self))})"
         prefix = " " * len("lite_tensor(")
         arr_str = np.array2string(
             self.data.cpu().numpy(),
@@ -72,21 +73,10 @@ class LiteTensor:
             prefix=prefix
         )
         return f"lite_tensor({arr_str})"
-    
-    def __str__(self):
-        prefix = " " * len("lite_tensor(")
-        arr_str = np.array2string(
-            self.data.cpu().numpy(),
-            precision=4,
-            suppress_small=True,
-            threshold=6,
-            edgeitems=3,
-            max_line_width=80,
-            separator=', ',
-            prefix=prefix
-        )
-        return f"lite_tensor({arr_str})"
-    
+
+
+    __str__ = __repr__
+
     def to(self, *args, **kwargs):
         """
         - .to(dtype)

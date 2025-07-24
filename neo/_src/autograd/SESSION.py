@@ -26,67 +26,18 @@ def if_xnary(grads):
         return _fix(grads)
     
 
-# def value_and_grad(fn: Callable):
-#     def wrapped_function(*args):
-#         tape = Tape()
-#         TapeContext.push(tape)
-#         out = fn(*args)
-#         TapeContext.pop()
-
-#         out_grad = neolib.ones_like(out.data)
-
-#         grad_dict = {id(out): out_grad}
-
-#         for node in reversed(tape):
-#             node_out_grad = grad_dict.get(id(node.output))
-#             if node_out_grad is None:
-#                 continue
-
-#             grad_inputs = node.bwd_fn(grad=node_out_grad)
-            
-#             node.output = None
-#             node.bwd_fn = None
-
-#             if grad_inputs is None:
-#                 continue
-
-#             if not isinstance(grad_inputs, tuple):
-#                 grad_inputs = (grad_inputs,)
-
-#             if len(grad_inputs) < len(node.parents):
-#                 grad_inputs += (None,) * (len(node.parents) - len(grad_inputs))
-
-#             for parent, grad in zip(node.parents, grad_inputs):
-#                 if grad is None:
-#                     continue
-
-#                 pid = id(parent)
-#                 if pid in grad_dict:
-#                     grad_dict[pid].add_(grad)
-#                 else:
-#                     grad_dict[pid] = grad.clone()
-
-#                 del grad
-
-#             node.parents = None
-        
-#         input_grads = {}
-#         for arg in args:
-#             grad = grad_dict.get(id(arg))
-#             if grad is not None:
-#                 input_grads[arg] = grad
-
-#         return out, input_grads
-
-#     return wrapped_function
 def value_and_grad(fn: Callable):
     def wrapped_function(*args):
+        import gc
         import torch
+        torch.set_grad_enabled(False)
+        gc.collect()
 
         tape = Tape()
         TapeContext.push(tape)
         out = fn(*args)
         TapeContext.pop()
+        
 
         out_grad = neolib.ones_like(out.data)
         grad_dict = {id(out): out_grad}
@@ -99,7 +50,6 @@ def value_and_grad(fn: Callable):
             node_out_grad = grad_dict.pop(node_out_id, None)
 
             if node_out_grad is None:
-                # Step 1: print unused node
                 try:
                     shape = tuple(node.output.shape)
                 except Exception:
@@ -116,7 +66,9 @@ def value_and_grad(fn: Callable):
                 del node
                 continue
 
-            grads = node.bwd_fn(grad=node_out_grad)
+            with torch.no_grad():
+                grads = node.bwd_fn(grad=node_out_grad)
+
 
             node.output = None
             node.bwd_fn = None
@@ -142,7 +94,7 @@ def value_and_grad(fn: Callable):
                 if existing_grad is not None:
                     existing_grad.add_(grad)
                 else:
-                    grad_dict[pid] = grad
+                    grad_dict[pid] = grad.clone()
 
                 del grad
 
@@ -160,6 +112,14 @@ def value_and_grad(fn: Callable):
 
         if leaky_nodes:
             print(f"\n[LEAKY] Total unused nodes: {len(leaky_nodes)}")
+
+        for arg in args:
+            arg.data = None  # clear backing tensor
+        del args             # remove Python-level ref
+        grad_dict.clear()
+        del grad_dict
+        del tape
+        gc.collect() # force garbage collection
 
         return out, input_grads
 
