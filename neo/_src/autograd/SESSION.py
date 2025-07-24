@@ -26,55 +26,121 @@ def if_xnary(grads):
         return _fix(grads)
     
 
+# def value_and_grad(fn: Callable):
+#     def wrapped_function(*args):
+#         tape = Tape()
+#         TapeContext.push(tape)
+#         out = fn(*args)
+#         TapeContext.pop()
+
+#         out_grad = neolib.ones_like(out.data)
+
+#         grad_dict = {id(out): out_grad}
+
+#         for node in reversed(tape):
+#             node_out_grad = grad_dict.get(id(node.output))
+#             if node_out_grad is None:
+#                 continue
+
+#             grad_inputs = node.bwd_fn(grad=node_out_grad)
+            
+#             node.output = None
+#             node.bwd_fn = None
+
+#             if grad_inputs is None:
+#                 continue
+
+#             if not isinstance(grad_inputs, tuple):
+#                 grad_inputs = (grad_inputs,)
+
+#             if len(grad_inputs) < len(node.parents):
+#                 grad_inputs += (None,) * (len(node.parents) - len(grad_inputs))
+
+#             for parent, grad in zip(node.parents, grad_inputs):
+#                 if grad is None:
+#                     continue
+
+#                 pid = id(parent)
+#                 if pid in grad_dict:
+#                     grad_dict[pid].add_(grad)
+#                 else:
+#                     grad_dict[pid] = grad.clone()
+
+#                 del grad
+
+#             node.parents = None
+        
+#         input_grads = {}
+#         for arg in args:
+#             grad = grad_dict.get(id(arg))
+#             if grad is not None:
+#                 input_grads[arg] = grad
+
+#         return out, input_grads
+
+#     return wrapped_function
+
 def value_and_grad(fn: Callable):
     def wrapped_function(*args):
+        import torch 
+
         tape = Tape()
         TapeContext.push(tape)
         out = fn(*args)
         TapeContext.pop()
 
         out_grad = neolib.ones_like(out.data)
-
         grad_dict = {id(out): out_grad}
 
+        any_cuda = out_grad.is_cuda  
+
         for node in reversed(tape):
-            node_out_grad = grad_dict.get(id(node.output))
+            node_out_id = id(node.output)
+            node_out_grad = grad_dict.pop(node_out_id, None)
             if node_out_grad is None:
                 continue
 
-            grad_inputs = node.bwd_fn(grad=node_out_grad)
-            
+            grads = node.bwd_fn(grad=node_out_grad)
+
             node.output = None
             node.bwd_fn = None
 
-            if grad_inputs is None:
+            if grads is None:
+                node.parents = None
                 continue
 
-            if not isinstance(grad_inputs, tuple):
-                grad_inputs = (grad_inputs,)
+            if not isinstance(grads, tuple):
+                grads = (grads,)
+            if len(grads) < len(node.parents):
+                grads = grads + (None,) * (len(node.parents) - len(grads))
 
-            if len(grad_inputs) < len(node.parents):
-                grad_inputs += (None,) * (len(node.parents) - len(grad_inputs))
-
-            for parent, grad in zip(node.parents, grad_inputs):
+            for parent, grad in zip(node.parents, grads):
                 if grad is None:
                     continue
 
+                if grad.is_cuda:
+                    any_cuda = True
+
                 pid = id(parent)
-                if pid in grad_dict:
-                    grad_dict[pid].add_(grad)
+                existing_grad = grad_dict.get(pid)
+                if existing_grad is not None:
+                    existing_grad.add_(grad)
                 else:
-                    grad_dict[pid] = grad.clone()
+                    grad_dict[pid] = grad 
 
-                del grad
+                del grad  
 
-            node.parents = None
-        
+            node.parents = None 
+            del node  
+
         input_grads = {}
         for arg in args:
             grad = grad_dict.get(id(arg))
             if grad is not None:
                 input_grads[arg] = grad
+
+        if any_cuda:
+            torch.cuda.empty_cache()
 
         return out, input_grads
 
