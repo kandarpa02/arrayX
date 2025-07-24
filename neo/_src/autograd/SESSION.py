@@ -48,6 +48,9 @@ def value_and_grad(fn: Callable):
 
             if not isinstance(grad_inputs, tuple):
                 grad_inputs = (grad_inputs,)
+
+            if len(grad_inputs) < len(node.parents):
+                grad_inputs += (None,) * (len(node.parents) - len(grad_inputs))
                 
             for parent, grad in zip(node.parents, grad_inputs):
                 if grad is None:

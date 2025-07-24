@@ -15,34 +15,41 @@ def neo_function(fn):
     )
     return function(fn)  
 
+
 def function(fn_object: Callable):
     from neo._torch.lite_tensor import LiteTensor
     from neo._src.autograd import GRAPH_MANAGER
 
-    def unwrap(data):
-        return data.data if isinstance(data, LiteTensor) else data
-
-    def wrapped(*values):
+    def wrapped(*args, **kwargs):
         op = fn_object()
-        valargs = []
-        boolargs = []
 
-        for arg in values:
+        valargs = []
+        valargs_strict = []
+        auxargs = []
+
+
+        for arg in args:
             if isinstance(arg, LiteTensor):
                 valargs.append(arg.data)
+                valargs_strict.append(arg)
             elif isinstance(arg, neolib.Tensor):
                 valargs.append(arg)
-            elif isinstance(arg, (bool, type(None), int)): 
-                boolargs.append(arg)
+            elif isinstance(arg, (bool, type(None), int)):
+                auxargs.append(arg)
             else:
                 raise TypeError(f"Unsupported argument type: {type(arg)}")
 
-        newargs = valargs + boolargs
-        out_val = op.forward(*newargs)
-        out = LiteTensor(out_val)
+        for key, val in kwargs.items():
+            if isinstance(val, (int, bool)):
+                auxargs.append(val)
+            else:
+                raise TypeError(f"Unsupported keyword argument {key}={val} in function")
 
-        node = GRAPH_MANAGER.Node(out, values, op.backward)
+        out_val = op.forward(*valargs, *auxargs)
+        out = LiteTensor(out_val)
+        
+        node = GRAPH_MANAGER.Node(out, tuple(valargs_strict), op.backward)
         GRAPH_MANAGER.TapeContext.add_node(node)
         return out
-
+        
     return wrapped
