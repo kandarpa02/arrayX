@@ -60,7 +60,7 @@ class LiteTensor:
         return self.d_type
 
     def __repr__(self):
-        prefix = " " * len("LiteTensor(")
+        prefix = " " * len("lite_tensor(")
         arr_str = np.array2string(
             self.data.cpu().numpy(),
             precision=4,
@@ -71,10 +71,10 @@ class LiteTensor:
             separator=', ',
             prefix=prefix
         )
-        return f"LiteTensor({arr_str})"
+        return f"lite_tensor({arr_str})"
     
     def __str__(self):
-        prefix = " " * len("LiteTensor(")
+        prefix = " " * len("lite_tensor(")
         arr_str = np.array2string(
             self.data.cpu().numpy(),
             precision=4,
@@ -85,7 +85,7 @@ class LiteTensor:
             separator=', ',
             prefix=prefix
         )
-        return f"LiteTensor({arr_str})"
+        return f"lite_tensor({arr_str})"
     
     def to(self, *args, **kwargs):
         """
@@ -209,7 +209,6 @@ class LiteTensor:
         b = safe_input(self, other)
         return power(self, other)
 
-    
     def __truediv__(self, other):
         b = safe_input(self, other)
         return div(self, b)
@@ -236,3 +235,7 @@ class LiteTensor:
     def zeros_like(self):
         out = neolib.zeros_like(self.data)
         return LiteTensor(out)
+    
+    @property
+    def T(self):
+        return LiteTensor(self.data.T)
