@@ -79,10 +79,9 @@ def if_xnary(grads):
 #         return out, input_grads
 
 #     return wrapped_function
-
 def value_and_grad(fn: Callable):
     def wrapped_function(*args):
-        import torch 
+        import torch
 
         tape = Tape()
         TapeContext.push(tape)
@@ -92,12 +91,29 @@ def value_and_grad(fn: Callable):
         out_grad = neolib.ones_like(out.data)
         grad_dict = {id(out): out_grad}
 
-        any_cuda = out_grad.is_cuda  
+        any_cuda = out_grad.is_cuda
+        leaky_nodes = []
 
         for node in reversed(tape):
             node_out_id = id(node.output)
             node_out_grad = grad_dict.pop(node_out_id, None)
+
             if node_out_grad is None:
+                # Step 1: print unused node
+                try:
+                    shape = tuple(node.output.shape)
+                except Exception:
+                    shape = "unknown"
+                print(f"[UNUSED] Node output id={node_out_id}, shape={shape}")
+                
+                # Track in leaky list
+                leaky_nodes.append(node)
+
+                # Clear aggressively
+                node.output = None
+                node.bwd_fn = None
+                node.parents = None
+                del node
                 continue
 
             grads = node.bwd_fn(grad=node_out_grad)
@@ -126,12 +142,12 @@ def value_and_grad(fn: Callable):
                 if existing_grad is not None:
                     existing_grad.add_(grad)
                 else:
-                    grad_dict[pid] = grad 
+                    grad_dict[pid] = grad
 
-                del grad  
+                del grad
 
-            node.parents = None 
-            del node  
+            node.parents = None
+            del node
 
         input_grads = {}
         for arg in args:
@@ -141,6 +157,9 @@ def value_and_grad(fn: Callable):
 
         if any_cuda:
             torch.cuda.empty_cache()
+
+        if leaky_nodes:
+            print(f"\n[LEAKY] Total unused nodes: {len(leaky_nodes)}")
 
         return out, input_grads
 
