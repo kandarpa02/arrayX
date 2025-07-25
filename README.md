@@ -1,22 +1,18 @@
-<div align="center">
 <pre>
 ███╗   ██╗███████╗ ██████╗ 
 ████╗  ██║██╔════╝██╔═══██╗
 ██╔██╗ ██║█████╗  ██║   ██║
-██║╚██╗██║██╔══╝  ██║   ██║
+██║╚██╗██║██╔══╝  ██║   ██║ -The Gradient is Yours to Define
 ██║ ╚████║███████╗╚██████╔╝
 ╚═╝  ╚═══╝╚══════╝ ╚═════╝  
--The Gradient is Yours to Define
 </pre>
 
-</div>
 
 
-#### Neo was built out of frustration with PyTorch’s backward() limitations 
-#### and JAX’s compiler obsession.
-#### I just wanted to define the gradient myself,
-#### not fight with a compiler to get it.
+**Neo was built out of frustration with PyTorch’s `backward()` limitations and JAX’s compiler obsession.**
+**I just wanted to define the gradient myself — not fight with a compiler to get it.**
 
+---
 
 ## Eager Functional Reverse-Mode Autodiff (EFRMA)
 
