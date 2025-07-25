@@ -6,15 +6,14 @@ from ._act._act_fn import *
 @function
 class relu(Policy):
     def forward(self, X):
-        out = X.relu()              
-        self.ctx.save(out)          
-        return out
+        self.ctx.save(X)
+        return neolib.nn.functional.relu(X)
 
     def backward(self, grad):
-        out, = self.ctx.release
-        grad.masked_fill_(out <= 0, 0)
+        X, = self.ctx.release
+        mask = X > 0
         del self.ctx
-        return grad
+        return grad * mask
 
 
 @function
