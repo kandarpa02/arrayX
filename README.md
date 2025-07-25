@@ -23,7 +23,7 @@ This system:
 - Lets you define **custom gradients** via `autograd.Policy`
 - Best for **Model agnosting Meta Learning** where we compute higher order derivatives.
 
-Unlike PyTorch, **neo Arrays do not store**:
+Unlike PyTorch, **Neo's LiteTensor does not store**:
 - `.grad`
 - `.grad_fn`
 - Backward hooks
