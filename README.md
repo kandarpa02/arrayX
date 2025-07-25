@@ -1,17 +1,7 @@
-<span style="
-  font-family: 'Courier New', monospace;
-  color: #0ff;
-  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #0ff;
-  font-size: 32px;
-  font-weight: bold;
-">
-  NEO
-</span><br>
-<i>The Gradient is Yours to Define.</i>
+<pre> ```text ███╗ ██╗███████╗ ██████╗ ████╗ ██║██╔════╝██╔═══██╗ ██╔██╗ ██║█████╗ ██║ ██║ ██║╚██╗██║██╔══╝ ██║ ██║ ██║ ╚████║███████╗╚██████╔╝ ╚═╝ ╚═══╝╚══════╝ ╚═════╝ The Gradient is Yours to Define. ``` </pre>
 
-
-***Neo was built out of frustration with PyTorch’s backward() limitations and JAX’s compiler obsession.***
-***I just wanted to define the gradient myself — not fight with a compiler to get it.***
+*`Neo was built out of frustration with PyTorch’s backward() limitations and JAX’s compiler obsession.`*
+*`I just wanted to define the gradient myself — not fight with a compiler to get it.`*
 
 ## Eager Functional Reverse-Mode Autodiff (EFRMA)
 
