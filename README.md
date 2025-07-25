@@ -18,7 +18,7 @@
 This system:
 
 - Tracks computations via a stateless **eager trace** (like a tape),
-- Uses explicit `value_and_grad` evaluations (no global flags or magic),
+- Uses explicit `value_and_grad` evaluations,
 - Lets you define **custom gradients** via `autograd.Policy`
 - Best for **Model agnosting Meta Learning** where we compute higher order derivatives.
 
