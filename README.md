@@ -1,13 +1,13 @@
-
-<style>
-.neon {
+<span style="
   font-family: 'Courier New', monospace;
   color: #0ff;
   text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #0ff;
-}
-</style>
-<h1 class="neon">NEO</h1>
-<p class="neon">The Gradient is Yours to Define.</p>
+  font-size: 32px;
+  font-weight: bold;
+">
+  NEO
+</span><br>
+<i>The Gradient is Yours to Define.</i>
 
 
 ***Neo was built out of frustration with PyTorch’s backward() limitations and JAX’s compiler obsession.***
