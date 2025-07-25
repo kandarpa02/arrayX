@@ -29,7 +29,7 @@ This system:
 ├───────────────────────┤      ├───────────────────────┤      ├───────────────────────-┤
 │                       │      │                       │      │                        │
 │  Input Tensors        │      │  TapeContext.push()   │      │  Initialize:           │
-│  (LiteTensor/neolib)  ├──────>                       ├──────>  grad_dict = {out:1}   │
+│  (LiteTensor)         ├──────>                       ├──────>  grad_dict = {out:1}   │
 │                       │      │  Create Node:         │      │                        │
 │  ┌───────────────┐    │      │  - output = result    │      │  Reverse traverse tape │
 │  │ @function     │    │      │  - parents = inputs   │      │                        │
@@ -104,7 +104,7 @@ This leads to:
 - Simpler tracing
 - Explicit, functional-style programs
 
-neo is not a full ML framework, but a **research-grade functional autodiff system**, targeting researchers who want *clarity over abstraction*. Best for people who want to conduct fast paced experiments on new theories
+Neo is not a full ML framework, but a **research-grade functional autodiff system**, targeting researchers who want *clarity over abstraction*. Best for people who want to conduct fast paced experiments on new theories
 
 
 ## Why Neo?
@@ -123,15 +123,15 @@ In short, **Neo is not a replacement for PyTorch — it is a companion for those
 
 
 ## Design Principle:
-**neo** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch** but easier to use!
+**Neo** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch** but easier to use!
 
 
 ## The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I go went with **PyTorch's Tensors**(`torch.Tensor.detach()`) without its autograd and other functionalities, as the **torch.Tensor** is already very mature and a battle tested backend. In future I will manually define the compute heavy function like `softmax` and `matmul` in **Triron**.
+Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **Neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I go went with **PyTorch's Tensors**(`torch.Tensor.detach()`) without its autograd and other functionalities, as the **torch.Tensor** is already very mature and a battle tested backend. In future I will manually define the compute heavy function like `softmax` and `matmul` in **Triron**.
 
 ## Experiment: 3-Layer MLP on MNIST
 
-Here is the kaggle link of the test, you can inspect that too [`neo-mnist`](https://www.kaggle.com/code/kandarpasarkar/mini-mlpe644d0e26d)
+Here is the kaggle link of the test, you can inspect that too [`Neo-mnist`](https://www.kaggle.com/code/kandarpasarkar/mini-mlpe644d0e26d)
 
 - **Architecture:** `784 → 256 → 64 → 10`  
 - **Optimizer:** SGD (default settings for both)  
@@ -179,11 +179,10 @@ Epoch: 10  Train Acc: 0.9258  Val Acc: 0.9279  (12.59s)
 ```
 
 ## Minimal Example:
-Here is a minimal example how we can define new backward logic and compute grads with **neo**
+Here is a minimal example how we can define new backward logic and compute grads with **Neo**
 
 ```python
 import neo
-import neo.numpy as nep
 from neo import autograd
 from neo.functions import function
 
@@ -249,7 +248,7 @@ Now if we do the same thing with **JAX**:
 import jax.numpy as jnp
 from jax import grad as gfn
 
-# .numpy() method is used to get NumPy arrays from neo.Array object 
+# .numpy() method is used to get NumPy arrays from Neo.Array object 
 # JAX wants NumPy arrays so first convert it to 'cpu' then expose NumPy arrays
 
 X_, Y_, b_ = X.to('cpu').numpy(), Y.to('cpu').numpy(), b.to('cpu').numpy()
@@ -281,11 +280,11 @@ Matrix b_JAX_grad:
 
 ### Should you use it?
 
-neo is intentionally *not* built to be production-ready but to:
+Neo is intentionally *not* built to be production-ready but to:
 - Study the anatomy of modern autodiff
 - Create a functional playground to tinker with gradients
 - Allow you to define your own rules, math, and optimization stack
 
 ---
 
-**I am building this for personal research, so neo reflects my favorite abstractions. It may feel verbose, but every layer is transparentand fun ⌁**
+**I am building this for personal research, so Neo reflects my favorite abstractions. It may feel verbose, but every layer is transparentand fun ⌁**
