@@ -15,13 +15,39 @@
 ---
 
 ## Eager Functional Reverse-Mode Autodiff (EFRMA)
-
 This system:
 
 - Tracks computations via a stateless **eager trace** (like a tape),
 - Uses explicit `value_and_grad` evaluations (no global flags or magic),
 - Lets you define **custom gradients** via `autograd.Policy`
 - Best for **Model agnosting Meta Learning** where we compute higher order derivatives.
+
+```text
+┌───────────────────────┐      ┌───────────────────────┐      ┌──────────────────────-─┐
+│    Forward Pass       │      │    Tape Recording     │      │    Backward Pass       │
+├───────────────────────┤      ├───────────────────────┤      ├───────────────────────-┤
+│                       │      │                       │      │                        │
+│  Input Tensors        │      │  TapeContext.push()   │      │  Initialize:           │
+│  (LiteTensor/neolib)  ├──────>                       ├──────>  grad_dict = {out:1}   │
+│                       │      │  Create Node:         │      │                        │
+│  ┌───────────────┐    │      │  - output = result    │      │  Reverse traverse tape │
+│  │ @function     │    │      │  - parents = inputs   │      │                        │
+│  │  Policy       │    │      │  - bwd_fn = op.bwd    │      │  for node in reversed: │
+│  │  .forward()   ├───┐│      │                       │      │    grad = grad_dict.pop│
+│  └───────────────┘   ││      │  Add to Tape          │      │    grads =             │
+│                       │      │                       │      │      node.bwd_fn(grad) │
+│  Output Tensor ◄──────┘      │  TapeContext.pop()    │      │                        │
+│                       │      │                       │      │    Accumulate gradients│
+└───────────────────────┘      └───────────────────────┘      │    for parents:        │
+          ▲                                                   │      grad_dict[parent] │
+          │                                                   │          += grad       │
+          │                                                   │                        │
+          └───────────────────────────────────────────────────┘  Return input_grads    │
+                                                                                       │
+                                                               └───────────────────────┘
+```
+
+
 
 Unlike PyTorch, **Neo's LiteTensor does not store**:
 - `.grad`
