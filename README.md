@@ -1,4 +1,5 @@
-<p align="center">
+<div align="center">
+
 <pre>
 ███╗   ██╗███████╗ ██████╗ 
 ████╗  ██║██╔════╝██╔═══██╗
@@ -9,7 +10,8 @@
 </pre>
 
 <b>The Gradient is Yours to Define.</b>
-</p>
+
+</div>
 
 
 **Neo was built out of frustration with PyTorch’s backward() limitations and JAX’s compiler obsession.**
