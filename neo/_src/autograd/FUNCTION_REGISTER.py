@@ -19,7 +19,6 @@ from neo._torch import neolib
 class Policy:
     def __init__(self):
         self.ctx = context()
-        self.neolib = neolib
     
     def forward(self, *args):
         raise NotImplementedError
