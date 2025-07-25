@@ -1,11 +1,11 @@
-<!-- <pre> -->
+<pre>
 ███╗   ██╗███████╗ ██████╗ 
 ████╗  ██║██╔════╝██╔═══██╗
 ██╔██╗ ██║█████╗  ██║   ██║
 ██║╚██╗██║██╔══╝  ██║   ██║
 ██║ ╚████║███████╗╚██████╔╝
 ╚═╝  ╚═══╝╚══════╝ ╚═════╝   -The Gradient is Yours to Define.
-
+</pre>
 
 **Neo was built out of frustration with PyTorch’s backward() limitations and JAX’s compiler obsession.**
 **I just wanted to define the gradient myself — not fight with a compiler to get it.**
