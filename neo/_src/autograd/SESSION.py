@@ -28,7 +28,8 @@ def if_xnary(grads):
 
 def value_and_grad(fn: Callable, safe=False):
     def wrapped_function(*args):
-        import torch 
+        import torch
+        torch.set_grad_enabled(False)
 
         tape = Tape()
         TapeContext.push(tape)
