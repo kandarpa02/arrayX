@@ -50,11 +50,11 @@ Leading ML frameworks use C/C++ and CUDA as backend, which is great but while de
 
 ## Experiment: 3-Layer MLP on MNIST
 
-Here is the colab link of the test, you can inspect that too [`neo-mnist`](https://drive.google.com/file/d/1mp5-0ZaFidrBdPWbzSt391DQaoAVujHp/view?usp=sharing)
+Here is the kaggle link of the test, you can inspect that too [`neo-mnist`](https://www.kaggle.com/code/kandarpasarkar/mini-mlpe644d0e26d)
 
 - **Architecture:** `784 → 256 → 64 → 10`  
 - **Optimizer:** SGD (default settings for both)  
-- **Learning Rate:** `0.5`  
+- **Learning Rate:** default  
 - **Batch Size:** `64 (train)`, `1000 (val)`  
 - **Initialization:** Xavier, `seed = 0`  
 
