@@ -1,7 +1,17 @@
 
-# *#neo*
+<style>
+.neon {
+  font-family: 'Courier New', monospace;
+  color: #0ff;
+  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #0ff;
+}
+</style>
+<h1 class="neon">NEO</h1>
+<p class="neon">The Gradient is Yours to Define.</p>
 
-**neo** is an experimental machine learning system designed with an emphasis on **minimalism**, **functional design**, and **performance clarity**. At its core, it implements a fully custom **reverse-mode autodiff engine** called:
+
+***Neo was built out of frustration with PyTorch’s backward() limitations and JAX’s compiler obsession.***
+***I just wanted to define the gradient myself — not fight with a compiler to get it.***
 
 ## Eager Functional Reverse-Mode Autodiff (EFRMA)
 
