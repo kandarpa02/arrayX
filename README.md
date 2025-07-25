@@ -50,10 +50,10 @@ This system:
 #### A simple example of the workflow
 
 ```text
-┌───────────────────────────┐          ┌───────────────────────────--┐
+┌───────────────────────────┐          ┌─────────────────────────────┐
 │      User Code            │          │  @function Transformation   │
 │   x = LiteTensor(5.5)     │          │ (Policy → Function)         │
-│   y = LiteTensor(6.2)     │          ├───────────────────────────--┤
+│   y = LiteTensor(6.2)     │          ├─────────────────────────────┤
 │   z = multiplication(x,y) ├─────────>│ 1. Instantiates:            │
 └───────────────────────────┘          │    op = multiplication()    │ 
                                        │ 2. Processes args:          │
@@ -61,32 +61,32 @@ This system:
                                        │    valargs_strict = [x,y]   │
                                        │ 3. Calls:                   │
                                        │    op.forward(5.5, 6.2)     │
-                                       └─────────────┬─────────────--┘
+                                       └─────────────┬───────────────┘
                                                      ▼
-┌───────────────────────────┐          ┌───────────────────────────-----┐
-│  multiplication.forward   │          │    Tape Recording              │
-│  • self.ctx.save(5.5,6.2) │          ├───────────────────────────-----┤
-│  • Returns: 5.5 * 6.2 = 34.1         │ Creates Node:                  │
-│                                      │   output = z (LiteTensor(34.1))│
-└─────────────┬─────────────┘          │   parents = (x,y)              │
-              │                        │   bwd_fn = op.backward         │
-              ▼                        └─────────────┬─────────────-----┘
-        z = LiteTensor(34.1)                         ▼
-                                       ┌───────────────────────────--┐
+┌─────────────────────────────┐         ┌────────────────────────────────┐
+│  multiplication.forward     │         │    Tape Recording              │
+│  • self.ctx.save(5.5,6.2)   │         ├────────────────────────────────┤
+│  • Returns: 5.5 * 6.2 = 34.1|         │ Creates Node:                  │
+│                             |         │   output = z (LiteTensor(34.1))│
+└─────────────┬───────────────┘         │   parents = (x,y)              │
+              │                         │   bwd_fn = op.backward         │
+              ▼                         └─────────────┬──────────────────┘
+        z = LiteTensor(34.1)                          ▼
+                                       ┌─────────────────────────────┐
                                        │   Tape State:               │
                                        │   [Node(z, (x,y), backward)]│
-                                       └───────────────────────────--┘
+                                       └─────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          Backward Pass                              │
 ├─────────────────────────────────────────────────────────────────────┤
 │  • Initialize: grad_dict = {id(z): 1.0}                             │
-│  • Process last node (multiplication):                               │
-│      - grad_z = 1.0                                                  │
+│  • Process last node (multiplication):                              │
+│      - grad_z = 1.0                                                 │
 │      - Call: op.backward(grad_z) → (6.2*1.0, 5.5*1.0) = (6.2, 5.5)  │
-│      - Update grad_dict:                                             │
-│          grad_dict[id(x)] = 6.2                                      │
-│          grad_dict[id(y)] = 5.5                                      │
+│      - Update grad_dict:                                            │
+│          grad_dict[id(x)] = 6.2                                     │
+│          grad_dict[id(y)] = 5.5                                     │
 │  • Return: (z, {x:6.2, y:5.5})                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
