@@ -27,7 +27,6 @@ def function(fn_object: Callable):
         valargs_strict = []
         auxargs = []
 
-
         for arg in args:
             if isinstance(arg, LiteTensor):
                 valargs.append(arg.data)
