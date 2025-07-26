@@ -5,6 +5,7 @@
 from neo._src.autograd import Node, Tape, TapeContext
 from typing import Callable
 from neo._torch import neolib
+from neo._torch.lite_tensor import LiteTensor
 
 def rectify_shapes(val):
     return val.reshape(1) if val.ndim < 1 else val
@@ -83,12 +84,14 @@ def value_and_grad(fn: Callable, safe=False):
         for arg in args:
             grad = grad_dict.get(id(arg))
             if grad is not None:
-                input_grads[arg] = grad
+                input_grads[arg] = LiteTensor(grad)
 
         if any_cuda:
             torch.cuda.empty_cache()
 
-        return out, input_grads
+        grads_list = list(input_grads.values())
+        grad_out = grads_list[0] if len(grads_list) == 1 else grads_list
+
+        return out, grad_out
 
     return wrapped_function
-

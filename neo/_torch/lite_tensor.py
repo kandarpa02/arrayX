@@ -2,7 +2,7 @@
 # This file is part of the NeoNet project and is licensed under the MIT License.
 # See the LICENSE file in the root directory for more information.
 
-from typing import NamedTuple
+from typing import Any
 from torch import tensor, Tensor, dtype as Dtype
 from neo._torch import neolib
 from .functions import *
@@ -53,6 +53,7 @@ class LiteTensor:
 
         self.d_type = self.data.dtype
         self.device = self.data.device
+        self.node:Any = None
 
     @property
     def dtype(self):
@@ -140,6 +141,8 @@ class LiteTensor:
 
     def __len__(self):
         """Returns the number of elements along the first axis."""
+        if self.data.dim() == 0: 
+            return 0
         return len(self.data)
 
     def __getitem__(self, index):
