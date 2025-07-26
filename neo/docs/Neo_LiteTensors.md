@@ -4,12 +4,17 @@
 
 `neo.LiteTensor(data:Any, d_type:str = 'float32', device:str = 'cpu')`
 
+#### Simple exampple of LiteTensor creation and computing grads
 
-#### arguments:
-
-- data: torch.Tensor, integer, float.
-- d_type: float32, int32 etc.
-- device: 'cpu' (default) or 'cuda'.
-
-
-
+```python
+>>> import neo
+>>> from neo import autograd
+>>> x = neo.Lite([[5, -1]], dtype='float32')
+>>> y = neo.Lite([[4], [0.5]], dtype='float32')
+>>> value, grad = autograd.session.value_and_grad(neo.matmul)(x, y)
+>>> print(value)
+lite_tensor([[19.5]])
+>>> print(grad.values())
+dict_values([tensor([[4.0000, 0.5000]]), tensor([[ 5.], [-1.]])])
+>>> 
+```
