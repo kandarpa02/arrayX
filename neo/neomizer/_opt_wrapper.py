@@ -46,7 +46,6 @@ class NeoOptimizer:
 
 
 
-
 class SGD(NeoOptimizer):
     def __init__(self, params, **kwargs):
         super().__init__(params, _SGD, **kwargs)

@@ -2,8 +2,8 @@ from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 
 # Load dependencies from requirements.txt
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
+# with open("requirements.txt") as f:
+#     requirements = f.read().splitlines()
 
 # Load long description from README.md
 with open("README.md", encoding="utf-8") as f:
@@ -30,7 +30,6 @@ setup(
     url="https://github.com/kandarpa02/neonet.git",
     packages=find_packages(),
     ext_modules=ext_modules,
-    install_requires=requirements,
     python_requires=">=3.8",
     classifiers=[
         "Programming Language :: Python :: 3",
