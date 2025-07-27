@@ -11,6 +11,23 @@ ext_modules = cythonize([
     
 ])
 
+
+def if_not_available(requirements:list):
+    req_to_install = []
+    for req in requirements:
+        try:
+            import req
+        except:
+            print(f"{req} is being installed")
+            req_to_install.append(req)
+    return req_to_install
+
+req_list = []
+with open("requirements.txt", "r") as f:
+    req_list.append(f.read())
+
+req_to_install = if_not_available(req_list)
+
 setup(
     name="neonet",
     version="0.0.1a1",
@@ -22,10 +39,7 @@ setup(
     url="https://github.com/kandarpa02/neonet.git",
     packages=find_packages(),
     ext_modules=ext_modules,
-    install_requires=[
-        "torch>=2.0",
-        "numpy>=1.22"
-    ],
+    install_requires=req_to_install,
     python_requires=">=3.8",
     classifiers=[
         "Programming Language :: Python :: 3",
