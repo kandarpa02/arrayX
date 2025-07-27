@@ -35,6 +35,12 @@ def value_and_grad(fn: Callable, safe=False):
         tape = Tape()
         TapeContext.push(tape)
         out = fn(*args)
+        if not hasattr(out, 'data'):
+            print(out)
+            raise TypeError(
+                f"value_and_grad expected `fn` to return a scalar-like LiteTensor, "
+                f"but got {type(out)}: {out}"
+        )
         TapeContext.pop()
 
         out_grad = neolib.ones_like(out.data)
@@ -95,3 +101,4 @@ def value_and_grad(fn: Callable, safe=False):
         return out, grad_out
 
     return wrapped_function
+

@@ -7,3 +7,8 @@ from neo._torch.random import *
 from neo._torch import neolib
 from neo._src._extras import save, load
 from neo._src import nn
+from neo._src.autograd.SESSION import value_and_grad as _vag
+
+
+value_and_grad = _vag
+# grad = _grad
