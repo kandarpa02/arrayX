@@ -30,9 +30,7 @@ class NeoOptimizer:
             grads_d[key] = value.data
 
         for key, torch_p in self._param_map.items():
-            lite_tensor = self.params[key]
-            grad = grads_d.get(lite_tensor, None)
-
+            grad = grads_d.get(key, None)
             if grad is not None:
                 if grad.shape != torch_p.shape:
                     grad = grad.expand_as(torch_p)
@@ -42,9 +40,10 @@ class NeoOptimizer:
         self.optimizer.zero_grad()
 
         for key, torch_p in self._param_map.items():
-            self.params[key].data = torch_p.detach().clone().requires_grad_()
+            self.params[key].data.copy_(torch_p.data)  
 
         return self.params
+
 
 
 
