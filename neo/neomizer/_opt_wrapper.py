@@ -24,10 +24,14 @@ class NeoOptimizer:
 
         self.optimizer = torch_opt_cls(self.torch_params, **kwargs)
 
-    def step(self, grads: dict[Any, torch.Tensor]) -> dict[Any, Any]:
+    def step(self, grads: list) -> dict[Any, Any]:
+        grads_d = {}
+        for key, value in zip(self._param_map.keys(), grads):
+            grads_d[key] = value.data
+
         for key, torch_p in self._param_map.items():
             lite_tensor = self.params[key]
-            grad = grads.get(lite_tensor, None)
+            grad = grads_d.get(lite_tensor, None)
 
             if grad is not None:
                 if grad.shape != torch_p.shape:
