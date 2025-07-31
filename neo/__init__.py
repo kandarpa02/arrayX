@@ -11,5 +11,4 @@ from neo._src.autograd.SESSION import value_and_grad as _vag
 from neo._src.autograd.FUNCTION_REGISTER import Policy as _policy
 
 value_and_grad = _vag
-# grad = _grad
 Policy = _policy
