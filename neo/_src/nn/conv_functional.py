@@ -13,7 +13,7 @@ from torch.nn.grad import (
 
 
 @function
-class Conv1d(Policy):
+class conv1d(Policy):
     def forward(
         self, input, weight, bias=None,
         stride=1, padding=0, dilation=1, groups=1
@@ -52,7 +52,7 @@ class Conv1d(Policy):
 
 
 @function
-class Conv2d(Policy):
+class conv2d(Policy):
     def forward(
         self, input, weight, bias=None,
         stride=1, padding=0, dilation=1, groups=1
@@ -91,7 +91,7 @@ class Conv2d(Policy):
 
 
 @function
-class Conv3d(Policy):
+class conv3d(Policy):
     def forward(
         self, input, weight, bias=None,
         stride=1, padding=0, dilation=1, groups=1
