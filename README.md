@@ -127,7 +127,7 @@ In short, **Neo is not a replacement for PyTorch — it is a companion for those
 
 
 ## The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **Neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I go went with **PyTorch's Tensors**(`torch.Tensor.detach()`) without its autograd and other functionalities, as the **torch.Tensor** is already very mature and a battle tested backend. In future I will manually define the compute heavy function like `softmax` and `matmul` in **Triron**.
+Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **Neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I went with **PyTorch's Tensors**(`torch.Tensor.detach()`) without its autograd and other functionalities, as the **torch.Tensor** is already very mature and a battle tested backend. In future I will manually define the compute heavy function like `softmax` and `matmul` in **Triron**.
 
 ## Experiment: 3-Layer MLP on MNIST
 
