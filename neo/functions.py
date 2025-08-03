@@ -31,7 +31,7 @@ def function(fn_object: Callable):
             if isinstance(arg, LiteTensor):
                 valargs.append(arg.data)
                 valargs_strict.append(arg)
-            elif isinstance(arg, neolib.Tensor):
+            elif isinstance(arg, (neolib.Tensor, int, float)):
                 valargs.append(arg)
             elif isinstance(arg, (bool, type(None), int)):
                 auxargs.append(arg)
