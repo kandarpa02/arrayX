@@ -9,7 +9,7 @@ from torch.nn.grad import (
 
 __all__ = ['conv1d', 'conv2d', 'conv3d']
 
-@function
+
 class _conv1d(Policy):
     def forward(
         self, input, weight, bias=None,
@@ -62,7 +62,6 @@ def conv1d(
     )
 
 
-@function
 class _conv2d(Policy):
     def forward(
         self, input, weight, bias=None,
@@ -116,7 +115,6 @@ def conv2d(
     )
 
 
-@function
 class _conv3d(Policy):
     def forward(
         self, input, weight, bias=None,
