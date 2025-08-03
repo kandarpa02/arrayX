@@ -16,6 +16,43 @@ def neo_function(fn):
     return function(fn)  
 
 
+# def function(fn_object: Callable):
+#     from neo._torch.lite_tensor import LiteTensor
+#     from neo._src.autograd import GRAPH_MANAGER
+
+#     def wrapped(*args, **kwargs):
+#         op = fn_object()
+
+#         valargs = []
+#         valargs_strict = []
+#         auxargs = []
+
+#         for arg in args:
+#             if isinstance(arg, LiteTensor):
+#                 valargs.append(arg.data)
+#                 valargs_strict.append(arg)
+#             elif isinstance(arg, (neolib.Tensor, int, float)):
+#                 valargs.append(arg)
+#             elif isinstance(arg, (bool, type(None), tuple, list)):
+#                 auxargs.append(arg)
+#             else:
+#                 raise TypeError(f"Unsupported argument type: {type(arg)}")
+
+#         for key, val in kwargs.items():
+#             if isinstance(val, (int, bool)):
+#                 auxargs.append(val)
+#             else:
+#                 raise TypeError(f"Unsupported keyword argument {key}={val} in function")
+
+#         out_val = op.forward(*valargs, *auxargs)
+#         out = LiteTensor(out_val)
+        
+#         node = GRAPH_MANAGER.Node(out, tuple(valargs_strict), op.backward)
+#         GRAPH_MANAGER.TapeContext.add_node(node)
+#         return out
+        
+#     return wrapped
+
 def function(fn_object: Callable):
     from neo._torch.lite_tensor import LiteTensor
     from neo._src.autograd import GRAPH_MANAGER
@@ -25,30 +62,27 @@ def function(fn_object: Callable):
 
         valargs = []
         valargs_strict = []
-        auxargs = []
 
         for arg in args:
             if isinstance(arg, LiteTensor):
                 valargs.append(arg.data)
                 valargs_strict.append(arg)
-            elif isinstance(arg, (neolib.Tensor, int, float)):
+            elif isinstance(arg, (neolib.Tensor, int, float, bool, type(None), tuple, list)):
                 valargs.append(arg)
-            elif isinstance(arg, (bool, type(None), tuple, list)):
-                auxargs.append(arg)
             else:
                 raise TypeError(f"Unsupported argument type: {type(arg)}")
 
-        for key, val in kwargs.items():
-            if isinstance(val, (int, bool)):
-                auxargs.append(val)
-            else:
-                raise TypeError(f"Unsupported keyword argument {key}={val} in function")
+        if kwargs:
+            raise TypeError(
+                f"Unsupported keyword arguments: {kwargs}.\n"
+                f"Use positional arguments only."
+            )
 
-        out_val = op.forward(*valargs, *auxargs)
+        out_val = op.forward(*valargs)
         out = LiteTensor(out_val)
-        
+
         node = GRAPH_MANAGER.Node(out, tuple(valargs_strict), op.backward)
         GRAPH_MANAGER.TapeContext.add_node(node)
         return out
-        
+
     return wrapped

@@ -12,7 +12,7 @@ __all__ = ['conv1d', 'conv2d', 'conv3d']
 
 class _conv1d(Policy):
     def forward(
-        self, input, weight, bias=None,
+        self, input, weight, bias,
         stride=1, padding=0, dilation=1, groups=1
     ):
         self.ctx.save(
@@ -20,31 +20,33 @@ class _conv1d(Policy):
             stride, padding, dilation, groups
         )
         return torch.nn.functional.conv1d(
-            input, weight, bias,
-            stride=stride, padding=padding,
-            dilation=dilation, groups=groups
+            input=input,
+            weight=weight,
+            bias=bias,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups
         )
 
-    def backward(self, grad_output):
+    def backward(self, grad):
         input, weight, bias, stride, padding, dilation, groups = (
             self.ctx.release
         )
 
         grad_input = conv1d_input(
-            input.shape, weight, grad_output,
+            input.shape, weight, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
         grad_weight = conv1d_weight(
-            input, weight.shape, grad_output,
+            input, weight.shape, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
-        grad_bias = (
-            grad_output.sum(dim=(0, 2)) if bias is not None else None
-        )
+        grad_bias = grad.sum(dim=(0, 2)) if bias is not None else None
 
         return (
             grad_input, grad_weight, grad_bias,
@@ -64,7 +66,7 @@ def conv1d(
 
 class _conv2d(Policy):
     def forward(
-        self, input, weight, bias=None,
+        self, input, weight, bias,
         stride=1, padding=0, dilation=1, groups=1
     ):
         self.ctx.save(
@@ -72,32 +74,33 @@ class _conv2d(Policy):
             stride, padding, dilation, groups
         )
         return torch.nn.functional.conv2d(
-            input, weight, bias,
-            stride=stride, padding=padding,
-            dilation=dilation, groups=groups
+            input=input,
+            weight=weight,
+            bias=bias,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups
         )
 
-    def backward(self, grad_output):
+    def backward(self, grad):
         input, weight, bias, stride, padding, dilation, groups = (
             self.ctx.release
         )
 
         grad_input = conv2d_input(
-            input.shape, weight, grad_output,
+            input.shape, weight, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
         grad_weight = conv2d_weight(
-            input, weight.shape, grad_output,
+            input, weight.shape, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
-        grad_bias = (
-            grad_output.sum(dim=(0, 2, 3))
-            if bias is not None else None
-        )
+        grad_bias = grad.sum(dim=(0, 2, 3)) if bias is not None else None
 
         return (
             grad_input, grad_weight, grad_bias,
@@ -117,7 +120,7 @@ def conv2d(
 
 class _conv3d(Policy):
     def forward(
-        self, input, weight, bias=None,
+        self, input, weight, bias,
         stride=1, padding=0, dilation=1, groups=1
     ):
         self.ctx.save(
@@ -125,32 +128,33 @@ class _conv3d(Policy):
             stride, padding, dilation, groups
         )
         return torch.nn.functional.conv3d(
-            input, weight, bias,
-            stride=stride, padding=padding,
-            dilation=dilation, groups=groups
+            input=input,
+            weight=weight,
+            bias=bias,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups
         )
 
-    def backward(self, grad_output):
+    def backward(self, grad):
         input, weight, bias, stride, padding, dilation, groups = (
             self.ctx.release
         )
 
         grad_input = conv3d_input(
-            input.shape, weight, grad_output,
+            input.shape, weight, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
         grad_weight = conv3d_weight(
-            input, weight.shape, grad_output,
+            input, weight.shape, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
-        grad_bias = (
-            grad_output.sum(dim=(0, 2, 3, 4))
-            if bias is not None else None
-        )
+        grad_bias = grad.sum(dim=(0, 2, 3, 4)) if bias is not None else None
 
         return (
             grad_input, grad_weight, grad_bias,
