@@ -33,7 +33,7 @@ def function(fn_object: Callable):
                 valargs_strict.append(arg)
             elif isinstance(arg, (neolib.Tensor, int, float)):
                 valargs.append(arg)
-            elif isinstance(arg, (bool, type(None), int)):
+            elif isinstance(arg, (bool, type(None), tuple, list)):
                 auxargs.append(arg)
             else:
                 raise TypeError(f"Unsupported argument type: {type(arg)}")
