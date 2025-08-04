@@ -2,39 +2,28 @@
 # This file is part of the NeoNet project and is licensed under the MIT License.
 # See the LICENSE file in the root directory for more information.
 
-from neo._src.autograd import Node, Tape, TapeContext
+from neo._src.autograd import Tape, TapeContext
 from typing import Callable, List, Any
 from neo._torch import neolib
 from neo._torch.lite_tensor import LiteTensor
 
-def rectify_shapes(val):
-    return val.reshape(1) if val.ndim < 1 else val
-
-def unpack_tuple(tup):
-    return {f'x{i+1}': value for i, value in enumerate(tup)}
-
-def if_xnary(grads):
-    def _fix(g):
-        if g.ndim == 0:
-            return g.reshape(1)
-        elif g.ndim == 1:
-            return g[None, :]
-        return g
-
-    if isinstance(grads, tuple):
-        return tuple(_fix(g) for g in grads)
+def check_dict(x):
+    if isinstance(x, dict):
+        return x.values()
     else:
-        return _fix(grads)
+        return x
 
-# value_and_grad is responsible to calculate value alongwith the gradients of a function
-def value_and_grad(fn: Callable, safe=False):
-    def wrapped_function(args:list):
+def _computing_value_and_grad(fn: Callable, safe=False):
+    def wrapped_function(args:list|tuple|dict):
         import torch
         torch.set_grad_enabled(False)
 
         tape = Tape()
         TapeContext.push(tape)
-        out = fn(*args)
+        if isinstance(args, (tuple, list)):
+            out = fn(*args)
+        else:
+            out = fn(*list(args.values()))
         if not hasattr(out, 'data'):
             print(out)
             raise TypeError(
@@ -87,7 +76,7 @@ def value_and_grad(fn: Callable, safe=False):
             del node  
 
         input_grads = {}
-        for arg in args:
+        for arg in check_dict(args):
             grad = grad_dict.get(id(arg))
             if grad is not None:
                 input_grads[arg] = LiteTensor(grad)
@@ -102,3 +91,23 @@ def value_and_grad(fn: Callable, safe=False):
 
     return wrapped_function
 
+
+class build_computation_graph:
+    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None): #type: ignore
+        self._function = function
+        self._variables = inputs
+        self.val, self.grad = None, None
+
+    def backward(self):
+        self.val, self.grad = _computing_value_and_grad(self._function)(self._variables)
+
+    def output(self):
+        return self.val
+    
+    def gradient(self):
+        return self.grad
+    
+    def __call__(self, fn):
+        self._function = fn
+        self.val, self.grad = _computing_value_and_grad(fn)(self._variables)
+        return self

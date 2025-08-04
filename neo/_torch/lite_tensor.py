@@ -35,6 +35,10 @@ def _dtype(arg):
             raise TypeError(f"Invalid dtype string: '{arg}'")
     raise TypeError(f"Invalid dtype: {arg}")
 
+def _neo_dtype(arg):
+    arg = str(arg)
+    if 'torch.' in arg:
+        return arg.removeprefix('torch.')
 
 class LiteTensor:
     def __init__(self, data, d_type='', device=''):
@@ -58,23 +62,16 @@ class LiteTensor:
     @property
     def dtype(self):
         return self.d_type
-    
-    def __repr__(self):
-        if self.data is None:
-            return f"lite_tensor(None@{hex(id(self))})"
-        prefix = " " * len("lite_tensor(")
-        arr_str = np.array2string(
-            self.data.cpu().numpy(),
-            precision=4,
-            suppress_small=True,
-            threshold=6,
-            edgeitems=3,
-            max_line_width=80,
-            separator=', ',
-            prefix=prefix
-        )
-        return f"lite_tensor({arr_str})"
 
+    def __repr__(self):
+        shape = self.data.to('cpu').numpy().shape
+        dtype = _neo_dtype(self.data.dtype)
+        device = self.data.device
+        data = f"{self.numpy()}"
+        repr = f"<neo.LiteTensor: shape={shape} dtype={dtype} device={device}\n"
+        repr += f"data: \n{data}"
+        repr += ">"
+        return repr
 
     __str__ = __repr__
 

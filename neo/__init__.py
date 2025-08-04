@@ -7,8 +7,9 @@ from neo._torch.random import *
 from neo._torch import neolib
 from neo._src._extras import save, load
 from neo._src import nn
-from neo._src.autograd.SESSION import value_and_grad as _vag
+from neo._src.autograd._backward_utility import build_computation_graph as _bcg
 from neo._src.autograd.FUNCTION_REGISTER import Policy as _policy
 
-value_and_grad = _vag
+
+build_computation_graph = _bcg
 Policy = _policy
