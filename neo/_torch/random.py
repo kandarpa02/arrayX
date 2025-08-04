@@ -10,8 +10,8 @@ class RNGKey:
     def __init__(self, seed: int):
         self.seed = int(seed)
 
-    def generator(self):
-        g = torch.Generator()
+    def generator(self, device='cpu'):
+        g = torch.Generator(device=device)
         g.manual_seed(self.seed)
         return g
 
@@ -22,13 +22,13 @@ class RNGKey:
         return f"RNGKey({self.seed})"
 
 
-def _resolve_generator(key=None):
+def _resolve_generator(key=None, device='cpu'):
     if key is not None:
-        return key.generator()
+        return key.generator(device)
     else:
-        gen = torch.Generator()
-        gen.manual_seed(int(time.time()))
-        return gen
+        g = torch.Generator(device=device)
+        g.manual_seed(int(time.time()))
+        return g
 
 
 def rand(shape, dtype='', device='', key=None):
@@ -36,7 +36,7 @@ def rand(shape, dtype='', device='', key=None):
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key)
+        generator=_resolve_generator(key, device or 'cpu')
     ))
 
 
@@ -45,7 +45,7 @@ def randn(shape, dtype='', device='', key=None):
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key)
+        generator=_resolve_generator(key, device or 'cpu')
     ))
 
 
@@ -56,7 +56,7 @@ def randint(low, high, size, dtype='', device='', key=None):
         size,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key)
+        generator=_resolve_generator(key, device or 'cpu')
     ))
 
 
@@ -65,7 +65,7 @@ def randperm(n, dtype='', device='', key=None):
         n,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key)
+        generator=_resolve_generator(key, device or 'cpu')
     ))
 
 
@@ -76,12 +76,12 @@ def normal(mean=0.0, std=1.0, size=(), dtype='', device='', key=None):
         size=size,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key)
+        generator=_resolve_generator(key, device or 'cpu')
     ))
 
 
 def uniform(low=0.0, high=1.0, size=(), dtype='', device='', key=None):
-    gen = _resolve_generator(key)
+    gen = _resolve_generator(key, device or 'cpu')
     return data(
         (high - low) * neolib.rand(
             size,
