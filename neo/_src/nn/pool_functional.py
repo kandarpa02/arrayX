@@ -137,20 +137,30 @@ class _avg_pool1d(Policy):
         )
 
     def backward(self, grad):
-        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = (
-            self.ctx.release
+        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = self.ctx.release
+        batch_size, channels, input_length = input_shape
+
+        weight = torch.ones((channels, 1, kernel_size),
+                            dtype=grad.dtype, device=grad.device)
+
+        grad_input = F.conv_transpose1d(
+            grad, weight, stride=stride, padding=padding, groups=channels
         )
-        dummy = torch.ones(
-            input_shape, dtype=grad.dtype,
-            device=grad.device, requires_grad=True
-        )
-        out = F.avg_pool1d(
-            dummy, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
-        )
-        grad_input = torch.autograd.grad(
-            out, dummy, grad_outputs=grad, retain_graph=False
-        )[0]
+
+        if count_include_pad:
+            norm = kernel_size
+            grad_input = grad_input / norm
+        else:
+            input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
+            norm = F.avg_pool1d(
+                input_ones, kernel_size, stride,
+                padding, ceil_mode, count_include_pad
+            )
+            norm = F.conv_transpose1d(
+                norm, weight, stride=stride, padding=padding, groups=channels
+            )
+            grad_input = grad_input / (norm + 1e-8)
+
         return grad_input, None, None, None, None, None
 
 
@@ -161,6 +171,7 @@ def avg_pool1d(
     return function(_avg_pool1d)(
         input, kernel_size, stride, padding, ceil_mode, count_include_pad
     )
+
 
 
 class _avg_pool2d(Policy):
@@ -179,20 +190,30 @@ class _avg_pool2d(Policy):
         )
 
     def backward(self, grad):
-        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = (
-            self.ctx.release
+        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = self.ctx.release
+        batch_size, channels, height, width = input_shape
+
+        kH, kW = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
+        weight = torch.ones((channels, 1, kH, kW),
+                            dtype=grad.dtype, device=grad.device)
+
+        grad_input = F.conv_transpose2d(
+            grad, weight, stride=stride, padding=padding, groups=channels
         )
-        dummy = torch.ones(
-            input_shape, dtype=grad.dtype,
-            device=grad.device, requires_grad=True
-        )
-        out = F.avg_pool2d(
-            dummy, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
-        )
-        grad_input = torch.autograd.grad(
-            out, dummy, grad_outputs=grad, retain_graph=False
-        )[0]
+
+        if count_include_pad:
+            grad_input = grad_input / (kH * kW)
+        else:
+            input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
+            norm = F.avg_pool2d(
+                input_ones, kernel_size, stride,
+                padding, ceil_mode, count_include_pad
+            )
+            norm = F.conv_transpose2d(
+                norm, weight, stride=stride, padding=padding, groups=channels
+            )
+            grad_input = grad_input / (norm + 1e-8)
+
         return grad_input, None, None, None, None, None
 
 
@@ -203,6 +224,7 @@ def avg_pool2d(
     return function(_avg_pool2d)(
         input, kernel_size, stride, padding, ceil_mode, count_include_pad
     )
+
 
 
 class _avg_pool3d(Policy):
@@ -221,20 +243,30 @@ class _avg_pool3d(Policy):
         )
 
     def backward(self, grad):
-        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = (
-            self.ctx.release
+        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = self.ctx.release
+        batch_size, channels, D, H, W = input_shape
+
+        kD, kH, kW = kernel_size if isinstance(kernel_size, tuple) else (kernel_size,) * 3
+        weight = torch.ones((channels, 1, kD, kH, kW),
+                            dtype=grad.dtype, device=grad.device)
+
+        grad_input = F.conv_transpose3d(
+            grad, weight, stride=stride, padding=padding, groups=channels
         )
-        dummy = torch.ones(
-            input_shape, dtype=grad.dtype,
-            device=grad.device, requires_grad=True
-        )
-        out = F.avg_pool3d(
-            dummy, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
-        )
-        grad_input = torch.autograd.grad(
-            out, dummy, grad_outputs=grad, retain_graph=False
-        )[0]
+
+        if count_include_pad:
+            grad_input = grad_input / (kD * kH * kW)
+        else:
+            input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
+            norm = F.avg_pool3d(
+                input_ones, kernel_size, stride,
+                padding, ceil_mode, count_include_pad
+            )
+            norm = F.conv_transpose3d(
+                norm, weight, stride=stride, padding=padding, groups=channels
+            )
+            grad_input = grad_input / (norm + 1e-8)
+
         return grad_input, None, None, None, None, None
 
 
