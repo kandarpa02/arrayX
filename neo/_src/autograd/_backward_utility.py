@@ -22,12 +22,14 @@ def _computing_value_and_grad(fn: Callable, safe=False):
         TapeContext.push(tape)
         if isinstance(args, (tuple, list)):
             out = fn(*args)
+        elif isinstance(args, dict):
+            out = fn(args)
         else:
-            out = fn(*list(args.values()))
+            raise TypeError(f"input type [{type(args)}] is not supported, expected {list}, {tuple} or {dict}")
         if not hasattr(out, 'data'):
             print(out)
             raise TypeError(
-                f"value_and_grad expected `fn` to return a scalar-like LiteTensor, "
+                f"_computing_value_and_grad expected `fn` to return a scalar-like LiteTensor, "
                 f"but got {type(out)}: {out}"
         )
         TapeContext.pop()
