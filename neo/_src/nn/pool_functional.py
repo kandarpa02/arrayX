@@ -9,34 +9,23 @@ __all__ = [
     'avg_pool1d', 'avg_pool2d', 'avg_pool3d',
 ]
 
-
 class _max_pool1d(Policy):
-    def forward(
-        self, input, kernel_size, stride=None,
-        padding=0, dilation=1, ceil_mode=False
-    ):
+    def forward(self, input, kernel_size, stride=None,
+                padding=0, dilation=1, ceil_mode=False):
+        stride = stride or kernel_size
         output, indices = F.max_pool1d(
             input, kernel_size, stride, padding,
             dilation, ceil_mode, return_indices=True
         )
-        self.ctx.save(
-            indices, input.shape, kernel_size,
-            stride, padding, output.shape
-        )
+        self.ctx.save(indices, input.shape, kernel_size, stride, padding)
         return output
 
     def backward(self, grad):
-        indices, input_shape, kernel_size, stride, padding, output_shape = (
-            self.ctx.release
-        )
+        indices, input_shape, kernel_size, stride, padding = self.ctx.release
         return (
-            F.max_unpool1d(
-                grad, indices, kernel_size,
-                stride, padding, output_size=output_shape
-            ),
+            F.max_unpool1d(grad, indices, kernel_size, stride, padding, output_size=input_shape),
             None, None, None, None, None
         )
-
 
 def max_pool1d(
     input, kernel_size, stride=None,
@@ -48,29 +37,20 @@ def max_pool1d(
 
 
 class _max_pool2d(Policy):
-    def forward(
-        self, input, kernel_size, stride=None,
-        padding=0, dilation=1, ceil_mode=False
-    ):
+    def forward(self, input, kernel_size, stride=None,
+                padding=0, dilation=1, ceil_mode=False):
+        stride = stride or kernel_size
         output, indices = F.max_pool2d(
             input, kernel_size, stride, padding,
             dilation, ceil_mode, return_indices=True
         )
-        self.ctx.save(
-            indices, input.shape, kernel_size,
-            stride, padding, output.shape
-        )
+        self.ctx.save(indices, input.shape, kernel_size, stride, padding)
         return output
 
     def backward(self, grad):
-        indices, input_shape, kernel_size, stride, padding, output_shape = (
-            self.ctx.release
-        )
+        indices, input_shape, kernel_size, stride, padding = self.ctx.release
         return (
-            F.max_unpool2d(
-                grad, indices, kernel_size,
-                stride, padding, output_size=output_shape
-            ),
+            F.max_unpool2d(grad, indices, kernel_size, stride, padding, output_size=input_shape),
             None, None, None, None, None
         )
 
@@ -85,29 +65,20 @@ def max_pool2d(
 
 
 class _max_pool3d(Policy):
-    def forward(
-        self, input, kernel_size, stride=None,
-        padding=0, dilation=1, ceil_mode=False
-    ):
+    def forward(self, input, kernel_size, stride=None,
+                padding=0, dilation=1, ceil_mode=False):
+        stride = stride or kernel_size
         output, indices = F.max_pool3d(
             input, kernel_size, stride, padding,
             dilation, ceil_mode, return_indices=True
         )
-        self.ctx.save(
-            indices, input.shape, kernel_size,
-            stride, padding, output.shape
-        )
+        self.ctx.save(indices, input.shape, kernel_size, stride, padding)
         return output
 
     def backward(self, grad):
-        indices, input_shape, kernel_size, stride, padding, output_shape = (
-            self.ctx.release
-        )
+        indices, input_shape, kernel_size, stride, padding = self.ctx.release
         return (
-            F.max_unpool3d(
-                grad, indices, kernel_size,
-                stride, padding, output_size=output_shape
-            ),
+            F.max_unpool3d(grad, indices, kernel_size, stride, padding, output_size=input_shape),
             None, None, None, None, None
         )
 
