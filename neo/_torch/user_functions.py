@@ -89,9 +89,16 @@ def empty_like(x, dtype='', device=''):
 
 
 # === Shape/View/Manipulation Ops ===
-
-def reshape(x, *shape):
-    return lite(x.data.reshape(*shape))
+@function
+class reshape(Policy):
+    def forward(self, x, shape):
+        self.ctx.save(x.shape)
+        out = x.reshape(shape=shape)
+        return out
+    
+    def backward(self, grad):
+        shape, = self.ctx.release
+        return grad.reshape(shape)
 
 def permute(x, *dims):
     return lite(x.data.permute(*dims))
