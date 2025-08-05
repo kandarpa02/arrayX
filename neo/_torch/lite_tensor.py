@@ -127,12 +127,14 @@ class LiteTensor:
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
             shape = shape[0]
         return LiteTensor(neolib.reshape(self.data, shape), device=self.device)
-
-    def shape(self):
-        return self.data.shape
     
+    @property
+    def shape(self):
+        return self.data.to('cpu').numpy().shape
+    
+    @property
     def size(self):
-        return self.data.size 
+        return self.data.to('cpu').numpy().size
 
     def __eq__(self, other): return isinstance(other, LiteTensor) and self.data == other.data
 
