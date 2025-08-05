@@ -95,13 +95,14 @@ def _computing_value_and_grad(fn: Callable, safe=False):
 
 
 class build_computation_graph:
-    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None): #type: ignore
+    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None, safe=True): #type: ignore
         self._function = function
         self._variables = inputs
+        self.safe = safe
         self.val, self.grad = None, None
 
     def backward(self):
-        self.val, self.grad = _computing_value_and_grad(self._function)(self._variables)
+        self.val, self.grad = _computing_value_and_grad(self._function, safe=self.safe)(self._variables)
 
     def output(self):
         return self.val
@@ -111,5 +112,5 @@ class build_computation_graph:
     
     def __call__(self, fn):
         self._function = fn
-        self.val, self.grad = _computing_value_and_grad(fn)(self._variables)
+        self.val, self.grad = _computing_value_and_grad(fn, safe=self.safe)(self._variables)
         return self
