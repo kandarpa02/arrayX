@@ -1,5 +1,5 @@
 import time
-from .user_functions import data
+from .user_functions import lite
 from neo._torch import neolib
 from ._helper import _device, _dtype
 import time
@@ -32,7 +32,7 @@ def _resolve_generator(key=None, device='cpu'):
 
 
 def rand(shape, dtype='', device='', key=None):
-    return data(neolib.rand(
+    return lite(neolib.rand(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
@@ -41,7 +41,7 @@ def rand(shape, dtype='', device='', key=None):
 
 
 def randn(shape, dtype='', device='', key=None):
-    return data(neolib.randn(
+    return lite(neolib.randn(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
@@ -50,7 +50,7 @@ def randn(shape, dtype='', device='', key=None):
 
 
 def randint(low, high, size, dtype='', device='', key=None):
-    return data(neolib.randint(
+    return lite(neolib.randint(
         low,
         high,
         size,
@@ -61,7 +61,7 @@ def randint(low, high, size, dtype='', device='', key=None):
 
 
 def randperm(n, dtype='', device='', key=None):
-    return data(neolib.randperm(
+    return lite(neolib.randperm(
         n,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
@@ -70,7 +70,7 @@ def randperm(n, dtype='', device='', key=None):
 
 
 def normal(mean=0.0, std=1.0, size=(), dtype='', device='', key=None):
-    return data(neolib.normal(
+    return lite(neolib.normal(
         mean,
         std,
         size=size,
@@ -82,7 +82,7 @@ def normal(mean=0.0, std=1.0, size=(), dtype='', device='', key=None):
 
 def uniform(low=0.0, high=1.0, size=(), dtype='', device='', key=None):
     gen = _resolve_generator(key, device or 'cpu')
-    return data(
+    return lite(
         (high - low) * neolib.rand(
             size,
             dtype=_dtype(dtype) if dtype else None,
