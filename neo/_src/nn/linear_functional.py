@@ -5,7 +5,7 @@ from neo import neolib
 def linear_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
     if X.ndim == 1:
         X = X.unsqueeze(0)
-    return X @ w.T + b, X, w
+    return (X @ w.T).add_(b), X, w
 
 def linear_bwd(grad: neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
     return grad @ w, grad.T @ X, grad.sum(0)

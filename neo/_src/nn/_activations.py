@@ -7,13 +7,13 @@ from ._act._act_fn import *
 class relu(Policy):
     def forward(self, X):
         self.ctx.save(X)
-        return neolib.nn.functional.relu(X)
+        return X.relu_()
 
     def backward(self, grad):
         X, = self.ctx.release
         mask = X > 0
         del self.ctx
-        return grad * mask
+        return grad.mul_(mask)
 
 
 @function
