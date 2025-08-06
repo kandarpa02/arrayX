@@ -1,9 +1,9 @@
 from ..math.reductions_policy import *
 from neo.functions import function
 
-def max(x):
-    return function(max_op)(x)
-def mean(x):
-    return function(mean_op)(x)
-def sum(x):
-    return function(sum_op)(x)
+def max(x, dim=None, keepdim=False):
+    return function(max_op)(x, dim, keepdim)
+def mean(x, dim=None, keepdim=False):
+    return function(mean_op)(x, dim, keepdim)
+def sum(x, dim=None, keepdim=False):
+    return function(sum_op)(x, dim, keepdim)
