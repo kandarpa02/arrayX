@@ -136,6 +136,11 @@ def argmax(x, dim=None, keepdim=False):
 def argmin(x, dim=None, keepdim=False):
     return lite(neolib.argmin(x.data, dim=dim, keepdim=keepdim))
 
+## clip
+def clamp(x, min=None, max=None):
+    x.data = neolib.clamp(x.data, min, max)
+    return x
+
 @function
 class maximum(Policy):
     def forward(self, x, y):
