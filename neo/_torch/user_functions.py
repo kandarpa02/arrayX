@@ -49,20 +49,6 @@ def empty(shape, dtype='', device=''):
         device=_device(device) if device else None
     ))
 
-def rand(shape, dtype='', device=''):
-    return lite(neolib.rand(
-        shape,
-        dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
-
-def randn(shape, dtype='', device=''):
-    return lite(neolib.randn(
-        shape,
-        dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
-
 
 # === _like Constructors ===
 
