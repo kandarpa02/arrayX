@@ -1,7 +1,7 @@
 from ..math.reductions_policy import *
 from neo.functions import function
 
-def maximum(x):
+def max(x):
     return function(max_op)(x)
 def mean(x):
     return function(mean_op)(x)
