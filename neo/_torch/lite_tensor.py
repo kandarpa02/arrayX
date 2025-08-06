@@ -190,7 +190,7 @@ class LiteTensor:
         return id(self)
     
     def __neg__(self):
-        return neg(self.data)
+        return neg(self)
 
     def __add__(self, other):
         b = safe_input(self, other)

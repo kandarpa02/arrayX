@@ -70,13 +70,10 @@ class power_op(Policy):
 
 class negative(Policy):
     def forward(self, x):
-        self.ctx.save()
         return -x
-    
     def backward(self, grad):
         return -grad
     
-
 
 class matmul_op(Policy):
     def forward(self, X, Y):
