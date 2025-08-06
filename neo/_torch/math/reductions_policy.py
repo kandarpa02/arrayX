@@ -37,13 +37,16 @@ class mean_op(Policy):
 
 class max_op(Policy):
     def forward(self, x, dim=None, keepdim=False):
-        out = neolib.max(x, dim=dim, keepdim=keepdim).values
-        self.ctx.save(x, out, dim, keepdim)
-        return out
+        result = neolib.max(x, dim=dim, keepdim=keepdim)
+        values = result.values
+        indices = result.indices
+        self.ctx.save(x, values, indices, dim, keepdim)
+        return values
+
     def backward(self, grad):
-        x, out, dim, keepdim = self.ctx.release
+        x, values, indices, dim, keepdim = self.ctx.release
         if not keepdim and dim is not None:
-            out = neolib.unsqueeze(out, dim=dim)
+            values = neolib.unsqueeze(values, dim=dim)
             grad = neolib.unsqueeze(grad, dim=dim)
-        mask = x == out
+        mask = x == values
         return grad * mask
