@@ -132,7 +132,12 @@ class LiteTensor:
     
     @property
     def shape(self):
-        return self.data.to('cpu').numpy().shape
+        try:
+            shp = self.data.cpu().numpy().shape
+
+        except TypeError:
+            shp = self.to(torch.float32).cpu().numpy().shape
+        return shp
     
     @property
     def size(self):
