@@ -123,9 +123,23 @@ def argmin(x, dim=None, keepdim=False):
     return lite(neolib.argmin(x.data, dim=dim, keepdim=keepdim))
 
 ## clip
+@function
+class clamp_op(Policy):
+    def forward(self, x, min=None, max=None):
+        self.ctx.save(x, min, max)
+        return neolib.clamp(x, min, max)
+
+    def backward(self, grad):
+        x, min, max = self.ctx.release
+        mask = neolib.ones_like(x)
+        if min is not None:
+            mask = mask * (x > min)
+        if max is not None:
+            mask = mask * (x < max)
+        return grad * mask
+
 def clamp(x, min=None, max=None):
-    x.data = neolib.clamp(x.data, min, max)
-    return x
+    return clamp_op(x, min, max)
 
 @function
 class maximum(Policy):
