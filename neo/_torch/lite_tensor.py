@@ -3,6 +3,7 @@
 # See the LICENSE file in the root directory for more information.
 
 from typing import Any
+from dataclasses import dataclass
 from torch import tensor, Tensor, dtype as Dtype
 from neo._torch import neolib
 from .functions import *
@@ -39,6 +40,7 @@ def _neo_dtype(arg):
     arg = str(arg)
     if 'torch.' in arg:
         return arg.removeprefix('torch.')
+
 
 class LiteTensor:
     def __init__(self, data, d_type='', device=''):

@@ -13,7 +13,7 @@ def check_dict(x):
     else:
         return x
 
-def _computing_value_and_grad(fn: Callable, safe=False):
+def _compute(fn: Callable, safe=False):
     def wrapped_function(args:list|tuple|dict):
         import torch
         torch.set_grad_enabled(False)
@@ -29,7 +29,7 @@ def _computing_value_and_grad(fn: Callable, safe=False):
         if not hasattr(out, 'data'):
             print(out)
             raise TypeError(
-                f"_computing_value_and_grad expected `fn` to return a scalar-like LiteTensor, "
+                f"_compute `fn` to return a scalar-like LiteTensor, "
                 f"but got {type(out)}: {out}"
         )
         TapeContext.pop()
@@ -95,14 +95,14 @@ def _computing_value_and_grad(fn: Callable, safe=False):
 
 
 class build_computation_graph:
-    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None, safe=True): #type: ignore
+    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None, safe=False): #type: ignore
         self._function = function
         self._variables = inputs
         self.safe = safe
         self.val, self.grad = None, None
 
     def backward(self):
-        self.val, self.grad = _computing_value_and_grad(self._function, safe=self.safe)(self._variables)
+        self.val, self.grad = _compute(self._function, safe=self.safe)(self._variables)
 
     def output(self):
         return self.val
@@ -112,5 +112,5 @@ class build_computation_graph:
     
     def __call__(self, fn):
         self._function = fn
-        self.val, self.grad = _computing_value_and_grad(fn, safe=self.safe)(self._variables)
+        self.val, self.grad = _compute(fn, safe=self.safe)(self._variables)
         return self
