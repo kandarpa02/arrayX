@@ -37,7 +37,7 @@ class mean_op(Policy):
 
 class max_op(Policy):
     def forward(self, x, dim=None, keepdim=False):
-        out = neolib.max(x, dim=dim, keepdim=keepdim)
+        out = neolib.max(x, dim=dim, keepdim=keepdim).values
         self.ctx.save(x, out, dim, keepdim)
         return out
     def backward(self, grad):
