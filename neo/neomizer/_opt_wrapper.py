@@ -19,9 +19,7 @@ class NeoOptimizer:
     def __init__(self, params: dict[Any, Any], torch_opt_cls: Callable, **kwargs):
         self.params = params
         self.torch_params = [torch.nn.Parameter(p.data.detach().clone().requires_grad_()) for p in params.values()]
-
         self._param_map = dict(zip(params.keys(), self.torch_params))
-
         self.optimizer = torch_opt_cls(self.torch_params, **kwargs)
 
     def step(self, grads: list) -> dict[Any, Any]:
@@ -33,14 +31,20 @@ class NeoOptimizer:
             grad = grads_d.get(key, None)
             if grad is not None:
                 if grad.shape != torch_p.shape:
-                    grad = grad.expand_as(torch_p)
+                    while grad.ndim > torch_p.ndim:
+                        grad = grad.sum(0)
+                    for i, (gs, ps) in enumerate(zip(grad.shape, torch_p.shape)):
+                        if gs != ps:
+                            grad = grad.sum(i, keepdim=True)
+                    grad = grad.reshape_as(torch_p)
+
                 torch_p.grad = grad
 
         self.optimizer.step()
         self.optimizer.zero_grad()
 
         for key, torch_p in self._param_map.items():
-            self.params[key].data.copy_(torch_p.data)  
+            self.params[key].data.copy_(torch_p.data)
 
         return self.params
 
