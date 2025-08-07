@@ -2,12 +2,13 @@
 # This file is part of the NeoNet project and is licensed under the MIT License.
 # See the LICENSE file in the root directory for more information.
 
-from typing import Any
+from typing import Any, NamedTuple
 from dataclasses import dataclass
 from torch import tensor, Tensor, dtype as Dtype
 from neo._torch import neolib
 from .functions import *
 import numpy as np
+
 
 def safe_input(self, x):
     if not isinstance(x, LiteTensor):
@@ -43,6 +44,8 @@ def _neo_dtype(arg):
 
 
 class LiteTensor:
+    __slots__ = ('data', 'd_type', 'device')
+
     def __init__(self, data, d_type='', device=''):
         if not isinstance(data, Tensor):
             dtype = _dtype(d_type) if d_type else None
@@ -59,7 +62,6 @@ class LiteTensor:
 
         self.d_type = self.data.dtype
         self.device = self.data.device
-        self.node:Any = None
 
     @property
     def dtype(self):
@@ -125,10 +127,11 @@ class LiteTensor:
         return self.data.detach().cpu().numpy()
 
     
-    def reshape(self, *shape):
+    def reshape(self, shape):
+        from neo._torch.user_functions import reshape as _reshape
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
             shape = shape[0]
-        return LiteTensor(neolib.reshape(self.data, shape), device=self.device)
+        return _reshape(self, shape)
     
     @property
     def shape(self):
@@ -211,6 +214,20 @@ class LiteTensor:
     def __truediv__(self, other):
         b = safe_input(self, other)
         return div(self, b)
+    
+    def __matmul__(self, other):
+        return matmul(self, other)
+
+    def sum(self, dim=None, keepdim=False):
+        return sum(self, dim, keepdim)
+    
+    def relu(self):
+        from neo._src.nn._activations import relu
+        return relu(self)
+    
+    def tanh(self):
+        from neo._src.nn._activations import tanh
+        return tanh(self)
 
     def __radd__(self, other):
         return self.__add__(other)

@@ -75,8 +75,8 @@ def empty_like(x, dtype='', device=''):
 
 
 # === Shape/View/Manipulation Ops ===
-@function
-class reshape(Policy):
+
+class _reshape(Policy):
     def forward(self, x, shape):
         self.ctx.save(x.shape)
         out = x.reshape(shape=shape)
@@ -85,6 +85,33 @@ class reshape(Policy):
     def backward(self, grad):
         shape, = self.ctx.release
         return grad.reshape(shape)
+    
+class _maximum(Policy):
+    def forward(self, x, y):
+        out = neolib.maximum(x, y)
+        self.ctx.save(x, y, out)
+        return out
+    def backward(self, grad):
+        x, y, out = self.ctx.release
+        x_grad = (out==x) * grad
+        y_grad = (out==y) * grad
+        return x_grad, y_grad
+
+@function
+class _clamp(Policy):
+    def forward(self, x, min=None, max=None):
+        self.ctx.save(x, min, max)
+        return neolib.clamp(x, min, max)
+
+    def backward(self, grad):
+        x, min, max = self.ctx.release
+        mask = neolib.ones_like(x)
+        if min is not None:
+            mask = mask * (x > min)
+        if max is not None:
+            mask = mask * (x < max)
+        return grad * mask
+    
 
 def permute(x, *dims):
     return lite(x.data.permute(*dims))
@@ -122,33 +149,16 @@ def argmax(x, dim=None, keepdim=False):
 def argmin(x, dim=None, keepdim=False):
     return lite(neolib.argmin(x.data, dim=dim, keepdim=keepdim))
 
-## clip
-@function
-class clamp_op(Policy):
-    def forward(self, x, min=None, max=None):
-        self.ctx.save(x, min, max)
-        return neolib.clamp(x, min, max)
 
-    def backward(self, grad):
-        x, min, max = self.ctx.release
-        mask = neolib.ones_like(x)
-        if min is not None:
-            mask = mask * (x > min)
-        if max is not None:
-            mask = mask * (x < max)
-        return grad * mask
+# USER FACING FUNCTIONS, CONTAINING FORWARD AND BACKWARD SUPPORT
+# THE POLICIES ARE WRITTEN ABOVE................................
 
-def clamp(x, min=None, max=None):
-    return clamp_op(x, min, max)
+def reshape(x:LiteTensor, shape):
+    return function(_reshape)(x, shape)
 
-@function
-class maximum(Policy):
-    def forward(self, x, y):
-        out = neolib.maximum(x, y)
-        self.ctx.save(x, y, out)
-        return out
-    def backward(self, grad):
-        x, y, out = self.ctx.release
-        x_grad = (out==x) * grad
-        y_grad = (out==y) * grad
-        return x_grad, y_grad
+def maximum(x:LiteTensor, y:LiteTensor):
+    return function(_maximum)(x, y)
+
+def clamp(x:LiteTensor, min=None, max=None):
+    return _clamp(x, min, max)
+
