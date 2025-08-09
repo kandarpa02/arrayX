@@ -1,116 +1,167 @@
-# neo/_src/static_no_change.py
-from typing import List, Dict, Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from neo._src.autograd import Tape, TapeContext
 from neo._torch.lite_tensor import LiteTensor
 from neo._torch import neolib
 import torch
 
+# Helper to flatten/unflatten nested structures (list/dict/tuple)
+def tree_flatten(x):
+    """
+    Flattens nested structure into a flat list of leaves and a spec.
+    Spec is a nested container with same structure but leaves replaced by None.
+    Supports lists, tuples, dicts, and combinations.
+    """
+    flat = []
+    def _flatten(val):
+        if isinstance(val, (list, tuple)):
+            return type(val)(_flatten(v) for v in val)
+        elif isinstance(val, dict):
+            return {k: _flatten(v) for k, v in val.items()}
+        else:
+            flat.append(val)
+            return None
+    spec = _flatten(x)
+    return flat, spec
+
+def tree_unflatten(flat: List[Any], spec):
+    """
+    Reconstruct nested structure from flat list and spec.
+    """
+    flat_iter = iter(flat)
+    def _unflatten(s):
+        if isinstance(s, (list, tuple)):
+            return type(s)(_unflatten(v) for v in s)
+        elif isinstance(s, dict):
+            return {k: _unflatten(v) for k, v in s.items()}
+        elif s is None:
+            return next(flat_iter)
+        else:
+            raise RuntimeError("Invalid spec node")
+    result = _unflatten(spec)
+    try:
+        next(flat_iter)
+        raise RuntimeError("Flat list has extra elements")
+    except StopIteration:
+        pass
+    return result
+
 
 class StaticPlaceholder:
-    """Wrapper around an original LiteTensor used at build-time.
-    At runtime we map it to a concrete torch.Tensor (LiteTensor.data).
-    """
     __slots__ = ("original_lite", "id")
     def __init__(self, lite: LiteTensor):
+        if not isinstance(lite, LiteTensor):
+            raise TypeError("StaticPlaceholder expects a LiteTensor")
         self.original_lite = lite
         self.id = id(lite)
 
 
 class StaticOp:
-    """Holds callables captured from the recorded Node."""
-    __slots__ = ("out_id", "parent_ids", "fwd_callable", "bwd_callable", "node")
+    __slots__ = ("out_id", "parent_ids", "fwd_callable", "bwd_callable", "node_repr")
     def __init__(self, node):
-        self.node = node
+        self.node_repr = repr(node)
         self.out_id = id(node.output)
-        # parents are LiteTensors at record time; store ids for lookup
-        self.parent_ids = tuple(id(p) for p in node.parents)
-        # bwd is stored on node already (bound method)
+        self.parent_ids = tuple(id(p) for p in (node.parents or ()))
         self.bwd_callable = node.bwd_fn
-        # Try to locate forward callable from the bound bwd method's __self__.
-        # If bwd_fn is a bound method, bwd_fn.__self__ is the Policy instance
-        # and Policy.forward is the forward function we want to call.
-        try:
-            owner = getattr(node.bwd_fn, "__self__", None)
-            if owner is None:
-                raise AttributeError("bwd_fn has no __self__; cannot find forward")
-            fwd = getattr(owner, "forward", None)
-            if fwd is None:
-                raise AttributeError("policy object has no forward method")
-            # fwd is a bound method: owner.forward
-            self.fwd_callable = fwd
-        except Exception as e:
-            # fail early if a node doesn't follow expected shape
-            raise RuntimeError(f"Failed to extract forward callable for node {node}: {e}") from e
-
+        owner = getattr(node.bwd_fn, "__self__", None)
+        self.fwd_callable = getattr(owner, "forward", None) if owner is not None else None
 
 
 class StaticGraph:
-    """
-    Static graph created from a single tape recording. Reusable for multiple forward/backward runs.
-    """
-    def __init__(self, ops: List[StaticOp], input_placeholders: List[StaticPlaceholder], output_op: StaticOp):
+    def __init__(
+        self,
+        ops: List[StaticOp],
+        input_placeholders: List[StaticPlaceholder],
+        output_op: StaticOp,
+        flat_input_spec: Any,  # nested input structure with leaves replaced by None
+        flat_input_keys: List[LiteTensor]  # flattened list of LiteTensor inputs (ordered)
+    ):
         self.ops = ops
-        # placeholder id -> Placeholder
-        self.placeholders: Dict[int, StaticPlaceholder] = {ph.id: ph for ph in input_placeholders}
+        self.placeholders_list = input_placeholders
+        self.placeholders_by_id = {ph.id: ph for ph in input_placeholders}
         self.output_op = output_op
-        # runtime map: original_lite_id -> torch.Tensor (the runtime value for that recorded id)
         self._runtime_values: Dict[int, torch.Tensor] = {}
 
-    def forward(self, *input_lite: LiteTensor) -> LiteTensor:
-        """Run forward with new LiteTensor inputs (preserves LiteTensor API)."""
-        # bind inputs: order must match placeholders order used at build
-        if len(input_lite) != len(self.placeholders):
-            raise ValueError(f"expected {len(self.placeholders)} inputs, got {len(input_lite)}")
-        # clear runtime map
-        self._runtime_values.clear()
-        # deterministic ordering: use the same order as placeholders were created when building (insertion order)
-        for ph_id, lt in zip(list(self.placeholders.keys()), input_lite):
-            if not isinstance(lt, LiteTensor):
-                raise TypeError("forward expects LiteTensor objects")
-            self._runtime_values[ph_id] = lt.data  # store torch.Tensor
+        self.flat_input_spec = flat_input_spec
+        self.flat_input_keys = flat_input_keys  # leaves of input structure, flattened
 
-        # execute all ops in recorded order
-        for op in self.ops:
-            # gather parent tensors for this op from runtime map
+    def forward(self, inputs: Any) -> LiteTensor:
+        self._runtime_values.clear()
+
+        # Flatten inputs
+        flat_inputs, input_spec = tree_flatten(inputs)
+        if len(flat_inputs) != len(self.flat_input_keys):
+            raise ValueError(f"Input leaf count mismatch. Expected {len(self.flat_input_keys)}, got {len(flat_inputs)}")
+        # Validate all leaves are LiteTensor
+        for i, leaf in enumerate(flat_inputs):
+            if not isinstance(leaf, LiteTensor):
+                raise TypeError(f"Input leaf {i} is not a LiteTensor, got {type(leaf)}")
+
+        # Bind runtime inputs: map placeholder id -> torch.Tensor (LiteTensor.data)
+        for ph, leaf in zip(self.placeholders_list, flat_inputs):
+            self._runtime_values[ph.id] = leaf.data
+
+        # Run ops in order
+        for idx, op in enumerate(self.ops):
             args = []
+            missing_parent = None
             for pid in op.parent_ids:
                 if pid not in self._runtime_values:
-                    raise RuntimeError(f"parent id {pid} not bound before use in static forward")
+                    missing_parent = pid
+                    break
                 args.append(self._runtime_values[pid])
-            # call the captured forward callable (bound Policy.forward). It expects raw tensor args.
-            out_tensor = op.fwd_callable(*args)
-            # store output in runtime map keyed by recorded output id
+            if missing_parent is not None:
+                raise RuntimeError(
+                    f"During static forward, missing runtime value for parent id {missing_parent} "
+                    f"needed by op[{idx}] (node={op.node_repr})."
+                )
+
+            if op.fwd_callable is None:
+                raise RuntimeError(
+                    f"No forward callable available for op (node={op.node_repr})."
+                )
+
+            out = op.fwd_callable(*args)
+
+            if isinstance(out, LiteTensor):
+                out_tensor = out.data
+            elif isinstance(out, torch.Tensor):
+                out_tensor = out
+            else:
+                raise TypeError(f"forward callable returned unsupported type {type(out)} for node {op.node_repr}")
+
             self._runtime_values[op.out_id] = out_tensor
 
-        # wrap final output into LiteTensor (preserve old API)
-        final = self._runtime_values[self.output_op.out_id]
+        final = self._runtime_values.get(self.output_op.out_id)
+        if final is None:
+            raise RuntimeError("StaticGraph forward completed but output value is missing.")
         return LiteTensor(final)
 
-    def backward(self, safe: bool = False):
-        """Run reverse-mode using captured bwd callables.
-        Returns gradients for inputs (ordering same as build inputs).
-        """
-        # Start with ones_like on final output
+    def backward(self, safe: bool = False) -> Any:
         final_out_id = self.output_op.out_id
         grad_map: Dict[int, torch.Tensor] = {}
-        grad_map[final_out_id] = neolib.ones_like(self._runtime_values[final_out_id])
+        final_val = self._runtime_values.get(final_out_id)
+        if final_val is None:
+            raise RuntimeError("Cannot run backward: forward must be executed before backward.")
 
-        # traverse ops in reverse
+        grad_map[final_out_id] = neolib.ones_like(final_val)
+
         for op in reversed(self.ops):
             out_grad = grad_map.pop(op.out_id, None)
             if out_grad is None:
                 continue
-            # call bwd callable. Most of your bwd methods accept grad=... keyword; try that first.
             try:
                 parent_grads = op.bwd_callable(grad=out_grad)
             except TypeError:
                 parent_grads = op.bwd_callable(out_grad)
-            # normalize to tuple
+
             if parent_grads is None:
                 continue
             if not isinstance(parent_grads, tuple):
                 parent_grads = (parent_grads,)
-            # distribute to recorded parent ids
+
+            if len(parent_grads) < len(op.parent_ids):
+                parent_grads = parent_grads + (None,) * (len(op.parent_ids) - len(parent_grads))
+
             for pid, g in zip(op.parent_ids, parent_grads):
                 if g is None:
                     continue
@@ -119,39 +170,51 @@ class StaticGraph:
                 else:
                     grad_map[pid] = g.clone() if safe else g
 
-        # collect input grads in the same order as placeholders
-        input_grads = []
-        for ph_id in self.placeholders.keys():
-            g = grad_map.get(ph_id)
-            input_grads.append(LiteTensor(g) if g is not None else None)
-        return input_grads if len(input_grads) != 1 else input_grads[0]
+        # Build grad leaves list in original order
+        grad_leaves = []
+        for ph in self.placeholders_list:
+            g = grad_map.get(ph.id)
+            grad_leaves.append(LiteTensor(g) if g is not None else None)
 
+        # Unflatten grad_leaves into original nested input structure
+        return tree_unflatten(grad_leaves, self.flat_input_spec)
 
 
 class StaticGraphBuilder:
-    """Builds a StaticGraph from a single call to fn(*lite_inputs)."""
-    def build(self, fn: Callable, *input_lite: LiteTensor) -> StaticGraph:
-        if not all(isinstance(x, LiteTensor) for x in input_lite):
-            raise TypeError("StaticGraphBuilder.build expects LiteTensor inputs")
+    def build(self, fn: Callable, input_lite: Any) -> StaticGraph:
+        # Flatten inputs into flat list of LiteTensors and nested spec
+        flat_inputs, flat_spec = tree_flatten(input_lite)
+        if not all(isinstance(x, LiteTensor) for x in flat_inputs):
+            raise TypeError("StaticGraphBuilder.build expects all leaves in input to be LiteTensor")
 
-        # build placeholders from the given input LiteTensors (preserve order)
-        placeholders = [StaticPlaceholder(lt) for lt in input_lite]
+        # Create placeholders for all leaves in flattened order
+        placeholders = [StaticPlaceholder(lt) for lt in flat_inputs]
 
-        # record tape during one forward pass
-        tape = Tape()
-        TapeContext.push(tape)
-        out = fn(*input_lite)  # this run will create Nodes on the Tape
-        TapeContext.pop()
+        # Prepare inputs for call: if original input was nested, flatten it to flat list to call fn?
+        # But your function likely expects nested structure. So we must pass the original nested input directly.
+        # So call fn with *unpacked* if tuple/list, or dict as is:
+        # Here we simply call fn(*input_lite) if tuple/list, else fn(input_lite) if dict, else fn(input_lite)
 
-        # convert recorded nodes into StaticOps
-        ops: List[StaticOp] = []
+        TapeContext.push(Tape())
+        try:
+            if isinstance(input_lite, (list, tuple)):
+                out = fn(*input_lite)
+            elif isinstance(input_lite, dict):
+                out = fn(input_lite)
+            else:
+                # For arbitrary nested structures, try passing as single argument
+                out = fn(input_lite)
+        finally:
+            tape = TapeContext.pop()
+
+        ops = []
         last_op = None
-        for node in tape:   # tape supports iteration via __getitem__ / __len__
-            s = StaticOp(node)   # captures fwd and bwd callables from node
+        for node in tape:
+            s = StaticOp(node)
             ops.append(s)
             last_op = s
 
         if last_op is None:
             raise RuntimeError("empty tape recorded; nothing to build")
 
-        return StaticGraph(ops, placeholders, last_op)
+        return StaticGraph(ops, placeholders, last_op, flat_spec, flat_inputs)

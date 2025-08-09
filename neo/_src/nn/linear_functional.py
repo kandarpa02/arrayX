@@ -46,7 +46,6 @@ class _linear(Policy):
 
     def backward(self, grad):
         X, w = self.ctx.release
-        del self.ctx
         return linear_bwd(grad, X, w)
     
     

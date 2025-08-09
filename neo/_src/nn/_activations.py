@@ -26,7 +26,6 @@ class _relu(Policy):
     def backward(self, grad):
         X, = self.ctx.release
         mask = X > 0
-        del self.ctx
         return grad.mul(mask)
 
 def relu(x: LiteTensor):
