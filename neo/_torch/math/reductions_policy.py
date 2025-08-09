@@ -43,10 +43,21 @@ class max_op(Policy):
         self.ctx.save(x, values, indices, dim, keepdim)
         return values
 
+    # def backward(self, grad):
+    #     x, values, indices, dim, keepdim = self.ctx.release
+    #     if not keepdim and dim is not None:
+    #         values = neolib.unsqueeze(values, dim=dim)
+    #         grad = neolib.unsqueeze(grad, dim=dim)
+    #     mask = x == values
+    #     return grad * mask
+
     def backward(self, grad):
         x, values, indices, dim, keepdim = self.ctx.release
         if not keepdim and dim is not None:
             values = neolib.unsqueeze(values, dim=dim)
             grad = neolib.unsqueeze(grad, dim=dim)
+
         mask = x == values
-        return grad * mask
+        count = neolib.sum(mask, dim=dim, keepdim=True)  
+        grad_per_max = grad / count
+        return grad_per_max * mask
