@@ -9,13 +9,12 @@ class sum_op(Policy):
     def backward(self, grad):
         x, dim, keepdim = self.ctx.release
         if dim is None:
-            dx = grad.expand(x.shape)
+            # grad is a scalar (0-d tensor). Create a tensor like x filled with that scalar.
+            dx = neolib.ones_like(x) * grad
         else:
             if not keepdim:
                 grad = neolib.unsqueeze(grad, dim=dim)
-            dx = neolib.ones_like(x)
-            dx *= grad 
-        del self.ctx, x, dim, keepdim, grad
+            dx = neolib.ones_like(x) * grad
         return dx
 
 
@@ -26,13 +25,18 @@ class mean_op(Policy):
 
     def backward(self, grad):
         x, dim, keepdim = self.ctx.release
-        size = neolib.prod(neolib.tensor(x.shape if dim is None else neolib.tensor(x.shape)[dim]))
-        if dim is not None and not keepdim:
-            grad = neolib.unsqueeze(grad, dim=dim)
-        dx = neolib.ones_like(x)
-        dx *= grad / size  
-        del self.ctx, x, dim, keepdim, grad, size
+        # compute number of elements averaged per output element (as float)
+        if dim is None:
+            size = float(int(neolib.prod(neolib.tensor(list(x.shape))).item()))
+        else:
+            # assume single integer dim for now
+            n = int(x.shape[dim])
+            size = float(n)
+            if not keepdim:
+                grad = neolib.unsqueeze(grad, dim=dim)
+        dx = neolib.ones_like(x) * (grad / size)
         return dx
+
 
 
 class max_op(Policy):

@@ -104,13 +104,14 @@ class _clamp(Policy):
         return neolib.clamp(x, min, max)
 
     def backward(self, grad):
-        x, min, max = self.ctx.release
+        x, min_val, max_val = self.ctx.release
         mask = neolib.ones_like(x)
-        if min is not None:
-            mask = mask * (x > min)
-        if max is not None:
-            mask = mask * (x < max)
+        if min_val is not None:
+            mask = mask * (x > neolib.full_like(x, min_val))
+        if max_val is not None:
+            mask = mask * (x < neolib.full_like(x, max_val))
         return grad * mask
+
     
 
 def permute(x, *dims):
