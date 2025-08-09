@@ -20,12 +20,14 @@ class signum_op(Policy):
 
 class exponential_op(Policy):
     def forward(self, x):
-        self.ctx.save(x)
-        return neolib.exp(x)
+        out = neolib.exp(x)
+        self.ctx.save(out)
+        return out
     
     def backward(self, grad):
-        x, = self.ctx.release
-        return neolib.exp(x) * grad
+        out, = self.ctx.release
+        return out * grad
+
 
 class sqrt_op(Policy):
     def forward(self, x):
