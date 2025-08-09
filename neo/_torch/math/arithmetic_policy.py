@@ -10,11 +10,6 @@ class addition(Policy):
         x, y = self.ctx.release
         grad_x = grad
         grad_y = grad
-        # Sum over broadcasted dims for y
-        while grad_x.ndim > x.ndim:
-            grad_x = grad_x.sum(axis=-1, keepdims=True)
-        while grad_y.ndim > y.ndim:
-            grad_y = grad_y.sum(axis=-1, keepdims=True)
         return grad_x, grad_y
 
 
@@ -27,10 +22,6 @@ class subtraction(Policy):
         x, y = self.ctx.release
         grad_x = grad
         grad_y = -grad
-        while grad_x.ndim > x.ndim:
-            grad_x = grad_x.sum(axis=-1, keepdims=True)
-        while grad_y.ndim > y.ndim:
-            grad_y = grad_y.sum(axis=-1, keepdims=True)
         return grad_x, grad_y
 
 
@@ -43,11 +34,7 @@ class multiplication(Policy):
         x, y = self.ctx.release
         grad_x = y * grad
         grad_y = x * grad
-        while grad_x.ndim > x.ndim:
-            grad_x = grad_x.sum(axis=-1, keepdims=True)
-        while grad_y.ndim > y.ndim:
-            grad_y = grad_y.sum(axis=-1, keepdims=True)
-        return grad_x, grad_y
+        return grad_x, grad_x
 
 
 class division(Policy):
