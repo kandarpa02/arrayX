@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Union
 from neo._src.autograd import Tape, TapeContext
 from neo._torch.lite_tensor import LiteTensor
 from neo._torch import neolib
@@ -6,11 +6,6 @@ import torch
 
 # Helper to flatten/unflatten nested structures (list/dict/tuple)
 def tree_flatten(x):
-    """
-    Flattens nested structure into a flat list of leaves and a spec.
-    Spec is a nested container with same structure but leaves replaced by None.
-    Supports lists, tuples, dicts, and combinations.
-    """
     flat = []
     def _flatten(val):
         if isinstance(val, (list, tuple)):
@@ -24,9 +19,6 @@ def tree_flatten(x):
     return flat, spec
 
 def tree_unflatten(flat: List[Any], spec):
-    """
-    Reconstruct nested structure from flat list and spec.
-    """
     flat_iter = iter(flat)
     def _unflatten(s):
         if isinstance(s, (list, tuple)):
@@ -72,8 +64,8 @@ class StaticGraph:
         ops: List[StaticOp],
         input_placeholders: List[StaticPlaceholder],
         output_op: StaticOp,
-        flat_input_spec: Any,  # nested input structure with leaves replaced by None
-        flat_input_keys: List[LiteTensor]  # flattened list of LiteTensor inputs (ordered)
+        flat_input_spec: Any,
+        flat_input_keys: List[LiteTensor],
     ):
         self.ops = ops
         self.placeholders_list = input_placeholders
@@ -82,25 +74,23 @@ class StaticGraph:
         self._runtime_values: Dict[int, torch.Tensor] = {}
 
         self.flat_input_spec = flat_input_spec
-        self.flat_input_keys = flat_input_keys  # leaves of input structure, flattened
+        self.flat_input_keys = flat_input_keys
 
     def forward(self, inputs: Any) -> LiteTensor:
         self._runtime_values.clear()
 
-        # Flatten inputs
         flat_inputs, input_spec = tree_flatten(inputs)
         if len(flat_inputs) != len(self.flat_input_keys):
-            raise ValueError(f"Input leaf count mismatch. Expected {len(self.flat_input_keys)}, got {len(flat_inputs)}")
-        # Validate all leaves are LiteTensor
+            raise ValueError(
+                f"Input leaf count mismatch. Expected {len(self.flat_input_keys)}, got {len(flat_inputs)}"
+            )
         for i, leaf in enumerate(flat_inputs):
             if not isinstance(leaf, LiteTensor):
                 raise TypeError(f"Input leaf {i} is not a LiteTensor, got {type(leaf)}")
 
-        # Bind runtime inputs: map placeholder id -> torch.Tensor (LiteTensor.data)
         for ph, leaf in zip(self.placeholders_list, flat_inputs):
             self._runtime_values[ph.id] = leaf.data
 
-        # Run ops in order
         for idx, op in enumerate(self.ops):
             args = []
             missing_parent = None
@@ -127,7 +117,9 @@ class StaticGraph:
             elif isinstance(out, torch.Tensor):
                 out_tensor = out
             else:
-                raise TypeError(f"forward callable returned unsupported type {type(out)} for node {op.node_repr}")
+                raise TypeError(
+                    f"forward callable returned unsupported type {type(out)} for node {op.node_repr}"
+                )
 
             self._runtime_values[op.out_id] = out_tensor
 
@@ -170,30 +162,21 @@ class StaticGraph:
                 else:
                     grad_map[pid] = g.clone() if safe else g
 
-        # Build grad leaves list in original order
         grad_leaves = []
         for ph in self.placeholders_list:
             g = grad_map.get(ph.id)
             grad_leaves.append(LiteTensor(g) if g is not None else None)
 
-        # Unflatten grad_leaves into original nested input structure
         return tree_unflatten(grad_leaves, self.flat_input_spec)
 
 
 class StaticGraphBuilder:
     def build(self, fn: Callable, input_lite: Any) -> StaticGraph:
-        # Flatten inputs into flat list of LiteTensors and nested spec
         flat_inputs, flat_spec = tree_flatten(input_lite)
         if not all(isinstance(x, LiteTensor) for x in flat_inputs):
             raise TypeError("StaticGraphBuilder.build expects all leaves in input to be LiteTensor")
 
-        # Create placeholders for all leaves in flattened order
         placeholders = [StaticPlaceholder(lt) for lt in flat_inputs]
-
-        # Prepare inputs for call: if original input was nested, flatten it to flat list to call fn?
-        # But your function likely expects nested structure. So we must pass the original nested input directly.
-        # So call fn with *unpacked* if tuple/list, or dict as is:
-        # Here we simply call fn(*input_lite) if tuple/list, else fn(input_lite) if dict, else fn(input_lite)
 
         TapeContext.push(Tape())
         try:
@@ -202,7 +185,6 @@ class StaticGraphBuilder:
             elif isinstance(input_lite, dict):
                 out = fn(input_lite)
             else:
-                # For arbitrary nested structures, try passing as single argument
                 out = fn(input_lite)
         finally:
             tape = TapeContext.pop()
