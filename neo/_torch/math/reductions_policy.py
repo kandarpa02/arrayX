@@ -8,13 +8,18 @@ class sum_op(Policy):
 
     def backward(self, grad):
         x, dim, keepdim = self.ctx.release
+
         if dim is None:
-            # grad is a scalar (0-d tensor). Create a tensor like x filled with that scalar.
-            dx = neolib.ones_like(x) * grad
+            # grad is scalar, expand to x's shape
+            dx = grad.expand_as(x)
         else:
+            # if dim is int, convert to tuple for uniform processing
+            dims = (dim,) if isinstance(dim, int) else dim
             if not keepdim:
-                grad = neolib.unsqueeze(grad, dim=dim)
-            dx = neolib.ones_like(x) * grad
+                # unsqueeze grad at all reduced dims
+                for d in sorted(dims):
+                    grad = neolib.unsqueeze(grad, dim=d)
+            dx = grad.expand_as(x)
         return dx
 
 
@@ -41,27 +46,37 @@ class mean_op(Policy):
 
 class max_op(Policy):
     def forward(self, x, dim=None, keepdim=False):
-        result = neolib.max(x, dim=dim, keepdim=keepdim)
-        values = result.values
-        indices = result.indices
-        self.ctx.save(x, values, indices, dim, keepdim)
-        return values
-
-    # def backward(self, grad):
-    #     x, values, indices, dim, keepdim = self.ctx.release
-    #     if not keepdim and dim is not None:
-    #         values = neolib.unsqueeze(values, dim=dim)
-    #         grad = neolib.unsqueeze(grad, dim=dim)
-    #     mask = x == values
-    #     return grad * mask
+        if dim is None:
+            flat_x = neolib.flatten(x)
+            max_val = neolib.amax(flat_x)  # torch.amax returns tensor directly
+            max_idx = neolib.argmax(flat_x)
+            self.ctx.save(x.shape, max_idx)
+            return max_val
+        else:
+            # Use torch.max to get both values and indices
+            result = neolib.max(x, dim=dim, keepdim=keepdim)
+            values = result.values
+            indices = result.indices
+            self.ctx.save(x.shape, indices, dim, keepdim)
+            return values
 
     def backward(self, grad):
-        x, values, indices, dim, keepdim = self.ctx.release
-        if not keepdim and dim is not None:
-            values = neolib.unsqueeze(values, dim=dim)
-            grad = neolib.unsqueeze(grad, dim=dim)
+        ctx_data = self.ctx.release
+        
+        if len(ctx_data) == 2:
+            x_shape, max_idx = ctx_data
+            grad_flat = neolib.zeros(x_shape.numel(), dtype=grad.dtype)
+            grad_flat[max_idx] = grad
+            return grad_flat.reshape(x_shape)
 
-        mask = x == values
-        count = neolib.sum(mask, dim=dim, keepdim=True)  
-        grad_per_max = grad / count
-        return grad_per_max * mask
+        # Case 2: max along dim
+        x_shape, indices, dim, keepdim = ctx_data
+
+        # Ensure grad and indices have same dims for scatter
+        if not keepdim:
+            grad = neolib.unsqueeze(grad, dim)
+            indices = neolib.unsqueeze(indices, dim)
+
+        grad_out = neolib.zeros(x_shape, dtype=grad.dtype)
+        grad_out.scatter_(dim, indices, grad)
+        return grad_out

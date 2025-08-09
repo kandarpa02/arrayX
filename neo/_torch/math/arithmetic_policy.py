@@ -57,12 +57,21 @@ class division(Policy):
 
     def backward(self, grad):
         x, y = self.ctx.release
+        
+        def sum_to_shape(grad, shape):
+            while grad.ndim > len(shape):
+                grad = grad.sum(axis=0)
+            for i, (g_dim, s_dim) in enumerate(zip(grad.shape, shape)):
+                if g_dim > s_dim:
+                    grad = grad.sum(axis=i, keepdims=True)
+            return grad
+        
         grad_x = grad / y
         grad_y = -(x * grad) / (y ** 2)
-        while grad_x.ndim > x.ndim:
-            grad_x = grad_x.sum(axis=-1, keepdims=True)
-        while grad_y.ndim > y.ndim:
-            grad_y = grad_y.sum(axis=-1, keepdims=True)
+        
+        grad_x = sum_to_shape(grad_x, x.shape)
+        grad_y = sum_to_shape(grad_y, y.shape)
+        
         return grad_x, grad_y
 
 
