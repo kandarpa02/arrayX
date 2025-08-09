@@ -1,19 +1,6 @@
 from neo._src.autograd import Node, TapeContext, Policy
 from ..math import neolib
 
-# neo/
-# └── math/
-#     ├── __init__.py
-#     ├── arithmetic.py        # User-facing: add, sub, mul, div, pow
-#     ├── unary_policy.py      # Core: negative_op, abs_op, signum_op, exp_op, sqrt_op
-#     ├── log_policy.py        # Core: log_e, log_10
-#     ├── activation_policy.py # Core: relu_op, sigmoid_op, etc. (later)
-#     ├── reductions.py        # sum, mean, max 
-#     ├── wrappers.py          # User-facing wrappers for Policy ops
-#     └── utils.py             # EPSILON, clamp, safe_log, etc.
-
-
-# add
 class addition(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
@@ -21,21 +8,32 @@ class addition(Policy):
 
     def backward(self, grad):
         x, y = self.ctx.release
-        return grad, grad
-    
+        grad_x = grad
+        grad_y = grad
+        # Sum over broadcasted dims for y
+        while grad_x.ndim > x.ndim:
+            grad_x = grad_x.sum(axis=-1, keepdims=True)
+        while grad_y.ndim > y.ndim:
+            grad_y = grad_y.sum(axis=-1, keepdims=True)
+        return grad_x, grad_y
 
-# sub
+
 class subtraction(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
         return x - y
-    
+
     def backward(self, grad):
         x, y = self.ctx.release
-        return grad, -grad
+        grad_x = grad
+        grad_y = -grad
+        while grad_x.ndim > x.ndim:
+            grad_x = grad_x.sum(axis=-1, keepdims=True)
+        while grad_y.ndim > y.ndim:
+            grad_y = grad_y.sum(axis=-1, keepdims=True)
+        return grad_x, grad_y
 
 
-# mul 
 class multiplication(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
@@ -43,18 +41,29 @@ class multiplication(Policy):
 
     def backward(self, grad):
         x, y = self.ctx.release
-        return y*grad, x*grad
-    
+        grad_x = y * grad
+        grad_y = x * grad
+        while grad_x.ndim > x.ndim:
+            grad_x = grad_x.sum(axis=-1, keepdims=True)
+        while grad_y.ndim > y.ndim:
+            grad_y = grad_y.sum(axis=-1, keepdims=True)
+        return grad_x, grad_y
 
-# div
+
 class division(Policy):
     def forward(self, x, y):
         self.ctx.save(x, y)
         return x / y
-    
+
     def backward(self, grad):
         x, y = self.ctx.release
-        return 1/y * grad, -x/(y**2) * grad
+        grad_x = grad / y
+        grad_y = -(x * grad) / (y ** 2)
+        while grad_x.ndim > x.ndim:
+            grad_x = grad_x.sum(axis=-1, keepdims=True)
+        while grad_y.ndim > y.ndim:
+            grad_y = grad_y.sum(axis=-1, keepdims=True)
+        return grad_x, grad_y
 
 
 class power_op(Policy):
