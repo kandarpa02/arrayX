@@ -77,6 +77,7 @@ class max_op(Policy):
             grad = neolib.unsqueeze(grad, dim)
             indices = neolib.unsqueeze(indices, dim)
 
-        grad_out = neolib.zeros(x_shape, dtype=grad.dtype)
+        device = grad.device
+        grad_out = neolib.zeros(x_shape, dtype=grad.dtype, device=device)
+        indices = indices.to(device)
         grad_out.scatter_(dim, indices, grad)
-        return grad_out
