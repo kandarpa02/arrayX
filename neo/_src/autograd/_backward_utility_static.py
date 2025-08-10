@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from neo._src.autograd import Tape, TapeContext
 from neo._torch.lite_tensor import LiteTensor
 from neo._torch import neolib
@@ -6,20 +6,34 @@ import torch
 
 # Helper to flatten/unflatten nested structures (list/dict/tuple)
 def tree_flatten(x):
-    flat = []
+    """
+    Flattens nested structure into a flat list of leaves and a spec.
+    Spec is a nested container with same structure but leaves replaced by None.
+    Supports lists, tuples, dicts, and combinations.
+    """
+    flat: List[Any] = []
+
     def _flatten(val):
         if isinstance(val, (list, tuple)):
+            # preserve type of sequence
             return type(val)(_flatten(v) for v in val)
         elif isinstance(val, dict):
+            # preserve dict key order
             return {k: _flatten(v) for k, v in val.items()}
         else:
             flat.append(val)
             return None
+
     spec = _flatten(x)
     return flat, spec
 
+
 def tree_unflatten(flat: List[Any], spec):
+    """
+    Reconstruct nested structure from flat list and spec.
+    """
     flat_iter = iter(flat)
+
     def _unflatten(s):
         if isinstance(s, (list, tuple)):
             return type(s)(_unflatten(v) for v in s)
@@ -29,6 +43,7 @@ def tree_unflatten(flat: List[Any], spec):
             return next(flat_iter)
         else:
             raise RuntimeError("Invalid spec node")
+
     result = _unflatten(spec)
     try:
         next(flat_iter)
@@ -40,6 +55,7 @@ def tree_unflatten(flat: List[Any], spec):
 
 class StaticPlaceholder:
     __slots__ = ("original_lite", "id")
+
     def __init__(self, lite: LiteTensor):
         if not isinstance(lite, LiteTensor):
             raise TypeError("StaticPlaceholder expects a LiteTensor")
@@ -49,6 +65,7 @@ class StaticPlaceholder:
 
 class StaticOp:
     __slots__ = ("out_id", "parent_ids", "fwd_callable", "bwd_callable", "node_repr")
+
     def __init__(self, node):
         self.node_repr = repr(node)
         self.out_id = id(node.output)
@@ -59,6 +76,17 @@ class StaticOp:
 
 
 class StaticGraph:
+    """
+    StaticGraph stores:
+      - ops: list of StaticOp (topological order)
+      - placeholders_list: list of StaticPlaceholder for every input leaf (flattened order)
+      - output_op: last op (used to find final out id)
+      - flat_input_spec: spec to reconstruct nested inputs from leaves
+      - var_leaf_indices: Optional[list[int]] indices into placeholders_list that are variables
+          - If None -> old behaviour: backward() returns full nested grad structure
+          - If not None -> backward() returns flat list of grads corresponding to these indices
+    """
+
     def __init__(
         self,
         ops: List[StaticOp],
@@ -66,6 +94,7 @@ class StaticGraph:
         output_op: StaticOp,
         flat_input_spec: Any,
         flat_input_keys: List[LiteTensor],
+        var_leaf_indices: Optional[List[int]] = None,
     ):
         self.ops = ops
         self.placeholders_list = input_placeholders
@@ -74,23 +103,32 @@ class StaticGraph:
         self._runtime_values: Dict[int, torch.Tensor] = {}
 
         self.flat_input_spec = flat_input_spec
-        self.flat_input_keys = flat_input_keys
+        self.flat_input_keys = flat_input_keys  # flattened input leaves (LiteTensor objects)
+        self.var_leaf_indices = var_leaf_indices  # indices into placeholders_list for variables (or None)
 
     def forward(self, inputs: Any) -> LiteTensor:
+        """
+        Run forward with nested inputs matching the building-time structure.
+        Returns LiteTensor result.
+        """
         self._runtime_values.clear()
 
         flat_inputs, input_spec = tree_flatten(inputs)
+
         if len(flat_inputs) != len(self.flat_input_keys):
             raise ValueError(
                 f"Input leaf count mismatch. Expected {len(self.flat_input_keys)}, got {len(flat_inputs)}"
             )
+
         for i, leaf in enumerate(flat_inputs):
             if not isinstance(leaf, LiteTensor):
                 raise TypeError(f"Input leaf {i} is not a LiteTensor, got {type(leaf)}")
 
+        # Bind placeholder id -> torch.Tensor
         for ph, leaf in zip(self.placeholders_list, flat_inputs):
             self._runtime_values[ph.id] = leaf.data
 
+        # Execute ops
         for idx, op in enumerate(self.ops):
             args = []
             missing_parent = None
@@ -129,6 +167,13 @@ class StaticGraph:
         return LiteTensor(final)
 
     def backward(self, safe: bool = False) -> Any:
+        """
+        Compute backward pass.
+
+        - If var_leaf_indices is None: return nested structure matching inputs (old behaviour).
+        - If var_leaf_indices is a list of indices: return a flat list of grads for the variables
+          in the same order the user provided the `variables` leaves during build.
+        """
         final_out_id = self.output_op.out_id
         grad_map: Dict[int, torch.Tensor] = {}
         final_val = self._runtime_values.get(final_out_id)
@@ -162,35 +207,131 @@ class StaticGraph:
                 else:
                     grad_map[pid] = g.clone() if safe else g
 
-        grad_leaves = []
+        # Build grad leaves in full input order
+        grad_leaves: List[Optional[LiteTensor]] = []
         for ph in self.placeholders_list:
             g = grad_map.get(ph.id)
             grad_leaves.append(LiteTensor(g) if g is not None else None)
 
+        # If user asked for variables-only mode, return flat list of grads for those indices
+        if self.var_leaf_indices is not None:
+            var_grads: List[Optional[LiteTensor]] = [grad_leaves[i] for i in self.var_leaf_indices]
+            return var_grads
+
+        # Old behaviour: return nested structure matching inputs
         return tree_unflatten(grad_leaves, self.flat_input_spec)
 
 
 class StaticGraphBuilder:
-    def build(self, fn: Callable, input_lite: Any) -> StaticGraph:
-        flat_inputs, flat_spec = tree_flatten(input_lite)
+    """
+    build(fn, input_lite=None, *, constants=None, variables=None)
+
+    - Backwards-compatible: if input_lite is provided (and constants/variables are None),
+      old behaviour is used: all leaves are treated as variables and backward() returns nested grads.
+
+    - New API: pass constants (tuple/list or single) and variables (nested structure).
+      The function will be invoked as fn(*constants, variables). The builder will track all input leaves
+      but will mark only variable leaves as the user-requested trainable leaves.
+      backward() will return a flat list of grads for variables (matching the flattened order).
+    """
+    def build(
+        self,
+        fn: Callable,
+        input_lite: Any = None,
+        *,
+        constants: Any = None,
+        variables: Any = None,
+    ) -> StaticGraph:
+        # Determine which API branch to use
+        if constants is None and variables is None:
+            # old API path: user passed `input_lite` as single nested structure or sequence
+            if input_lite is None:
+                raise TypeError("Either input_lite or (constants, variables) must be provided")
+            combined_input = input_lite
+            # var indices None -> old behaviour
+            var_leaf_indices: Optional[List[int]] = None
+        else:
+            # new API path: build combined input structure where fn will be called as fn(*constants, variables)
+            if variables is None:
+                raise TypeError("If you pass constants, you must pass variables (the 'trainable' structure)")
+            # Normalize constants to tuple for unpacking
+            if constants is None:
+                constants_tuple: Tuple = tuple()
+            elif isinstance(constants, tuple):
+                constants_tuple = constants
+            elif isinstance(constants, list):
+                constants_tuple = tuple(constants)
+            else:
+                # single constant value (e.g. x) -> wrap
+                constants_tuple = (constants,)
+
+            # The combined input is a tuple: (*constants_tuple, variables)
+            # This matches the typical function signature like fn(x, y, params)
+            combined_input = (*constants_tuple, variables)
+
+            # We will need to find indices of `variables` leaves within the flattened combined_input
+            # after we compute flattened leaves. We'll compute var_leaf_indices below.
+            var_leaf_indices = []
+
+        # Flatten combined input, get spec and list of leaves
+        flat_inputs, flat_spec = tree_flatten(combined_input)
+
+        # Validate leaves are LiteTensors
         if not all(isinstance(x, LiteTensor) for x in flat_inputs):
             raise TypeError("StaticGraphBuilder.build expects all leaves in input to be LiteTensor")
 
+        # Make placeholders for every leaf (full order)
         placeholders = [StaticPlaceholder(lt) for lt in flat_inputs]
+
+        # If using new API, compute which placeholder indices correspond to variable leaves
+        if var_leaf_indices is not None:
+            # flatten variables separately and locate their identities in flat_inputs
+            var_leaves, _ = tree_flatten(variables)
+            # Build an index map by identity to handle repeated references deterministically
+            # We'll scan flat_inputs and match each var leaf in order
+            remaining = list(var_leaves)
+            indices: List[int] = []
+            for idx, leaf in enumerate(flat_inputs):
+                if remaining and leaf is remaining[0]:
+                    indices.append(idx)
+                    remaining.pop(0)
+            if remaining:
+                # Could not match all variable leaves (should not happen)
+                raise RuntimeError("Failed to identify variable leaves inside combined input")
+            var_leaf_indices = indices
+        else:
+            var_leaf_indices = None
+
+        # Create and push a fresh tape
         tape = Tape()
         TapeContext.push(tape)
         try:
-            if isinstance(input_lite, (list, tuple)):
-                out = fn(*input_lite)
-            elif isinstance(input_lite, dict):
-                out = fn(input_lite)
+            # Call function with appropriate unpacking:
+            # - If combined_input is a tuple/list, we call fn(*combined_input)
+            # - If combined_input is a dict, call fn(combined_input)
+            # - Otherwise call fn(combined_input)
+            if isinstance(combined_input, (list, tuple)):
+                out = fn(*combined_input)
+            elif isinstance(combined_input, dict):
+                out = fn(combined_input)
             else:
-                out = fn(input_lite)
+                out = fn(combined_input)
         finally:
-            TapeContext.pop()
+            # pop the tape (TapeContext.pop should return the tape in your implementation)
+            popped = TapeContext.pop()
+            # If TapeContext.pop returns something different than the tape we created, it's still OK:
+            # we will iterate over 'tape' we created above
+            # (we keep 'tape' because we pushed it ourselves)
+            # just ensure popped is not None for debugging
+            if popped is None:
+                # don't crash here; we will still try to use the local 'tape' variable
+                # but warn the user
+                import warnings
+                warnings.warn("TapeContext.pop() returned None; using local Tape instance.")
 
-        ops = []
-        last_op = None
+        # Build StaticOp list from recorded nodes in our tape
+        ops: List[StaticOp] = []
+        last_op: Optional[StaticOp] = None
         for node in tape:
             s = StaticOp(node)
             ops.append(s)
@@ -199,4 +340,6 @@ class StaticGraphBuilder:
         if last_op is None:
             raise RuntimeError("empty tape recorded; nothing to build")
 
-        return StaticGraph(ops, placeholders, last_op, flat_spec, flat_inputs)
+        # Return StaticGraph. Note: flat_inputs contains LiteTensor objects (leaves),
+        # and flat_spec is the spec to reconstruct nested structure.
+        return StaticGraph(ops, placeholders, last_op, flat_spec, flat_inputs, var_leaf_indices)
