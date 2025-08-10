@@ -6,11 +6,6 @@ import torch
 
 # Helper to flatten/unflatten nested structures (list/dict/tuple)
 def tree_flatten(x):
-    """
-    Flattens nested structure into a flat list of leaves and a spec.
-    Spec is a nested container with same structure but leaves replaced by None.
-    Supports lists, tuples, dicts, and combinations.
-    """
     flat: List[Any] = []
 
     def _flatten(val):
@@ -27,9 +22,6 @@ def tree_flatten(x):
 
 
 def tree_unflatten(flat: List[Any], spec):
-    """
-    Reconstruct nested structure from flat list and spec.
-    """
     flat_iter = iter(flat)
 
     def _unflatten(s):
@@ -61,16 +53,10 @@ class StaticPlaceholder:
         self.id = id(lite)
 
 
-
 class StaticOp:
     """
-    Stores:
-      - out_id: id(node.output)
-      - args_template: original positional args (with constants preserved)
-      - kwargs_template: original keyword args (with constants preserved)
-      - tensor_arg_ids: {pos_idx: parent_id} for tensor positional args
-      - tensor_kwarg_ids: {kw_name: parent_id} for tensor keyword args
-      - bwd_callable, fwd_callable, node_repr
+    Robust StaticOp that preserves original args/kwargs (constants) and
+    maps recorded parent LiteTensors to the exact arg/kw slot that used them.
     """
 
     __slots__ = (
@@ -78,8 +64,8 @@ class StaticOp:
         "parent_ids",
         "args_template",
         "kwargs_template",
-        "tensor_arg_ids",
-        "tensor_kwarg_ids",
+        "tensor_arg_ids",    # pos -> parent_id
+        "tensor_kwarg_ids",  # key -> parent_id
         "fwd_callable",
         "bwd_callable",
         "node_repr",
@@ -88,47 +74,78 @@ class StaticOp:
     def __init__(self, node):
         self.node_repr = repr(node)
         self.out_id = id(node.output)
+        # ordered list of parent LiteTensors (may be empty)
+        parents = list(node.parents or ())
+        self.parent_ids = tuple(id(p) for p in parents)
 
-        # parent_ids: ordered list of ids for all parents
-        self.parent_ids = tuple(id(p) for p in (node.parents or ()))
+        # Capture exact templates (positional and keyword), default to empty if missing
+        node_args = getattr(node, "args", ())
+        node_kwargs = getattr(node, "kwargs", {})
 
-        # Capture templates exactly as originally recorded
-        self.args_template = list(getattr(node, "args", []))
-        self.kwargs_template = dict(getattr(node, "kwargs", {}))
+        self.args_template: List[Any] = list(node_args)
+        self.kwargs_template: Dict[str, Any] = dict(node_kwargs)
 
-        # Identify which args/kwargs are tensors that map to parents
-        self.tensor_arg_ids = {}
-        self.tensor_kwarg_ids = {}
+        # Prepare maps: which arg positions/kw keys correspond to which parent ids
+        self.tensor_arg_ids: Dict[int, int] = {}
+        self.tensor_kwarg_ids: Dict[str, int] = {}
 
-        # Map positional tensor args
-        for i, a in enumerate(self.args_template):
-            if isinstance(a, LiteTensor):
-                self.tensor_arg_ids[i] = id(a)
+        # Map parents -> positions/keys by identity
+        # For each parent, try to find it in args_template (identity match) first,
+        # then in kwargs_template values; if not found, assign to next free positional slot.
+        used_positions = set()
+        used_keys = set()
 
-        # Map keyword tensor args
-        for k, v in self.kwargs_template.items():
-            if isinstance(v, LiteTensor):
-                self.tensor_kwarg_ids[k] = id(v)
+        for p in parents:
+            pid = id(p)
+            placed = False
+            # search positional args for identity match
+            for i, a in enumerate(self.args_template):
+                if a is p:
+                    self.tensor_arg_ids[i] = pid
+                    used_positions.add(i)
+                    placed = True
+                    break
+            if placed:
+                continue
+            # search kwargs for identity match
+            for k, v in self.kwargs_template.items():
+                if v is p:
+                    self.tensor_kwarg_ids[k] = pid
+                    used_keys.add(k)
+                    placed = True
+                    break
+            if placed:
+                continue
+            # fallback: find next unused positional index (extend template if needed)
+            # prefer filling `None` slots first
+            for i, a in enumerate(self.args_template):
+                if i in used_positions:
+                    continue
+                # if slot already holds a constant not equal to parent, skip it
+                if a is not None:
+                    continue
+                self.tensor_arg_ids[i] = pid
+                used_positions.add(i)
+                placed = True
+                break
+            if placed:
+                continue
+            # otherwise append a new positional slot
+            idx = len(self.args_template)
+            self.args_template.append(None)
+            self.tensor_arg_ids[idx] = pid
+            used_positions.add(idx)
 
-        # Store forward/backward callables
+        # Identify tensor kwargs by identity too (if any parents remain - already handled)
+        # (Note: above loop already captured kwarg placements where identity matched)
+
+        # save bwd/fwd callables
         self.bwd_callable = node.bwd_fn
         owner = getattr(node.bwd_fn, "__self__", None)
-        self.fwd_callable = getattr(owner, "forward", None) if owner else None
-
+        self.fwd_callable = getattr(owner, "forward", None) if owner is not None else None
 
 
 class StaticGraph:
-    """
-    StaticGraph stores:
-      - ops: list of StaticOp (topological order)
-      - placeholders_list: list of StaticPlaceholder for every input leaf (flattened order)
-      - output_op: last op (used to find final out id)
-      - flat_input_spec: spec to reconstruct nested inputs from leaves
-      - var_leaf_indices: Optional[list[int]] indices into placeholders_list that are variables
-          - If None -> old behaviour: backward() returns full nested grad structure
-          - If not None -> backward() returns flat list of grads corresponding to these indices
-    """
-
     def __init__(
         self,
         ops: List[StaticOp],
@@ -145,14 +162,10 @@ class StaticGraph:
         self._runtime_values: Dict[int, torch.Tensor] = {}
 
         self.flat_input_spec = flat_input_spec
-        self.flat_input_keys = flat_input_keys  # flattened input leaves (LiteTensor objects)
-        self.var_leaf_indices = var_leaf_indices  # indices into placeholders_list for variables (or None)
+        self.flat_input_keys = flat_input_keys
+        self.var_leaf_indices = var_leaf_indices
 
     def forward(self, inputs: Any) -> LiteTensor:
-        """
-        Run forward with nested inputs matching the building-time structure.
-        Returns LiteTensor result.
-        """
         self._runtime_values.clear()
 
         flat_inputs, _input_spec = tree_flatten(inputs)
@@ -166,32 +179,28 @@ class StaticGraph:
             if not isinstance(leaf, LiteTensor):
                 raise TypeError(f"Input leaf {i} is not a LiteTensor, got {type(leaf)}")
 
-        # Bind placeholder id -> torch.Tensor
+        # Bind placeholders -> runtime torch.Tensor
         for ph, leaf in zip(self.placeholders_list, flat_inputs):
             self._runtime_values[ph.id] = leaf.data
 
-        # Execute ops in recorded order
+        # Execute ops in recorded order, preserving constants and replacing tensor slots
         for idx, op in enumerate(self.ops):
-            # Start from templates so constants remain unchanged
-            args = list(op.args_template)  # shallow copy
+            args = list(op.args_template)  # copy template so we don't mutate original
             kwargs = dict(op.kwargs_template)
 
-            # Replace positional tensor arguments with runtime tensors
+            # Replace positional tensor args from runtime map
             for pos, pid in op.tensor_arg_ids.items():
-                # pid is an id of the LiteTensor recorded earlier
                 if pid not in self._runtime_values:
                     raise RuntimeError(
                         f"During static forward, missing runtime value for parent id {pid} "
                         f"needed by op[{idx}] (node={op.node_repr})."
                     )
                 runtime_val = self._runtime_values[pid]
-                # Ensure args list is large enough
                 if pos >= len(args):
-                    # extend with None until pos
                     args.extend([None] * (pos + 1 - len(args)))
                 args[pos] = runtime_val
 
-            # Replace kwarg tensor arguments
+            # Replace keyword tensor args
             for k, pid in op.tensor_kwarg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
@@ -200,14 +209,11 @@ class StaticGraph:
                     )
                 kwargs[k] = self._runtime_values[pid]
 
-            # fwd callable must exist
             if op.fwd_callable is None:
                 raise RuntimeError(f"No forward callable available for op (node={op.node_repr}).")
 
-            # Call forward with preserved constants and runtime tensors in-place
             out = op.fwd_callable(*args, **kwargs)
 
-            # Accept LiteTensor or torch.Tensor
             if isinstance(out, LiteTensor):
                 out_tensor = out.data
             elif isinstance(out, torch.Tensor):
@@ -225,13 +231,6 @@ class StaticGraph:
         return LiteTensor(final)
 
     def backward(self, safe: bool = False) -> Any:
-        """
-        Compute backward pass.
-
-        - If var_leaf_indices is None: return nested structure matching inputs (old behaviour).
-        - If var_leaf_indices is a list of indices: return a flat list of grads for the variables
-          in the same order the user provided the `variables` leaves during build.
-        """
         final_out_id = self.output_op.out_id
         grad_map: Dict[int, torch.Tensor] = {}
         final_val = self._runtime_values.get(final_out_id)
@@ -240,7 +239,6 @@ class StaticGraph:
 
         grad_map[final_out_id] = neolib.ones_like(final_val)
 
-        # Reverse-mode accumulation
         for op in reversed(self.ops):
             out_grad = grad_map.pop(op.out_id, None)
             if out_grad is None:
@@ -255,7 +253,7 @@ class StaticGraph:
             if not isinstance(parent_grads, tuple):
                 parent_grads = (parent_grads,)
 
-            # pad
+            # pad parents to match parent_ids length
             if len(parent_grads) < len(op.parent_ids):
                 parent_grads = parent_grads + (None,) * (len(op.parent_ids) - len(parent_grads))
 
@@ -273,27 +271,13 @@ class StaticGraph:
             g = grad_map.get(ph.id)
             grad_leaves.append(LiteTensor(g) if g is not None else None)
 
-        # If user asked for variables-only mode, return flat list of grads for those indices
         if self.var_leaf_indices is not None:
-            var_grads: List[Optional[LiteTensor]] = [grad_leaves[i] for i in self.var_leaf_indices]
-            return var_grads
+            return [grad_leaves[i] for i in self.var_leaf_indices]
 
-        # Old behaviour: return nested structure matching inputs
         return tree_unflatten(grad_leaves, self.flat_input_spec)
 
 
 class StaticGraphBuilder:
-    """
-    build(fn, input_lite=None, *, constants=None, variables=None)
-
-    - Backwards-compatible: if input_lite is provided (and constants/variables are None),
-      old behaviour is used: all leaves are treated as variables and backward() returns nested grads.
-
-    - New API: pass constants (tuple/list or single) and variables (nested structure).
-      The function will be invoked as fn(*constants, variables). The builder will track all input leaves
-      but will mark only variable leaves as the user-requested trainable leaves.
-      backward() will return a flat list of grads for variables (matching the flattened order).
-    """
     def build(
         self,
         fn: Callable,
@@ -302,49 +286,33 @@ class StaticGraphBuilder:
         constants: Any = None,
         variables: Any = None,
     ) -> StaticGraph:
-        # Determine which API branch to use
+        # choose API mode
         if constants is None and variables is None:
-            # old API path: user passed `input_lite` as single nested structure or sequence
             if input_lite is None:
                 raise TypeError("Either input_lite or (constants, variables) must be provided")
             combined_input = input_lite
-            # var indices None -> old behaviour
             var_leaf_indices: Optional[List[int]] = None
         else:
-            # new API path: build combined input structure where fn will be called as fn(*constants, variables)
             if variables is None:
-                raise TypeError("If you pass constants, you must pass variables (the 'trainable' structure)")
-            # Normalize constants to tuple for unpacking
+                raise TypeError("If you pass constants, you must pass variables")
             if constants is None:
                 constants_tuple: Tuple = tuple()
-            elif isinstance(constants, tuple):
-                constants_tuple = constants
-            elif isinstance(constants, list):
+            elif isinstance(constants, (list, tuple)):
                 constants_tuple = tuple(constants)
             else:
-                # single constant value (e.g. x) -> wrap
                 constants_tuple = (constants,)
-
-            # The combined input is a tuple: (*constants_tuple, variables)
-            # This matches the typical function signature like fn(x, y, params)
             combined_input = (*constants_tuple, variables)
-
-            # We will compute var_leaf_indices below
             var_leaf_indices = []
 
-        # Flatten combined input, get spec and list of leaves
         flat_inputs, flat_spec = tree_flatten(combined_input)
 
-        # Validate leaves are LiteTensors
         if not all(isinstance(x, LiteTensor) for x in flat_inputs):
             raise TypeError("StaticGraphBuilder.build expects all leaves in input to be LiteTensor")
 
-        # Make placeholders for every leaf (full order)
         placeholders = [StaticPlaceholder(lt) for lt in flat_inputs]
 
-        # If using new API, compute which placeholder indices correspond to variable leaves
+        # compute variable leaf indices if needed
         if var_leaf_indices is not None:
-            # flatten variables separately and locate their identities in flat_inputs
             var_leaves, _ = tree_flatten(variables)
             remaining = list(var_leaves)
             indices: List[int] = []
@@ -358,11 +326,9 @@ class StaticGraphBuilder:
         else:
             var_leaf_indices = None
 
-        # Create and push a fresh tape
         tape = Tape()
         TapeContext.push(tape)
         try:
-            # Call function with appropriate unpacking:
             if isinstance(combined_input, (list, tuple)):
                 out = fn(*combined_input)
             elif isinstance(combined_input, dict):
@@ -375,7 +341,6 @@ class StaticGraphBuilder:
                 import warnings
                 warnings.warn("TapeContext.pop() returned None; using local Tape instance.")
 
-        # Build StaticOp list from recorded nodes in our tape
         ops: List[StaticOp] = []
         last_op: Optional[StaticOp] = None
         for node in tape:
