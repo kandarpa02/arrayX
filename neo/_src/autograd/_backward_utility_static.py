@@ -177,8 +177,8 @@ class StaticGraphBuilder:
             raise TypeError("StaticGraphBuilder.build expects all leaves in input to be LiteTensor")
 
         placeholders = [StaticPlaceholder(lt) for lt in flat_inputs]
-
-        TapeContext.push(Tape())
+        tape = Tape()
+        TapeContext.push(tape)
         try:
             if isinstance(input_lite, (list, tuple)):
                 out = fn(*input_lite)
@@ -187,7 +187,7 @@ class StaticGraphBuilder:
             else:
                 out = fn(input_lite)
         finally:
-            tape = TapeContext.pop()
+            TapeContext.pop()
 
         ops = []
         last_op = None
