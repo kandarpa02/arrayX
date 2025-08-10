@@ -61,14 +61,15 @@ class StaticPlaceholder:
         self.id = id(lite)
 
 
+
 class StaticOp:
     """
     Stores:
       - out_id: id(node.output)
-      - args_template: list of original positional args (exact objects recorded)
-      - kwargs_template: dict of original keyword args
-      - tensor_arg_ids: mapping pos -> parent id for arguments that were LiteTensors
-      - tensor_kwarg_ids: mapping key -> parent id for kwargs that were LiteTensors
+      - args_template: original positional args (with constants preserved)
+      - kwargs_template: original keyword args (with constants preserved)
+      - tensor_arg_ids: {pos_idx: parent_id} for tensor positional args
+      - tensor_kwarg_ids: {kw_name: parent_id} for tensor keyword args
       - bwd_callable, fwd_callable, node_repr
     """
 
@@ -87,58 +88,33 @@ class StaticOp:
     def __init__(self, node):
         self.node_repr = repr(node)
         self.out_id = id(node.output)
-        # record parent ids for compatibility (ordered)
+
+        # parent_ids: ordered list of ids for all parents
         self.parent_ids = tuple(id(p) for p in (node.parents or ()))
 
-        # default templates
-        # If node provides args/kwargs, use them as templates (preserve constants).
-        node_args = getattr(node, "args", None)
-        node_kwargs = getattr(node, "kwargs", None)
+        # Capture templates exactly as originally recorded
+        self.args_template = list(getattr(node, "args", []))
+        self.kwargs_template = dict(getattr(node, "kwargs", {}))
 
-        if node_args is not None:
-            # copy to list to safely mutate during replay
-            self.args_template = list(node_args)
-        else:
-            # fallback: create placeholder list matching number of parents
-            # (we will map parents to positional slots 0..n-1)
-            self.args_template = [None] * len(self.parent_ids)
+        # Identify which args/kwargs are tensors that map to parents
+        self.tensor_arg_ids = {}
+        self.tensor_kwarg_ids = {}
 
-        if node_kwargs is not None:
-            self.kwargs_template = dict(node_kwargs)
-        else:
-            self.kwargs_template = {}
+        # Map positional tensor args
+        for i, a in enumerate(self.args_template):
+            if isinstance(a, LiteTensor):
+                self.tensor_arg_ids[i] = id(a)
 
-        # maps for tensor positions -> parent id (so we can replace with runtime tensors)
-        self.tensor_arg_ids: Dict[int, int] = {}
-        self.tensor_kwarg_ids: Dict[str, int] = {}
+        # Map keyword tensor args
+        for k, v in self.kwargs_template.items():
+            if isinstance(v, LiteTensor):
+                self.tensor_kwarg_ids[k] = id(v)
 
-        # If node provided explicit args/kwargs, identify which entries were LiteTensors
-        # and map them by identity to their parent ids if possible.
-        if node_args is not None:
-            # We try to match LiteTensor args to node.parents by identity.
-            # Build a parent id map from LiteTensor id -> parent id (if available)
-            parent_map = {id(p): id(p) for p in (node.parents or ())}
-            for i, a in enumerate(self.args_template):
-                if isinstance(a, LiteTensor):
-                    # typical case: a is exactly one of node.parents
-                    self.tensor_arg_ids[i] = id(a)
-        else:
-            # fallback: treat each parent_id as tensor argument at corresponding index
-            for idx, pid in enumerate(self.parent_ids):
-                self.tensor_arg_ids[idx] = pid
-
-        if node_kwargs is not None:
-            for k, v in self.kwargs_template.items():
-                if isinstance(v, LiteTensor):
-                    self.tensor_kwarg_ids[k] = id(v)
-        else:
-            # no kwargs template; nothing to do
-            pass
-
-        # store callables
+        # Store forward/backward callables
         self.bwd_callable = node.bwd_fn
         owner = getattr(node.bwd_fn, "__self__", None)
-        self.fwd_callable = getattr(owner, "forward", None) if owner is not None else None
+        self.fwd_callable = getattr(owner, "forward", None) if owner else None
+
 
 
 class StaticGraph:
