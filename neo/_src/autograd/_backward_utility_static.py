@@ -165,6 +165,7 @@ class StaticGraph:
         self.flat_input_keys = flat_input_keys
         self.var_leaf_indices = var_leaf_indices
 
+    
     def forward(self, inputs: Any) -> LiteTensor:
         self._runtime_values.clear()
 
@@ -183,24 +184,21 @@ class StaticGraph:
         for ph, leaf in zip(self.placeholders_list, flat_inputs):
             self._runtime_values[ph.id] = leaf.data
 
-        # Execute ops in recorded order, preserving constants and replacing tensor slots
+        # Execute ops in recorded order
         for idx, op in enumerate(self.ops):
-            args = list(op.args_template)  # copy template so we don't mutate original
+            # Start from the recorded templates so constants are preserved
+            args = list(op.args_template)
             kwargs = dict(op.kwargs_template)
 
-            # Replace positional tensor args from runtime map
+            # Replace only the positions/keys that were originally LiteTensors
             for pos, pid in op.tensor_arg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
                         f"During static forward, missing runtime value for parent id {pid} "
                         f"needed by op[{idx}] (node={op.node_repr})."
                     )
-                runtime_val = self._runtime_values[pid]
-                if pos >= len(args):
-                    args.extend([None] * (pos + 1 - len(args)))
-                args[pos] = runtime_val
+                args[pos] = self._runtime_values[pid]
 
-            # Replace keyword tensor args
             for k, pid in op.tensor_kwarg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
@@ -229,6 +227,7 @@ class StaticGraph:
         if final is None:
             raise RuntimeError("StaticGraph forward completed but output value is missing.")
         return LiteTensor(final)
+
 
     def backward(self, safe: bool = False) -> Any:
         final_out_id = self.output_op.out_id
