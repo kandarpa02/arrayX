@@ -55,8 +55,13 @@ class StaticPlaceholder:
 
 class StaticOp:
     """
-    Robust StaticOp that preserves original args/kwargs (constants) and
-    maps recorded parent LiteTensors to the exact arg/kw slot that used them.
+    StaticOp stores:
+      - out_id: id(node.output)
+      - args_template / kwargs_template: exactly as recorded (constants preserved)
+      - tensor_arg_ids: mapping pos -> parent_id (only for tensor slots)
+      - tensor_kwarg_ids: mapping key -> parent_id (only for tensor slots)
+      - parent_ids: tuple of parent ids (order from node.parents)
+      - fwd_callable / bwd_callable
     """
 
     __slots__ = (
@@ -64,8 +69,8 @@ class StaticOp:
         "parent_ids",
         "args_template",
         "kwargs_template",
-        "tensor_arg_ids",    # pos -> parent_id
-        "tensor_kwarg_ids",  # key -> parent_id
+        "tensor_arg_ids",
+        "tensor_kwarg_ids",
         "fwd_callable",
         "bwd_callable",
         "node_repr",
@@ -74,72 +79,67 @@ class StaticOp:
     def __init__(self, node):
         self.node_repr = repr(node)
         self.out_id = id(node.output)
-        # ordered list of parent LiteTensors (may be empty)
+
+        # parents and their ids
         parents = list(node.parents or ())
         self.parent_ids = tuple(id(p) for p in parents)
 
-        # Capture exact templates (positional and keyword), default to empty if missing
+        # capture exact arg/kw templates if available, else defaults
         node_args = getattr(node, "args", ())
         node_kwargs = getattr(node, "kwargs", {})
 
         self.args_template: List[Any] = list(node_args)
         self.kwargs_template: Dict[str, Any] = dict(node_kwargs)
 
-        # Prepare maps: which arg positions/kw keys correspond to which parent ids
+        # maps (only for tensor positions)
         self.tensor_arg_ids: Dict[int, int] = {}
         self.tensor_kwarg_ids: Dict[str, int] = {}
 
-        # Map parents -> positions/keys by identity
-        # For each parent, try to find it in args_template (identity match) first,
-        # then in kwargs_template values; if not found, assign to next free positional slot.
-        used_positions = set()
-        used_keys = set()
-
+        # mapping algorithm 
+        # For each parent (in tape order), try:
+        #  1 identity match with args_template entries (a is p)
+        #  2 identity match with kwargs_template values (v is p)
+        #  3 fill an explicit None placeholder in args_template
+        #  4 append a new positional None slot and map to it
         for p in parents:
             pid = id(p)
             placed = False
-            # search positional args for identity match
+
+            # 1) identity match in positional args
             for i, a in enumerate(self.args_template):
                 if a is p:
+                    # exact identity: map this position to this parent id
                     self.tensor_arg_ids[i] = pid
-                    used_positions.add(i)
                     placed = True
                     break
             if placed:
                 continue
-            # search kwargs for identity match
+
+            # 2) identity match in kwargs
             for k, v in self.kwargs_template.items():
                 if v is p:
                     self.tensor_kwarg_ids[k] = pid
-                    used_keys.add(k)
                     placed = True
                     break
             if placed:
                 continue
-            # fallback: find next unused positional index (extend template if needed)
-            # prefer filling `None` slots first
+
+            # 3) fill an explicit None placeholder slot in args_template (prefer these)
             for i, a in enumerate(self.args_template):
-                if i in used_positions:
-                    continue
-                # if slot already holds a constant not equal to parent, skip it
-                if a is not None:
-                    continue
-                self.tensor_arg_ids[i] = pid
-                used_positions.add(i)
-                placed = True
-                break
+                if a is None and i not in self.tensor_arg_ids:
+                    self.tensor_arg_ids[i] = pid
+                    placed = True
+                    break
             if placed:
                 continue
-            # otherwise append a new positional slot
+
+            # 4) last resort: append a new positional slot
             idx = len(self.args_template)
             self.args_template.append(None)
             self.tensor_arg_ids[idx] = pid
-            used_positions.add(idx)
+            # placed = True  # implied
 
-        # Identify tensor kwargs by identity too (if any parents remain - already handled)
-        # (Note: above loop already captured kwarg placements where identity matched)
-
-        # save bwd/fwd callables
+        # store callables
         self.bwd_callable = node.bwd_fn
         owner = getattr(node.bwd_fn, "__self__", None)
         self.fwd_callable = getattr(owner, "forward", None) if owner is not None else None
@@ -165,7 +165,6 @@ class StaticGraph:
         self.flat_input_keys = flat_input_keys
         self.var_leaf_indices = var_leaf_indices
 
-    
     def forward(self, inputs: Any) -> LiteTensor:
         self._runtime_values.clear()
 
@@ -186,19 +185,27 @@ class StaticGraph:
 
         # Execute ops in recorded order
         for idx, op in enumerate(self.ops):
-            # Start from the recorded templates so constants are preserved
+            # Start from templates (constants preserved)
             args = list(op.args_template)
             kwargs = dict(op.kwargs_template)
 
-            # Replace only the positions/keys that were originally LiteTensors
+            # Only replace mapped tensor slots (positional)
             for pos, pid in op.tensor_arg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
                         f"During static forward, missing runtime value for parent id {pid} "
                         f"needed by op[{idx}] (node={op.node_repr})."
                     )
-                args[pos] = self._runtime_values[pid]
+                runtime_val = self._runtime_values[pid]
+                # pos should be within args length because mapping appended slots if required
+                if pos >= len(args):
+                    # This should not happen; defensive check
+                    raise RuntimeError(
+                        f"Static replay error: positional slot {pos} out of bounds for op[{idx}] (node={op.node_repr})"
+                    )
+                args[pos] = runtime_val
 
+            # Only replace mapped tensor kwargs
             for k, pid in op.tensor_kwarg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
@@ -228,7 +235,6 @@ class StaticGraph:
             raise RuntimeError("StaticGraph forward completed but output value is missing.")
         return LiteTensor(final)
 
-
     def backward(self, safe: bool = False) -> Any:
         final_out_id = self.output_op.out_id
         grad_map: Dict[int, torch.Tensor] = {}
@@ -252,7 +258,7 @@ class StaticGraph:
             if not isinstance(parent_grads, tuple):
                 parent_grads = (parent_grads,)
 
-            # pad parents to match parent_ids length
+            # pad to match number of recorded parents
             if len(parent_grads) < len(op.parent_ids):
                 parent_grads = parent_grads + (None,) * (len(op.parent_ids) - len(parent_grads))
 
