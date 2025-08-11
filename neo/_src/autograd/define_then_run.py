@@ -16,20 +16,13 @@ class Node:
 
     def __init__(self, op: Optional[Policy], inputs: List["Node"], name: Optional[str] = None):
         self.id = next(Node._ids)
-        # `op` here should be a Policy *instance* created with desired init args,
-        # so we can later re-create a fresh instance of the same class with the
-        # same init args if needed.
         self.op = op
         self.inputs = inputs
         self.name = name or f"node_{self.id}"
-        self.output_cache = None   # forward-pass result (LiteTensor or list)
-        self.grad_cache = None     # backward-pass gradient (torch.Tensor or list of torch.Tensor)
-        self.shape = None          # optional shape for validation
+        self.output_cache = None   # LiteTensor, list, or dict of LiteTensors
+        self.grad_cache = None     # torch.Tensor, list, or dict of torch.Tensor
+        self.shape = None
 
-        # helper to recreate a fresh policy instance per run:
-        # store init args/kwargs on the policy instance if created with them
-        # e.g. policy = policy_cls(*args, **kwargs); policy._init_args = args; policy._init_kwargs = kwargs
-        # If not present, we will try policy.__class__() with no args.
         self._policy_instance_used = None
 
     def __repr__(self):
@@ -37,26 +30,32 @@ class Node:
 
 
 class Variable(Node):
-    def __init__(self, shape: Optional[Tuple[int, ...]] = None, d_type: str = '', device: str = '', name: str = None): #type:ignore
+    def __init__(self, shape: Optional[Tuple[int, ...]] = None, d_type: str = '', device: str = '',
+                 name: str = None, is_dict: bool = False):  # added is_dict flag
         super().__init__(op=None, inputs=[], name=name or "var")
         self.shape = shape
         self.d_type = d_type
         self.device = device
         self.is_variable = True
         self.is_constant = False
+        self.is_dict = is_dict  # True if this variable holds dict of LiteTensors
 
 
 class Constant(Node):
-    def __init__(self, value: LiteTensor, name: str = None): #type:ignore
+    def __init__(self, value: Union[LiteTensor, Dict[str, LiteTensor]], name: str = None):
         super().__init__(op=None, inputs=[], name=name or "const")
         self.output_cache = value
-        self.shape = tuple(value.data.shape)
+        if isinstance(value, LiteTensor):
+            self.shape = tuple(value.data.shape)
+        else:
+            # dict case: no single shape
+            self.shape = None
         self.is_variable = False
         self.is_constant = True
 
 
 class Placeholder(Node):
-    def __init__(self, shape: Optional[Tuple[int, ...]] = None, d_type: str = '', device: str = '', name: str = None): #type:ignore
+    def __init__(self, shape: Optional[Tuple[int, ...]] = None, d_type: str = '', device: str = '', name: str = None):
         super().__init__(op=None, inputs=[], name=name or "placeholder")
         self.shape = shape
         self.d_type = d_type
@@ -66,18 +65,31 @@ class Placeholder(Node):
 
 
 class Symbol:
-    def __init__(self, node: Node):
+    def __init__(self, node: Node, key: Optional[Union[str, Tuple[str, ...]]] = None):
         self.node = node
+        self.key = key  # None or string key or tuple of keys for nested dicts
+
     def _binary_op(self, other, policy_cls, *args, **kwargs):
         other_sym = other if isinstance(other, Symbol) else Symbol(Constant(LiteTensor(other)))
-        policy_inst = policy_cls()              # zero-arg ctor
+        policy_inst = policy_cls()  # zero-arg ctor
         policy_inst._init_args = args
         policy_inst._init_kwargs = kwargs
         new_node = Node(op=policy_inst, inputs=[self.node, other_sym.node])
         return Symbol(new_node)
 
+    def __getitem__(self, idx):
+        # Compose keys for nested dict indexing
+        if self.key is None:
+            new_key = idx
+        else:
+            if isinstance(self.key, tuple):
+                new_key = self.key + (idx,)
+            else:
+                new_key = (self.key, idx)
+        return Symbol(self.node, key=new_key)
+
     def _unary_op(self, policy_cls, *args, **kwargs):
-        policy_inst = policy_cls()              # zero-arg ctor
+        policy_inst = policy_cls()  # zero-arg ctor
         policy_inst._init_args = args
         policy_inst._init_kwargs = kwargs
         new_node = Node(op=policy_inst, inputs=[self.node])
@@ -91,7 +103,7 @@ class Symbol:
     def __pow__(self, other): return self._binary_op(other, power_op)
     def __matmul__(self, other): return self._binary_op(other, matmul_op)
 
-    # Unary ops (no extra params)
+    # Unary ops
     def log(self): return self._unary_op(log)
     def log10(self): return self._unary_op(log10)
     def abs(self): return self._unary_op(abs)
@@ -99,7 +111,7 @@ class Symbol:
     def exp(self): return self._unary_op(exp)
     def sqrt(self): return self._unary_op(sqrt)
 
-    # Reductions (with optional params)
+    # Reductions
     def sum(self, dim=None, keepdim=False):
         return self._unary_op(sum_op, dim=dim, keepdim=keepdim)
 
@@ -108,6 +120,15 @@ class Symbol:
 
     def max(self, dim=None, keepdim=False):
         return self._unary_op(max_op, dim=dim, keepdim=keepdim)
+
+    def get_value(self):
+        val = self.node.output_cache
+        if self.key is None:
+            return val
+        keys = self.key if isinstance(self.key, tuple) else (self.key,)
+        for k in keys:
+            val = val[k]
+        return val
 
 
 def topological_sort(output_nodes: List[Node]) -> List[Node]:
@@ -129,7 +150,6 @@ def topological_sort(output_nodes: List[Node]) -> List[Node]:
 
 
 def _ensure_torch_tensor(x):
-    # Accept LiteTensor, torch.Tensor, Python scalar, numpy scalar/array
     if isinstance(x, LiteTensor):
         return x.data
     if isinstance(x, torch.Tensor):
@@ -137,18 +157,18 @@ def _ensure_torch_tensor(x):
     try:
         return torch.as_tensor(x)
     except Exception:
-        raise TypeError("Unable to convert to torch.Tensor: %r" % (x,))
+        raise TypeError(f"Unable to convert to torch.Tensor: {x!r}")
 
 
 def _wrap_as_litetensor(x):
-    # x may be torch.Tensor, LiteTensor, scalar, tuple/list of same
     if isinstance(x, LiteTensor):
         return x
     if isinstance(x, torch.Tensor):
         return LiteTensor(x)
     if isinstance(x, (tuple, list)):
-        return [ _wrap_as_litetensor(e) for e in x ]
-    # fallback
+        return [_wrap_as_litetensor(e) for e in x]
+    if isinstance(x, dict):
+        return {k: _wrap_as_litetensor(v) for k, v in x.items()}
     return LiteTensor(torch.as_tensor(x))
 
 
@@ -158,20 +178,12 @@ def _is_sequence(obj):
 
 def run_graph(outputs: List[Node],
               vars: List[Variable],
-              feed_dict: Dict[Node, LiteTensor]) -> Tuple[List[LiteTensor], List[LiteTensor]]:
-    """
-    Execute forward + backward for given outputs.
-    - outputs: list of output Nodes (can be single-element list)
-    - vars: list of Variable nodes for which grads will be returned (in same order)
-    - feed_dict: mapping Node -> LiteTensor for Variables & Placeholders & optional Constants override
-
-    Returns:
-      (outputs_list_of_LiteTensor_or_list, grads_for_vars_as_list_of_LiteTensor)
-    """
+              feed_dict: Dict[Node, Union[LiteTensor, Dict[str, LiteTensor]]]
+              ) -> Tuple[List[Union[LiteTensor, List[LiteTensor], Dict[str, LiteTensor]]],
+                         List[Union[LiteTensor, List[LiteTensor], Dict[str, LiteTensor]]]]:
     order = topological_sort(outputs)
 
     for node in order:
-        # constants already have output_cache set to LiteTensor
         if isinstance(node, Constant):
             continue
 
@@ -179,12 +191,20 @@ def run_graph(outputs: List[Node],
             if node not in feed_dict:
                 raise ValueError(f"No value provided for Variable {node.name}")
             val = feed_dict[node]
-            if not isinstance(val, LiteTensor):
-                raise TypeError(f"Feed value for {node.name} must be LiteTensor")
-            node.output_cache = val
-            # optional shape check
-            if node.shape is not None and tuple(val.data.shape) != tuple(node.shape):
-                raise ValueError(f"Shape mismatch for Variable {node.name}: expected {node.shape} got {tuple(val.data.shape)}")
+            # Allow dict-valued variable or single LiteTensor
+            if node.is_dict:
+                if not isinstance(val, dict):
+                    raise TypeError(f"Feed value for dict Variable {node.name} must be dict of LiteTensor")
+                for k, v in val.items():
+                    if not isinstance(v, LiteTensor):
+                        raise TypeError(f"Dict feed for {node.name}[{k}] must be LiteTensor")
+                node.output_cache = val
+            else:
+                if not isinstance(val, LiteTensor):
+                    raise TypeError(f"Feed value for Variable {node.name} must be LiteTensor")
+                node.output_cache = val
+                if node.shape is not None and tuple(val.data.shape) != tuple(node.shape):
+                    raise ValueError(f"Shape mismatch for Variable {node.name}: expected {node.shape} got {tuple(val.data.shape)}")
             continue
 
         if isinstance(node, Placeholder):
@@ -198,7 +218,7 @@ def run_graph(outputs: List[Node],
                 raise ValueError(f"Shape mismatch for Placeholder {node.name}: expected {node.shape} got {tuple(val.data.shape)}")
             continue
 
-        # Create a fresh policy instance from stored op instance's class & init args if provided.
+        # Create fresh policy instance
         policy_template = node.op
         if policy_template is None:
             raise RuntimeError(f"Op node {node.name} has no policy instance")
@@ -208,137 +228,138 @@ def run_graph(outputs: List[Node],
         try:
             policy = policy_template.__class__(*init_args, **init_kwargs)
         except Exception:
-            # fallback to trying no-arg constructor
             policy = policy_template.__class__()
 
-        # Save the instance to use in backward
         node._policy_instance_used = policy
 
-        # unwrap inputs to raw torch tensors (or sequences of tensors)
+        # unwrap inputs (handle dict-valued inputs)
         raw_inputs = []
         for inp in node.inputs:
             val = inp.output_cache
-            if _is_sequence(val):
-                # If the input is a list/tuple of LiteTensors, convert each
-                raw_inputs.append([ _ensure_torch_tensor(e) for e in val ])
+            if isinstance(val, dict):
+                # unwrap dict values to torch.Tensor
+                raw_inputs.append({k: _ensure_torch_tensor(v) for k, v in val.items()})
+            elif _is_sequence(val):
+                raw_inputs.append([_ensure_torch_tensor(e) for e in val])
             else:
                 raw_inputs.append(_ensure_torch_tensor(val))
 
-        # Call forward with raw torch.Tensor arguments.
         raw_out = policy.forward(*raw_inputs)
 
-        # Normalize forward outputs to either a single LiteTensor or list of LiteTensors
-        if _is_sequence(raw_out):
-            wrapped = []
-            for item in raw_out:
-                if isinstance(item, LiteTensor):
-                    wrapped.append(item)
-                else:
-                    wrapped.append(_wrap_as_litetensor(item))
-            node.output_cache = wrapped
+        # Normalize outputs (handle dict outputs)
+        if isinstance(raw_out, dict):
+            node.output_cache = {k: _wrap_as_litetensor(v) for k, v in raw_out.items()}
+        elif _is_sequence(raw_out):
+            node.output_cache = [_wrap_as_litetensor(v) for v in raw_out]
         else:
             node.output_cache = _wrap_as_litetensor(raw_out)
 
-        # optional shape check if set on node
+        # shape check (for first output in list or dict)
         if node.shape is not None:
-            # support list outputs? assume shape is for first output
-            out_data = node.output_cache[0].data if _is_sequence(node.output_cache) else node.output_cache.data
+            if isinstance(node.output_cache, dict):
+                first_val = next(iter(node.output_cache.values()))
+                out_data = first_val.data
+            elif _is_sequence(node.output_cache):
+                out_data = node.output_cache[0].data
+            else:
+                out_data = node.output_cache.data
+
             if tuple(out_data.shape) != tuple(node.shape):
                 raise ValueError(f"Node {node.name} produced shape {tuple(out_data.shape)} but expected {tuple(node.shape)}")
 
-    # ---------------- Collect final outputs (wrap consistently) ----------------
-    def _collect_output_value(node: Node):
-        return node.output_cache
-    output_vals = [_collect_output_value(n) for n in outputs]
+    # Collect final outputs
+    output_vals = [n.output_cache for n in outputs]
 
-    # Initialize grad_cache for outputs: match shape and type (torch.Tensor).
-    # If an output is a sequence, we seed each element with ones_like.
+    # Initialize grad_cache for outputs
     for out_node in outputs:
         out_val = out_node.output_cache
-        if _is_sequence(out_val):
-            # create same-structure grads
-            grads = [ torch.ones_like(elem.data) for elem in out_val ]
+        if isinstance(out_val, dict):
+            grads = {k: torch.ones_like(v.data) for k, v in out_val.items()}
+            out_node.grad_cache = grads
+        elif _is_sequence(out_val):
+            grads = [torch.ones_like(elem.data) for elem in out_val]
             out_node.grad_cache = grads
         else:
             out_node.grad_cache = torch.ones_like(out_val.data)
 
-    # Walk in reverse topo order
+    # Backward pass
     for node in reversed(order):
         if node.op is None:
             continue
         grad_in = node.grad_cache
         if grad_in is None:
-            # nothing to backprop through this node
             continue
 
         policy = getattr(node, "_policy_instance_used", None)
         if policy is None:
             raise RuntimeError(f"No policy instance recorded for node {node.name} (forward didn't run?)")
 
-        # ensure grad_in is raw torch.Tensor or list of torch.Tensor when calling backward
-        if _is_sequence(grad_in):
-            raw_grad_in = [ _ensure_torch_tensor(g) for g in grad_in ]
+        # Prepare raw grad input
+        if isinstance(grad_in, dict):
+            raw_grad_in = {k: _ensure_torch_tensor(v) for k, v in grad_in.items()}
+        elif _is_sequence(grad_in):
+            raw_grad_in = [_ensure_torch_tensor(g) for g in grad_in]
         else:
             raw_grad_in = _ensure_torch_tensor(grad_in)
 
-        # Call backward -> should return grad(s) for each input (torch.Tensor or sequence)
         raw_grads_for_inputs = policy.backward(raw_grad_in)
-
-        # normalize to tuple
         if not isinstance(raw_grads_for_inputs, tuple):
             raw_grads_for_inputs = (raw_grads_for_inputs,)
 
-        # accumulate gradients into inputs (store as raw torch.Tensor or lists)
         for inp_node, raw_g in zip(node.inputs, raw_grads_for_inputs):
             if raw_g is None:
                 continue
-            # If raw_g is LiteTensor, extract .data
             if isinstance(raw_g, LiteTensor):
                 raw_g = raw_g.data
-            if _is_sequence(raw_g):
-                # store lists as lists of torch.Tensors
-                to_add = [ _ensure_torch_tensor(x) for x in raw_g ]
+
+            if isinstance(raw_g, dict):
+                to_add = {k: _ensure_torch_tensor(v) for k, v in raw_g.items()}
+            elif _is_sequence(raw_g):
+                to_add = [_ensure_torch_tensor(x) for x in raw_g]
             else:
                 to_add = _ensure_torch_tensor(raw_g)
 
-            # accumulate
             if inp_node.grad_cache is None:
                 inp_node.grad_cache = to_add
             else:
-                # both caches must be same structure; add elementwise or tensor add
-                if _is_sequence(inp_node.grad_cache) and _is_sequence(to_add):
-                    # element-wise add of lists
-                    inp_node.grad_cache = [ a + b for a, b in zip(inp_node.grad_cache, to_add) ]
-                elif _is_sequence(inp_node.grad_cache) != _is_sequence(to_add):
+                # Accumulate gradients properly (handle dict and sequences)
+                if isinstance(inp_node.grad_cache, dict) and isinstance(to_add, dict):
+                    for k in to_add:
+                        inp_node.grad_cache[k] = inp_node.grad_cache.get(k, 0) + to_add[k]
+                elif _is_sequence(inp_node.grad_cache) and _is_sequence(to_add):
+                    inp_node.grad_cache = [a + b for a, b in zip(inp_node.grad_cache, to_add)]
+                elif type(inp_node.grad_cache) != type(to_add):
                     raise RuntimeError("Gradient structure mismatch during accumulation")
                 else:
                     inp_node.grad_cache = inp_node.grad_cache + to_add
 
-
-    var_grads: List[LiteTensor] = []
+    # Gather gradients for variables
+    var_grads: List[Union[LiteTensor, List[LiteTensor], Dict[str, LiteTensor]]] = []
     for v in vars:
         raw_g = v.grad_cache
         if raw_g is None:
-            # return zeros of same shape as variable if available, else None
             if v.output_cache is not None:
-                zero = torch.zeros_like(v.output_cache.data)
-                var_grads.append(LiteTensor(zero))
+                if isinstance(v.output_cache, dict):
+                    zero_dict = {k: torch.zeros_like(t.data) for k, t in v.output_cache.items()}
+                    var_grads.append({k: LiteTensor(z) for k, z in zero_dict.items()})
+                else:
+                    zero = torch.zeros_like(v.output_cache.data)
+                    var_grads.append(LiteTensor(zero))
             else:
                 var_grads.append(None)
             continue
 
-        # raw_g should be torch.Tensor (or list) -> wrap into LiteTensor
-        if _is_sequence(raw_g):
-            # return first element if variable expected scalar? but variables are leaf nodes — sequence unlikely
-            # we'll wrap sequence as list of LiteTensors
-            var_grads.append([ LiteTensor(x) for x in raw_g ])
+        if isinstance(raw_g, dict):
+            var_grads.append({k: LiteTensor(t) if not isinstance(t, LiteTensor) else t for k, t in raw_g.items()})
+        elif _is_sequence(raw_g):
+            var_grads.append([LiteTensor(t) if not isinstance(t, LiteTensor) else t for t in raw_g])
         else:
             if isinstance(raw_g, LiteTensor):
                 var_grads.append(raw_g)
             else:
                 var_grads.append(LiteTensor(raw_g))
 
-    # ---------------- Cleanup: free policy instances to release ctx references ----------------
+    # Cleanup
     for node in order:
         if hasattr(node, "_policy_instance_used"):
             node._policy_instance_used = None
