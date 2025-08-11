@@ -88,14 +88,26 @@ class matmul_op(Policy):
     def backward(self, grad):
         X, Y = self.ctx.release
 
-        # Promote to 2D if needed
-        X_2d = X.data.unsqueeze(0) if X.data.ndim == 1 else X.data
-        Y_2d = Y.data.unsqueeze(1) if Y.data.ndim == 1 else Y.data
-        grad_2d = grad.data
-        if grad_2d.ndim == 0:
-            grad_2d = grad_2d.unsqueeze(0).unsqueeze(1)
+        X_shape = X.shape
+        Y_shape = Y.shape
 
-        grad_x = grad_2d @ Y_2d.T
-        grad_y = X_2d.T @ grad_2d
+        # Match PyTorch matmul rules for grad shapes
+        if X.ndim == 1 and Y.ndim == 1:
+            # dot product case -> scalar grad
+            grad_x = grad * Y
+            grad_y = grad * X
+        elif X.ndim == 2 and Y.ndim == 1:
+            # matrix @ vector -> vector grad
+            grad_x = grad.unsqueeze(1) @ Y.unsqueeze(0)  # outer product
+            grad_y = X.T @ grad
+        elif X.ndim == 1 and Y.ndim == 2:
+            # vector @ matrix -> vector grad
+            grad_x = grad @ Y.T
+            grad_y = X.unsqueeze(1) @ grad.unsqueeze(0)
+        else:
+            # matrix @ matrix
+            grad_x = grad @ Y.T
+            grad_y = X.T @ grad
 
-        return grad_x.squeeze(), grad_y.squeeze()
+        # Ensure same shapes as original inputs
+        return grad_x.reshape(X_shape), grad_y.reshape(Y_shape)
