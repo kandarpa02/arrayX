@@ -1,5 +1,5 @@
 from neo._src.autograd import Node, TapeContext, Policy
-from ..math import neolib
+from neo import neolib
 
 class addition(Policy):
     def forward(self, x, y):
@@ -88,9 +88,10 @@ class matmul_op(Policy):
     def backward(self, grad):
         X, Y = self.ctx.release
 
-        X_2d = X.unsqueeze(0) if X.ndim == 1 else X
-        Y_2d = Y.unsqueeze(1) if Y.ndim == 1 else Y
-        grad_2d = grad
+        # Promote to 2D if needed
+        X_2d = X.data.unsqueeze(0) if X.data.ndim == 1 else X.data
+        Y_2d = Y.data.unsqueeze(1) if Y.data.ndim == 1 else Y.data
+        grad_2d = grad.data
         if grad_2d.ndim == 0:
             grad_2d = grad_2d.unsqueeze(0).unsqueeze(1)
 

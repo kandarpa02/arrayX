@@ -9,13 +9,15 @@ __all__ = [
     'avg_pool1d', 'avg_pool2d', 'avg_pool3d',
 ]
 
+
 class _max_pool1d(Policy):
-    def forward(self, input, kernel_size, stride=None,
+    def forward(self, input, *, kernel_size, stride=None,
                 padding=0, dilation=1, ceil_mode=False):
         stride = stride or kernel_size
         output, indices = F.max_pool1d(
-            input, kernel_size, stride, padding,
-            dilation, ceil_mode, return_indices=True
+            input, kernel_size=kernel_size, stride=stride,
+            padding=padding, dilation=dilation,
+            ceil_mode=ceil_mode, return_indices=True
         )
         self.ctx.save(indices, input.shape, kernel_size, stride, padding)
         return output
@@ -27,22 +29,15 @@ class _max_pool1d(Policy):
             None, None, None, None, None
         )
 
-def max_pool1d(
-    input, kernel_size, stride=None,
-    padding=0, dilation=1, ceil_mode=False
-):
-    return function(_max_pool1d)(
-        input, kernel_size, stride, padding, dilation, ceil_mode
-    )
-
 
 class _max_pool2d(Policy):
-    def forward(self, input, kernel_size, stride=None,
+    def forward(self, input, *, kernel_size, stride=None,
                 padding=0, dilation=1, ceil_mode=False):
         stride = stride or kernel_size
         output, indices = F.max_pool2d(
-            input, kernel_size, stride, padding,
-            dilation, ceil_mode, return_indices=True
+            input, kernel_size=kernel_size, stride=stride,
+            padding=padding, dilation=dilation,
+            ceil_mode=ceil_mode, return_indices=True
         )
         self.ctx.save(indices, input.shape, kernel_size, stride, padding)
         return output
@@ -55,22 +50,15 @@ class _max_pool2d(Policy):
         )
 
 
-def max_pool2d(
-    input, kernel_size, stride=None,
-    padding=0, dilation=1, ceil_mode=False
-):
-    return function(_max_pool2d)(
-        input, kernel_size, stride, padding, dilation, ceil_mode
-    )
-
 
 class _max_pool3d(Policy):
-    def forward(self, input, kernel_size, stride=None,
+    def forward(self, input, *, kernel_size, stride=None,
                 padding=0, dilation=1, ceil_mode=False):
         stride = stride or kernel_size
         output, indices = F.max_pool3d(
-            input, kernel_size, stride, padding,
-            dilation, ceil_mode, return_indices=True
+            input, kernel_size=kernel_size, stride=stride,
+            padding=padding, dilation=dilation,
+            ceil_mode=ceil_mode, return_indices=True
         )
         self.ctx.save(indices, input.shape, kernel_size, stride, padding)
         return output
@@ -83,19 +71,16 @@ class _max_pool3d(Policy):
         )
 
 
-def max_pool3d(
-    input, kernel_size, stride=None,
-    padding=0, dilation=1, ceil_mode=False
-):
-    return function(_max_pool3d)(
-        input, kernel_size, stride, padding, dilation, ceil_mode
-    )
-
-
 class _avg_pool1d(Policy):
     def forward(
-        self, input, kernel_size, stride=None,
-        padding=0, ceil_mode=False, count_include_pad=True
+        self,
+        input,
+        *,
+        kernel_size,
+        stride=None,
+        padding=0,
+        ceil_mode=False,
+        count_include_pad=True
     ):
         stride = stride or kernel_size
         self.ctx.save(
@@ -103,8 +88,9 @@ class _avg_pool1d(Policy):
             padding, ceil_mode, count_include_pad
         )
         return F.avg_pool1d(
-            input, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
+            input, kernel_size=kernel_size, stride=stride,
+            padding=padding, ceil_mode=ceil_mode,
+            count_include_pad=count_include_pad
         )
 
     def backward(self, grad):
@@ -124,8 +110,9 @@ class _avg_pool1d(Policy):
         else:
             input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
             norm = F.avg_pool1d(
-                input_ones, kernel_size, stride,
-                padding, ceil_mode, count_include_pad
+                input_ones, kernel_size=kernel_size, stride=stride,
+                padding=padding, ceil_mode=ceil_mode,
+                count_include_pad=count_include_pad
             )
             norm = F.conv_transpose1d(
                 norm, weight, stride=stride, padding=padding, groups=channels
@@ -135,20 +122,16 @@ class _avg_pool1d(Policy):
         return grad_input, None, None, None, None, None
 
 
-def avg_pool1d(
-    input, kernel_size, stride=None,
-    padding=0, ceil_mode=False, count_include_pad=True
-):
-    return function(_avg_pool1d)(
-        input, kernel_size, stride, padding, ceil_mode, count_include_pad
-    )
-
-
-
 class _avg_pool2d(Policy):
     def forward(
-        self, input, kernel_size, stride=None,
-        padding=0, ceil_mode=False, count_include_pad=True
+        self,
+        input,
+        # *,
+        kernel_size,
+        stride=None,
+        padding=0,
+        ceil_mode=False,
+        count_include_pad=True
     ):
         stride = stride or kernel_size
         self.ctx.save(
@@ -156,8 +139,9 @@ class _avg_pool2d(Policy):
             padding, ceil_mode, count_include_pad
         )
         return F.avg_pool2d(
-            input, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
+            input, kernel_size=kernel_size, stride=stride,
+            padding=padding, ceil_mode=ceil_mode,
+            count_include_pad=count_include_pad
         )
 
     def backward(self, grad):
@@ -177,8 +161,9 @@ class _avg_pool2d(Policy):
         else:
             input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
             norm = F.avg_pool2d(
-                input_ones, kernel_size, stride,
-                padding, ceil_mode, count_include_pad
+                input_ones, kernel_size=kernel_size, stride=stride,
+                padding=padding, ceil_mode=ceil_mode,
+                count_include_pad=count_include_pad
             )
             norm = F.conv_transpose2d(
                 norm, weight, stride=stride, padding=padding, groups=channels
@@ -188,20 +173,16 @@ class _avg_pool2d(Policy):
         return grad_input, None, None, None, None, None
 
 
-def avg_pool2d(
-    input, kernel_size, stride=None,
-    padding=0, ceil_mode=False, count_include_pad=True
-):
-    return function(_avg_pool2d)(
-        input, kernel_size, stride, padding, ceil_mode, count_include_pad
-    )
-
-
-
 class _avg_pool3d(Policy):
     def forward(
-        self, input, kernel_size, stride=None,
-        padding=0, ceil_mode=False, count_include_pad=True
+        self,
+        input,
+        *,
+        kernel_size,
+        stride=None,
+        padding=0,
+        ceil_mode=False,
+        count_include_pad=True
     ):
         stride = stride or kernel_size
         self.ctx.save(
@@ -209,8 +190,9 @@ class _avg_pool3d(Policy):
             padding, ceil_mode, count_include_pad
         )
         return F.avg_pool3d(
-            input, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
+            input, kernel_size=kernel_size, stride=stride,
+            padding=padding, ceil_mode=ceil_mode,
+            count_include_pad=count_include_pad
         )
 
     def backward(self, grad):
@@ -230,8 +212,9 @@ class _avg_pool3d(Policy):
         else:
             input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
             norm = F.avg_pool3d(
-                input_ones, kernel_size, stride,
-                padding, ceil_mode, count_include_pad
+                input_ones, kernel_size=kernel_size, stride=stride,
+                padding=padding, ceil_mode=ceil_mode,
+                count_include_pad=count_include_pad
             )
             norm = F.conv_transpose3d(
                 norm, weight, stride=stride, padding=padding, groups=channels
@@ -241,10 +224,115 @@ class _avg_pool3d(Policy):
         return grad_input, None, None, None, None, None
 
 
+def max_pool1d(
+    input,
+    *,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False
+):
+    return function(_max_pool1d)(
+        input,
+        kernel_size,
+        stride or kernel_size,
+        padding,
+        dilation,
+        ceil_mode
+    )
+
+
+def max_pool2d(
+    input,
+    *,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False
+):
+    return function(_max_pool2d)(
+        input,
+        kernel_size,
+        stride or kernel_size,
+        padding,
+        dilation,
+        ceil_mode
+    )
+
+
+def max_pool3d(
+    input,
+    *,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False
+):
+    return function(_max_pool3d)(
+        input,
+        kernel_size,
+        stride or kernel_size,
+        padding,
+        dilation,
+        ceil_mode
+    )
+
+
+def avg_pool1d(
+    input,
+    *,
+    kernel_size,
+    stride=None,
+    padding=0,
+    ceil_mode=False,
+    count_include_pad=True
+):
+    return function(_avg_pool1d)(
+        input,
+        kernel_size,
+        stride or kernel_size,
+        padding,
+        ceil_mode,
+        count_include_pad
+    )
+
+
+def avg_pool2d(
+    input,
+    # *,
+    kernel_size,
+    stride=None,
+    padding=0,
+    ceil_mode=False,
+    count_include_pad=True
+):
+    return function(_avg_pool2d)(
+        input,
+        kernel_size,
+        stride or kernel_size,
+        padding,
+        ceil_mode,
+        count_include_pad
+    )
+
+
 def avg_pool3d(
-    input, kernel_size, stride=None,
-    padding=0, ceil_mode=False, count_include_pad=True
+    input,
+    *,
+    kernel_size,
+    stride=None,
+    padding=0,
+    ceil_mode=False,
+    count_include_pad=True
 ):
     return function(_avg_pool3d)(
-        input, kernel_size, stride, padding, ceil_mode, count_include_pad
+        input,
+        kernel_size,
+        stride or kernel_size,
+        padding,
+        ceil_mode,
+        count_include_pad
     )

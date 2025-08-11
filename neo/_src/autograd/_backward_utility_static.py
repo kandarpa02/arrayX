@@ -165,6 +165,7 @@ class StaticGraph:
         self.flat_input_keys = flat_input_keys
         self.var_leaf_indices = var_leaf_indices
 
+    
     def forward(self, inputs: Any) -> LiteTensor:
         self._runtime_values.clear()
 
@@ -189,30 +190,38 @@ class StaticGraph:
             args = list(op.args_template)
             kwargs = dict(op.kwargs_template)
 
-            # Only replace mapped tensor slots (positional)
+            # Replace mapped tensor positional args
             for pos, pid in op.tensor_arg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
-                        f"During static forward, missing runtime value for parent id {pid} "
-                        f"needed by op[{idx}] (node={op.node_repr})."
+                        f"[Op {idx}] Missing runtime value for parent id {pid} "
+                        f"needed by op (node={op.node_repr})."
                     )
                 runtime_val = self._runtime_values[pid]
-                # pos should be within args length because mapping appended slots if required
-                if pos >= len(args):
-                    # This should not happen; defensive check
+                if runtime_val is None:
                     raise RuntimeError(
-                        f"Static replay error: positional slot {pos} out of bounds for op[{idx}] (node={op.node_repr})"
+                        f"[Op {idx}] Runtime value for parent id {pid} is None "
+                        f"in op (node={op.node_repr})."
                     )
                 args[pos] = runtime_val
 
-            # Only replace mapped tensor kwargs
+            # Replace mapped tensor kwargs
             for k, pid in op.tensor_kwarg_ids.items():
                 if pid not in self._runtime_values:
                     raise RuntimeError(
-                        f"During static forward, missing runtime value for parent id {pid} "
-                        f"needed by op[{idx}] (node={op.node_repr}) for kwarg '{k}'."
+                        f"[Op {idx}] Missing runtime value for parent id {pid} "
+                        f"needed by op (node={op.node_repr}) for kwarg '{k}'."
                     )
-                kwargs[k] = self._runtime_values[pid]
+                runtime_val = self._runtime_values[pid]
+                if runtime_val is None:
+                    raise RuntimeError(
+                        f"[Op {idx}] Runtime value for parent id {pid} is None "
+                        f"in op (node={op.node_repr}) for kwarg '{k}'."
+                    )
+                kwargs[k] = runtime_val
+
+            # Debug print: show args and kwargs types before call
+            print(f"[Op {idx}] Calling {op.fwd_callable} with args types: {[type(a) for a in args]} and kwargs keys: {list(kwargs.keys())}")
 
             if op.fwd_callable is None:
                 raise RuntimeError(f"No forward callable available for op (node={op.node_repr}).")
@@ -225,7 +234,7 @@ class StaticGraph:
                 out_tensor = out
             else:
                 raise TypeError(
-                    f"forward callable returned unsupported type {type(out)} for node {op.node_repr}"
+                    f"Forward callable returned unsupported type {type(out)} for node {op.node_repr}"
                 )
 
             self._runtime_values[op.out_id] = out_tensor
@@ -234,6 +243,7 @@ class StaticGraph:
         if final is None:
             raise RuntimeError("StaticGraph forward completed but output value is missing.")
         return LiteTensor(final)
+
 
     def backward(self, safe: bool = False) -> Any:
         final_out_id = self.output_op.out_id
