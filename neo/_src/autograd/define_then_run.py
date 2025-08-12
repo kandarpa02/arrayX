@@ -40,6 +40,10 @@ class Variable(Node):
         self.is_constant = False
         self.is_dict = is_dict  # True if this variable holds dict of LiteTensors
 
+    @property
+    def symbol(self):
+        return Symbol(self)
+
 
 class Constant(Node):
     def __init__(self, value: Union[LiteTensor, Dict[str, LiteTensor]], name: str = None):
@@ -52,6 +56,10 @@ class Constant(Node):
             self.shape = None
         self.is_variable = False
         self.is_constant = True
+
+    @property
+    def symbol(self):
+        return Symbol(self)
 
 
 class Placeholder(Node):
