@@ -102,7 +102,7 @@ class Symbol:
         policy_inst._init_kwargs = kwargs
         new_node = Node(op=policy_inst, inputs=[self.node])
         return Symbol(new_node)
-
+    
     # Binary operators
     def __add__(self, other): return self._binary_op(other, addition)
     def __sub__(self, other): return self._binary_op(other, subtraction)
