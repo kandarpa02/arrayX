@@ -373,3 +373,97 @@ def run_graph(outputs: List[Node],
             node._policy_instance_used = None
 
     return output_vals, var_grads
+
+def eval_graph(outputs: List[Node],
+               vars: List[Variable],
+               feed_dict: Dict[Node, Union[LiteTensor, Dict[str, LiteTensor]]]
+               ) -> List[Union[LiteTensor, List[LiteTensor], Dict[str, LiteTensor]]]:
+    order = topological_sort(outputs)
+
+    for node in order:
+        if isinstance(node, Constant):
+            continue
+
+        if isinstance(node, Variable):
+            if node not in feed_dict:
+                raise ValueError(f"No value provided for Variable {node.name}")
+            val = feed_dict[node]
+            if node.is_dict:
+                if not isinstance(val, dict):
+                    raise TypeError(f"Feed value for dict Variable {node.name} must be dict of LiteTensor")
+                for k, v in val.items():
+                    if not isinstance(v, LiteTensor):
+                        raise TypeError(f"Dict feed for {node.name}[{k}] must be LiteTensor")
+                node.output_cache = val
+            else:
+                if not isinstance(val, LiteTensor):
+                    raise TypeError(f"Feed value for Variable {node.name} must be LiteTensor")
+                node.output_cache = val
+                if node.shape is not None and tuple(val.data.shape) != tuple(node.shape):
+                    raise ValueError(f"Shape mismatch for Variable {node.name}: expected {node.shape} got {tuple(val.data.shape)}")
+            continue
+
+        if isinstance(node, Placeholder):
+            if node not in feed_dict:
+                raise ValueError(f"No value provided for Placeholder {node.name}")
+            val = feed_dict[node]
+            if not isinstance(val, LiteTensor):
+                raise TypeError(f"Feed value for placeholder {node.name} must be LiteTensor")
+            node.output_cache = val
+            if node.shape is not None and tuple(val.data.shape) != tuple(node.shape):
+                raise ValueError(f"Shape mismatch for Placeholder {node.name}: expected {node.shape} got {tuple(val.data.shape)}")
+            continue
+
+        policy_template = node.op
+        if policy_template is None:
+            raise RuntimeError(f"Op node {node.name} has no policy instance")
+
+        init_args = getattr(policy_template, "_init_args", ())
+        init_kwargs = getattr(policy_template, "_init_kwargs", {})
+        try:
+            policy = policy_template.__class__(*init_args, **init_kwargs)
+        except Exception:
+            policy = policy_template.__class__()
+
+        node._policy_instance_used = policy
+
+        raw_inputs = []
+        for inp in node.inputs:
+            val = inp.output_cache
+            if isinstance(val, dict):
+                raw_inputs.append({k: _ensure_torch_tensor(v) for k, v in val.items()})
+            elif _is_sequence(val):
+                raw_inputs.append([_ensure_torch_tensor(e) for e in val])
+            else:
+                raw_inputs.append(_ensure_torch_tensor(val))
+
+        raw_out = policy.forward(*raw_inputs)
+
+        if isinstance(raw_out, dict):
+            node.output_cache = {k: _wrap_as_litetensor(v) for k, v in raw_out.items()}
+        elif _is_sequence(raw_out):
+            node.output_cache = [_wrap_as_litetensor(v) for v in raw_out]
+        else:
+            node.output_cache = _wrap_as_litetensor(raw_out)
+
+        if node.shape is not None:
+            if isinstance(node.output_cache, dict):
+                first_val = next(iter(node.output_cache.values()))
+                out_data = first_val.data
+            elif _is_sequence(node.output_cache):
+                out_data = node.output_cache[0].data
+            else:
+                out_data = node.output_cache.data
+
+            if tuple(out_data.shape) != tuple(node.shape):
+                raise ValueError(f"Node {node.name} produced shape {tuple(out_data.shape)} but expected {tuple(node.shape)}")
+
+    # Collect and return final outputs only
+    output_vals = [n.output_cache for n in outputs]
+
+    # Cleanup policy instances to avoid memory leak
+    for node in order:
+        if hasattr(node, "_policy_instance_used"):
+            node._policy_instance_used = None
+
+    return output_vals
