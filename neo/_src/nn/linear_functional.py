@@ -2,6 +2,7 @@ from neo.functions import function
 from neo._src.autograd.FUNCTION_REGISTER import Policy
 from neo import neolib
 from neo._torch.lite_tensor import LiteTensor
+from typing import Any
 
 def linear_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
     if X.ndim == 1:
@@ -11,34 +12,18 @@ def linear_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
 def linear_bwd(grad: neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
     return grad @ w, grad.T @ X, grad.sum(0)
 
+def linear_relu_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
+    if X.ndim == 1:
+        X = X.unsqueeze(0)
+    return (X @ w.T).add_(b).relu_(), X, w
+
+def linear_relu_bwd(grad: neolib.Tensor, out:neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
+    mask = out > 0
+    grad = grad.mul_(mask)
+    return grad @ w, grad.T @ X, grad.sum(0)
+
+
 class _linear(Policy):
-    """
-    Autograd policy for the `linear` operation.
-
-    Implements the forward and backward logic for a fully-connected (dense) linear layer:
-    ( y = xW^T + b )
-
-    - Forward pass: Performs matrix multiplication followed by bias addition.
-    - Backward pass: Computes gradients w.r.t. input, weight, and bias using efficient matrix operations.
-
-    Context saved:
-        - Input tensor `x` (after possible reshaping)
-        - Weight tensor `w`
-
-    Inputs:
-        x (Tensor): Input tensor of shape `(N, in_features)` or `(in_features,)`
-        w (Tensor): Weight tensor of shape `(out_features, in_features)`
-        b (Tensor): Bias tensor of shape `(out_features,)`
-
-    Output:
-        Tensor: Result of the linear transformation of shape `(N, out_features)`
-
-    Gradient outputs:
-        - dx: Gradient of the input tensor, shape `(N, in_features)`
-        - dw: Gradient of the weight tensor, shape `(out_features, in_features)`
-        - db: Gradient of the bias tensor, shape `(out_features,)`
-    """
-
     def forward(self, X, w, b):
         out, X, w = linear_fwd(X, w, b)
         self.ctx.save(X, w)
@@ -48,9 +33,25 @@ class _linear(Policy):
         X, w = self.ctx.release
         return linear_bwd(grad, X, w)
     
+
+class _linear_relu(Policy):
+    def forward(self, X, w, b):
+        out, X, w = linear_relu_fwd(X, w, b)
+        self.ctx.save(out, X, w)
+        return out
+
+    def backward(self, grad):
+        out, X, w = self.ctx.release
+        return linear_relu_bwd(grad, out, X, w)
     
 
-def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor):
+NONLIN_DICT = {
+    None:_linear,
+    "relu":_linear_relu,
+    "tanh": None
+}
+
+def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor, nonlin:Any|str=None):
     """
     Applies a linear transformation to the incoming data: ( y = xW^T + b )
 
@@ -78,4 +79,12 @@ def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor):
         >>> b = neo.lite([0.1])
         >>> y = linear(x, w, b)  # returns [[1.6]]
     """
-    return function(_linear)(x, w, b)
+    try:
+        _fn = NONLIN_DICT[nonlin]
+    except KeyError:
+        raise KeyError(f"[{nonlin}] is not a valid function")
+
+    if _fn is None:
+        raise NotImplementedError(f"[{nonlin}] has not been implemented yet")
+
+    return function(_fn)(x, w, b)
