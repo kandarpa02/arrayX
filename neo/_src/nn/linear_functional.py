@@ -4,6 +4,7 @@ from neo import neolib
 from neo._torch.lite_tensor import LiteTensor
 from typing import Any
 
+# raw linear
 def linear_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
     if X.ndim == 1:
         X = X.unsqueeze(0)
@@ -12,6 +13,7 @@ def linear_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
 def linear_bwd(grad: neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
     return grad @ w, grad.T @ X, grad.sum(0)
 
+# linear relu
 def linear_relu_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
     if X.ndim == 1:
         X = X.unsqueeze(0)
@@ -22,7 +24,18 @@ def linear_relu_bwd(grad: neolib.Tensor, out:neolib.Tensor, X: neolib.Tensor, w:
     grad = grad.mul_(mask)
     return grad @ w, grad.T @ X, grad.sum(0)
 
+# linear tanh
+def linear_tanh_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
+    if X.ndim == 1:
+        X = X.unsqueeze(0)
+    return (X @ w.T).add_(b).tanh_(), X, w
 
+def linear_tanh_bwd(grad: neolib.Tensor, out:neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
+    grad = grad.mul_(1-out**2)
+    return grad @ w, grad.T @ X, grad.sum(0)
+
+
+# raw linear policy
 class _linear(Policy):
     def forward(self, X, w, b):
         out, X, w = linear_fwd(X, w, b)
@@ -33,7 +46,7 @@ class _linear(Policy):
         X, w = self.ctx.release
         return linear_bwd(grad, X, w)
     
-
+# linear relu policy
 class _linear_relu(Policy):
     def forward(self, X, w, b):
         out, X, w = linear_relu_fwd(X, w, b)
@@ -45,10 +58,21 @@ class _linear_relu(Policy):
         return linear_relu_bwd(grad, out, X, w)
     
 
+# linear tanh policy
+class _linear_tanh(Policy):
+    def forward(self, X, w, b):
+        out, X, w = linear_tanh_fwd(X, w, b)
+        self.ctx.save(out, X, w)
+        return out
+
+    def backward(self, grad):
+        out, X, w = self.ctx.release
+        return linear_tanh_bwd(grad, out, X, w)
+
 NONLIN_DICT = {
     None:_linear,
     "relu":_linear_relu,
-    "tanh": None
+    "tanh":_linear_tanh
 }
 
 def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor, nonlin:Any|str=None):
@@ -88,3 +112,36 @@ def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor, nonlin:Any|str=None):
         raise NotImplementedError(f"[{nonlin}] has not been implemented yet")
 
     return function(_fn)(x, w, b)
+
+
+from typing import Dict, Any, List, Optional
+
+def MLP(x: LiteTensor, params: Dict[str, LiteTensor], nonlins: Optional[List[Optional[str]]] = None):
+    """
+    N-layer MLP using neo.nn.linear with autograd support.
+    
+    Args:
+        x (LiteTensor): Input tensor of shape (N, in_features).
+        params (dict): Dictionary of weights & biases:
+            {
+              "w1": Tensor, "b1": Tensor,
+              "w2": Tensor, "b2": Tensor,
+              ...
+              "wN": Tensor, "bN": Tensor
+            }
+        nonlins (list[str|None]): List of nonlinearities per layer.
+                                  If None, defaults to ReLU for all but last.
+                                  Example: ["relu", "relu", None]
+    
+    Returns:
+        LiteTensor: Output tensor of shape (N, out_features).
+    """
+    num_layers = len(params) // 2
+    if nonlins is None:
+        # Default: ReLU for all but last
+        nonlins = ["relu"] * (num_layers - 1) + [None]
+    
+    for i in range(1, num_layers + 1):
+        w, b = params[f"w{i}"], params[f"b{i}"]
+        x = linear(x, w, b, nonlin=nonlins[i - 1])
+    return x
