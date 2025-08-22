@@ -183,7 +183,6 @@ Here is a minimal example how we can define new backward logic and compute grads
 
 ```python
 import neo
-from neo import autograd
 from neo.functions import function
 
 
@@ -191,7 +190,8 @@ from neo.functions import function
 # with autograd.Policy module, its inner working is a bit
 # verbose, I will make everythng clear once it is complete
 
-class IF_IT_WORKS_DONT_TOUCH_IT(autograd.Policy):
+@function # Returns a function & records nodes 
+class IF_IT_WORKS_DONT_TOUCH_IT(neo.Policy):
     def forward(self, X, Y, b):
         self.ctx.save(X, Y, b)
         return (X @ Y) + b
@@ -208,18 +208,22 @@ X = neo.randn((3,4), device='cuda')
 Y = neo.randn((4,2), device='cuda')
 b = neo.randn((2,), device='cuda')
 
+output = None
 
-forward = function(IF_IT_WORKS_DONT_TOUCH_IT) # Returns a function & records nodes 
+@neo.build_computation_graph(inputs=[X, Y, b])
+def forward(X, y, b):
+    out = IF_IT_WORKS_DONT_TOUCH_IT(X, Y, b)
+    global output
+    output = out
+    return out.sum()
 
-out, grads = autograd.session.value_and_grad(forward)(X, Y, b)
-print("Output :\n", out, "\n")
+print("Output :\n", output.numpy(), "\n")
 
-matrices = list(grads.values())
+matrices = forward.grad
 names = ["X_grad", "Y_grad", "b_grad"]
 
 for name, mat in zip(names, matrices):
-    print(f"Matrix {name}:\n{mat}\n")
-
+    print(f"Matrix {name}:\n{mat.numpy()}\n") 
 """
 Output :
  [[-0.65263305  1.20131121]
@@ -251,7 +255,7 @@ from jax import grad as gfn
 # .numpy() method is used to get NumPy arrays from Neo.Array object 
 # JAX wants NumPy arrays so first convert it to 'cpu' then expose NumPy arrays
 
-X_, Y_, b_ = X.to('cpu').numpy(), Y.to('cpu').numpy(), b.to('cpu').numpy()
+X_, Y_, b_ = X.numpy(), Y.numpy(), b.numpy()
 
 grads_jax = gfn(lambda x, y, b: (x@y + b).sum(), argnums=[0,1,2])(X_, Y_, b_)
 
