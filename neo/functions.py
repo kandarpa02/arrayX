@@ -6,6 +6,7 @@ from neo._src.autograd import FUNCTION_REGISTER
 from neo._torch import neolib
 from typing import Callable
 import warnings
+import numpy as np
 
 def neo_function(fn):
     warnings.warn(
@@ -30,7 +31,7 @@ def function(fn_object: Callable):
             if isinstance(arg, LiteTensor):
                 valargs.append(arg.data)
                 valargs_strict.append(arg)
-            elif isinstance(arg, (neolib.Tensor, int, float, bool, type(None), tuple, list)):
+            elif isinstance(arg, (neolib.Tensor, np.ndarray, int, float, bool, type(None), tuple, list)):
                 valargs.append(arg)
             else:
                 raise TypeError(f"Unsupported argument type: {type(arg)}")

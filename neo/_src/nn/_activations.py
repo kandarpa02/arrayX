@@ -17,6 +17,12 @@ def softmax_bwd(out:neolib.Tensor, grad:neolib.Tensor, dim:int):
     dot = (grad * out).sum(dim=dim, keepdim = True)
     return out * (grad - dot)
 
+def sigmoid_fwd(x:neolib.Tensor):
+    return x.sigmoid()
+
+def sigmoid_bwd(out:neolib.Tensor, grad:neolib.Tensor):
+    return grad * out * (1 - out)
+
 
 class _relu(Policy):
     def forward(self, X):
@@ -102,3 +108,27 @@ def softmax(x: LiteTensor, dim: int = None):
         LiteTensor([0.0900, 0.2447, 0.6652])
     """
     return function(_softmax)(x, dim)
+
+class _sigmoid(Policy):
+    def forward(self, x):
+        out = sigmoid_fwd(x)
+        self.ctx.save(out)
+        return out
+    
+    def backward(self, grad):
+        out, = self.ctx.release
+        return sigmoid_bwd(out, grad)
+    
+def sigmoid(x: LiteTensor):
+    """
+    Applies the sigmoid function
+
+    Args:
+        x (LiteTensor): Input tensor.
+
+    Returns:
+        LiteTensor: Tensor of probabilities 0 and 1
+    
+    """
+    return function(_sigmoid)(x)
+

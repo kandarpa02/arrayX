@@ -12,7 +12,7 @@ import numpy as np
 
 def safe_input(self, x):
     if not isinstance(x, LiteTensor):
-        if isinstance(x, int|float|Tensor):
+        if isinstance(x, int|float|Tensor|np.ndarray):
             x = LiteTensor(x, d_type=self.dtype, device=self.device)
     return x
 
