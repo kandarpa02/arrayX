@@ -68,15 +68,35 @@ class LiteTensor:
         return self.d_type
 
     def __repr__(self):
+        return self.repr()
+
+    def repr(self):
         shape = self.data.to('cpu').numpy().shape
         dtype = _neo_dtype(self.data.dtype)
         device = self.data.device
-        data = f"{self.numpy()}"
-        repr = f"<neo.LiteTensor: shape={shape} dtype={dtype} device={device}\n"
-        repr += f"data: \n{data}"
-        repr += ">"
-        return repr
+        def _prefix(_abc:str):
+            return " " * len(_abc)
+        def _repr_type(shape:tuple):
+            if len(shape) == 0: return 'neo_scalar'
+            elif len(shape) == 1: return 'neo_vector'
+            elif len(shape) == 2: return 'neo_matrix'
+            elif len(shape) > 2: return 'neo_tensor'
+        
+        repr_type = _repr_type(shape)
+        prefix = _prefix(repr_type)
 
+        arr_str = np.array2string(
+            self.numpy(),
+            precision=4,
+            suppress_small=True,
+            threshold=6,        
+            edgeitems=3,       
+            max_line_width=80, 
+            separator='  ',     
+            prefix=prefix     
+        )
+        return f"{repr_type}({arr_str}, <shape={shape} dtype={dtype} device={device}>)"
+        
     __str__ = __repr__
 
     def to(self, *args, **kwargs):
