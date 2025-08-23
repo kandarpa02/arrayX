@@ -4,55 +4,46 @@ import math
 from typing import Tuple, Union
 
 class sum_op(Policy):
-    def forward(self, x: torch.Tensor, dim: Union[int, Tuple[int, ...], None]=None, keepdim: bool=False):
-        # store the original x and reduction args for backward
+    def forward(self, x: torch.Tensor, dim=None, keepdim: bool=False):
         self.ctx.save(x, dim, keepdim)
         return torch.sum(x, dim=dim, keepdim=keepdim)
 
     def backward(self, grad: torch.Tensor):
         x, dim, keepdim = self.ctx.release
-
-        # ensure grad is a torch.Tensor on the correct device/dtype
         grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
 
-        # reduce over all elems
         if dim is None:
-            # broadcast scalar or any grad to x's shape
+            # scalar output, so grad should be scalar
             return grad * torch.ones_like(x)
 
-        # normalize dims to tuple of positive ints
         dims = (dim,) if isinstance(dim, int) else tuple(dim)
         nd = x.dim()
         dims = tuple(d if d >= 0 else d + nd for d in dims)
 
-        # if keepdim==False we need to unsqueeze grad at each reduced dim
         if not keepdim:
             for d in sorted(dims):
                 grad = grad.unsqueeze(d)
 
-        # now grad is broadcastable to x
         return grad.expand_as(x)
 
 
 class mean_op(Policy):
-    def forward(self, x: torch.Tensor, dim: Union[int, Tuple[int, ...], None]=None, keepdim: bool=False):
+    def forward(self, x: torch.Tensor, dim=None, keepdim: bool=False):
         self.ctx.save(x, dim, keepdim)
         return torch.mean(x, dim=dim, keepdim=keepdim)
 
     def backward(self, grad: torch.Tensor):
         x, dim, keepdim = self.ctx.release
-
         grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
 
         if dim is None:
-            denom = float(x.numel())
-            return (grad * torch.ones_like(x)) / denom
+            denom = x.numel()
+            return grad * torch.ones_like(x) / denom
 
         dims = (dim,) if isinstance(dim, int) else tuple(dim)
         nd = x.dim()
         dims = tuple(d if d >= 0 else d + nd for d in dims)
 
-        # number of elements averaged per output element
         count = 1
         for d in dims:
             count *= x.shape[d]
@@ -61,7 +52,7 @@ class mean_op(Policy):
             for d in sorted(dims):
                 grad = grad.unsqueeze(d)
 
-        return (grad.expand_as(x)) / float(count)
+        return grad.expand_as(x) / float(count)
 
 
 class max_op(Policy):

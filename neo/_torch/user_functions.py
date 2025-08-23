@@ -78,13 +78,12 @@ def empty_like(x, dtype='', device=''):
 
 class _reshape(Policy):
     def forward(self, x, shape):
-        self.ctx.save(x.shape)
-        out = x.reshape(shape=shape)
-        return out
+        self.ctx.save(x.shape)   # save full shape, not just one dim
+        return x.reshape(shape)
     
     def backward(self, grad):
-        shape, = self.ctx.release
-        return grad.reshape(shape)
+        (orig_shape,) = self.ctx.release
+        return grad.reshape(orig_shape)
     
 class _maximum(Policy):
     def forward(self, x, y):
