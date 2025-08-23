@@ -186,8 +186,8 @@ import neo
 from neo.functions import function
 
 
-# You can define any funcion and its backward rule
-# with autograd.Policy module, its inner working is a bit
+# You can define any function and its backward rule
+# with neo.Policy module, its inner working is a bit
 # verbose, I will make everythng clear once it is complete
 
 @function # Returns a function & records nodes 
