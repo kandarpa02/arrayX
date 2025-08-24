@@ -1,5 +1,5 @@
 import torch
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 from torch.optim import (
     SGD as _SGD,
     Adam as _Adam,
@@ -16,38 +16,62 @@ from torch.optim import (
 )
 
 class NeoOptimizer:
-    def __init__(self, params: dict[Any, Any], torch_opt_cls: Callable, **kwargs):
+    def __init__(self, params: Dict[str, Any], torch_opt_cls: Callable, **kwargs):
+        """
+        Neo optimizer wrapper around PyTorch optimizers.
+        
+        Args:
+            params: dict[str, LiteTensor]  # Neo params
+            torch_opt_cls: torch.optim class (SGD, Adam, etc.)
+            **kwargs: optimizer hyperparams
+        """
         self.params = params
-        self.torch_params = [torch.nn.Parameter(p.data.detach().clone().requires_grad_()) for p in params.values()]
+
+        # Use shared storage → no clones, no double allocation
+        self.torch_params = [
+            torch.nn.Parameter(p._tensor.detach().requires_grad_())
+            for p in params.values()
+        ]
+        
+        # Map Neo param names → torch Parameter
         self._param_map = dict(zip(params.keys(), self.torch_params))
+
+        # Torch optimizer instance
         self.optimizer = torch_opt_cls(self.torch_params, **kwargs)
 
-    def step(self, grads: list) -> dict[Any, Any]:
-        grads_d = {}
-        for key, value in zip(self._param_map.keys(), grads):
-            grads_d[key] = value.data
+    def step(self, grads: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply gradient update.
+        
+        Args:
+            grads: dict[str, LiteTensor] with same keys as params
+        """
+        # Assign gradients directly
+        for key, grad in grads.items():
+            if key not in self._param_map:
+                continue
+            torch_p = self._param_map[key]
+            torch_p.grad = grad._tensor  # LiteTensor wraps a torch.Tensor
 
-        for key, torch_p in self._param_map.items():
-            grad = grads_d.get(key, None)
-            if grad is not None:
-                if grad.shape != torch_p.shape:
-                    while grad.ndim > torch_p.ndim:
-                        grad = grad.sum(0)
-                    for i, (gs, ps) in enumerate(zip(grad.shape, torch_p.shape)):
-                        if gs != ps:
-                            grad = grad.sum(i, keepdim=True)
-                    grad = grad.reshape_as(torch_p)
-
-                torch_p.grad = grad
-
+        # Step + clear grads
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-        for key, torch_p in self._param_map.items():
-            self.params[key].data.copy_(torch_p.data)
-
+        # No need to copy back → shared storage keeps Neo params updated
         return self.params
 
+    def state_dict(self):
+        """Return optimizer + params state for checkpointing"""
+        return {
+            "torch_opt": self.optimizer.state_dict(),
+            "params": {k: v._tensor.clone() for k, v in self.params.items()}
+        }
+
+    def load_state_dict(self, state: Dict[str, Any]):
+        """Load optimizer + params state"""
+        self.optimizer.load_state_dict(state["torch_opt"])
+        for k, v in state["params"].items():
+            self.params[k]._tensor.copy_(v)
 
 
 class SGD(NeoOptimizer):
