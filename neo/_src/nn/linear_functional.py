@@ -1,38 +1,8 @@
 from neo.functions import function
 from neo._src.autograd.FUNCTION_REGISTER import Policy
-from neo import neolib
+from neo._src.nn._linear_fused_fn import *
 from neo._torch.lite_tensor import LiteTensor
 from typing import Any
-
-# raw linear
-def linear_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
-    if X.ndim == 1:
-        X = X.unsqueeze(0)
-    return (X @ w.T).add_(b), X, w
-
-def linear_bwd(grad: neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
-    return grad @ w, grad.T @ X, grad.sum(0)
-
-# linear relu
-def linear_relu_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
-    if X.ndim == 1:
-        X = X.unsqueeze(0)
-    return (X @ w.T).add_(b).relu_(), X, w
-
-def linear_relu_bwd(grad: neolib.Tensor, out:neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
-    mask = out > 0
-    grad = grad.mul_(mask)
-    return grad @ w, grad.T @ X, grad.sum(0)
-
-# linear tanh
-def linear_tanh_fwd(X: neolib.Tensor, w: neolib.Tensor, b: neolib.Tensor):
-    if X.ndim == 1:
-        X = X.unsqueeze(0)
-    return (X @ w.T).add_(b).tanh_(), X, w
-
-def linear_tanh_bwd(grad: neolib.Tensor, out:neolib.Tensor, X: neolib.Tensor, w: neolib.Tensor):
-    grad = grad.mul_(1-out**2)
-    return grad @ w, grad.T @ X, grad.sum(0)
 
 
 # raw linear policy
