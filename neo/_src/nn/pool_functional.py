@@ -235,10 +235,10 @@ def max_pool1d(
 ):
     return function(_max_pool1d)(
         input,
-        kernel_size,
-        stride or kernel_size,
-        padding,
-        dilation,
+        (kernel_size,),
+        (stride or kernel_size,),
+        (padding,),
+        (dilation,),
         ceil_mode
     )
 
@@ -254,10 +254,10 @@ def max_pool2d(
 ):
     return function(_max_pool2d)(
         input,
-        kernel_size,
-        stride or kernel_size,
-        padding,
-        dilation,
+        (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size,
+        (stride or kernel_size, stride or kernel_size) if isinstance(stride or kernel_size, int) else (stride or kernel_size),
+        (padding, padding) if isinstance(padding, int) else padding,
+        (dilation, dilation) if isinstance(dilation, int) else dilation,
         ceil_mode
     )
 
@@ -273,10 +273,10 @@ def max_pool3d(
 ):
     return function(_max_pool3d)(
         input,
-        kernel_size,
-        stride or kernel_size,
-        padding,
-        dilation,
+        (kernel_size,) * 3 if isinstance(kernel_size, int) else kernel_size,
+        (stride or kernel_size,) * 3 if isinstance(stride or kernel_size, int) else (stride or kernel_size),
+        (padding,) * 3 if isinstance(padding, int) else padding,
+        (dilation,) * 3 if isinstance(dilation, int) else dilation,
         ceil_mode
     )
 
@@ -292,9 +292,9 @@ def avg_pool1d(
 ):
     return function(_avg_pool1d)(
         input,
-        kernel_size,
-        stride or kernel_size,
-        padding,
+        (kernel_size,),
+        (stride or kernel_size,),
+        (padding,),
         ceil_mode,
         count_include_pad
     )
@@ -302,7 +302,7 @@ def avg_pool1d(
 
 def avg_pool2d(
     input,
-    # *,
+    *,
     kernel_size,
     stride=None,
     padding=0,
@@ -311,9 +311,9 @@ def avg_pool2d(
 ):
     return function(_avg_pool2d)(
         input,
-        kernel_size,
-        stride or kernel_size,
-        padding,
+        (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size,
+        (stride or kernel_size, stride or kernel_size) if isinstance(stride or kernel_size, int) else (stride or kernel_size),
+        (padding, padding) if isinstance(padding, int) else padding,
         ceil_mode,
         count_include_pad
     )
@@ -330,9 +330,9 @@ def avg_pool3d(
 ):
     return function(_avg_pool3d)(
         input,
-        kernel_size,
-        stride or kernel_size,
-        padding,
+        (kernel_size,) * 3 if isinstance(kernel_size, int) else kernel_size,
+        (stride or kernel_size,) * 3 if isinstance(stride or kernel_size, int) else (stride or kernel_size),
+        (padding,) * 3 if isinstance(padding, int) else padding,
         ceil_mode,
         count_include_pad
     )
