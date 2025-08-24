@@ -1,5 +1,5 @@
 import torch
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 from torch.optim import (
     SGD as _SGD,
     Adam as _Adam,
@@ -15,63 +15,62 @@ from torch.optim import (
     Rprop as _Rprop
 )
 
+
 class NeoOptimizer:
     def __init__(self, params: Dict[str, Any], torch_opt_cls: Callable, **kwargs):
         """
         Neo optimizer wrapper around PyTorch optimizers.
-        
+
         Args:
             params: dict[str, LiteTensor]  # Neo params
             torch_opt_cls: torch.optim class (SGD, Adam, etc.)
             **kwargs: optimizer hyperparams
         """
         self.params = params
+        self.param_keys = list(params.keys())  # keep fixed order
 
         # Use shared storage → no clones, no double allocation
         self.torch_params = [
             torch.nn.Parameter(p.data.detach().requires_grad_())
             for p in params.values()
         ]
-        
-        # Map Neo param names → torch Parameter
-        self._param_map = dict(zip(params.keys(), self.torch_params))
+
+        # Map Neo param name → torch.Parameter
+        self._param_map = dict(zip(self.param_keys, self.torch_params))
 
         # Torch optimizer instance
         self.optimizer = torch_opt_cls(self.torch_params, **kwargs)
 
-    def step(self, grads: Dict[str, Any]) -> Dict[str, Any]:
+    def step(self, grads: List[Any]) -> Dict[str, Any]:
         """
         Apply gradient update.
-        
+
         Args:
-            grads: dict[str, LiteTensor] with same keys as params
+            grads: list[LiteTensor] in same order as self.param_keys
         """
-        # Assign gradients directly
-        for key, grad in grads.items():
-            if key not in self._param_map:
-                continue
+        # Assign gradients by index
+        for key, grad in zip(self.param_keys, grads):
             torch_p = self._param_map[key]
-            torch_p.grad = grad.data  # LiteTensor wraps a torch.Tensor
+            torch_p.grad = grad.data  # LiteTensor wraps torch.Tensor
 
         # Step + clear grads
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-        # No need to copy back → shared storage keeps Neo params updated
+        # Shared storage → Neo params auto updated
         return self.params
 
     def state_dict(self):
-        
         return {
             "torch_opt": self.optimizer.state_dict(),
             "params": {k: v.detach().clone() for k, v in self.params.items()}
         }
 
     def load_state_dict(self, state: Dict[str, Any]):
-
         self.optimizer.load_state_dict(state["torch_opt"])
         for k, v in state["params"].items():
             self.params[k].data.copy_(v.to(self.params[k].device))
+
 
 
 class SGD(NeoOptimizer):
