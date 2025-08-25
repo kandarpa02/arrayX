@@ -3,3 +3,6 @@ from .conv_functional import *
 from .pool_functional import *
 from ._activations import *
 from ._losses import softmax_cross_entropy
+from ..nn import layers
+from .dense_layer import Dense
+from ..nn import initializers as Initializers

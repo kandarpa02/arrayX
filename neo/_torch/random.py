@@ -2,6 +2,7 @@ import time
 from .user_functions import lite
 from neo._torch import neolib
 from ._helper import _device, _dtype
+from typing import Any
 import time
 import torch
 import hashlib
@@ -31,7 +32,7 @@ def _resolve_generator(key=None, device='cpu'):
         return g
 
 
-def rand(shape, dtype='', device='', key=None):
+def rand(shape, dtype:Any='', device:Any='', key=None):
     return lite(neolib.rand(
         shape,
         dtype=_dtype(dtype) if dtype else None,
@@ -40,7 +41,7 @@ def rand(shape, dtype='', device='', key=None):
     ))
 
 
-def randn(shape, dtype='', device='', key=None):
+def randn(shape, dtype:Any='', device:Any='', key=None):
     return lite(neolib.randn(
         shape,
         dtype=_dtype(dtype) if dtype else None,
@@ -49,7 +50,7 @@ def randn(shape, dtype='', device='', key=None):
     ))
 
 
-def randint(low, high, size, dtype='', device='', key=None):
+def randint(low, high, size, dtype:Any='', device:Any='', key=None):
     return lite(neolib.randint(
         low,
         high,
@@ -60,7 +61,7 @@ def randint(low, high, size, dtype='', device='', key=None):
     ))
 
 
-def randperm(n, dtype='', device='', key=None):
+def randperm(n, dtype:Any='', device:Any='', key=None):
     return lite(neolib.randperm(
         n,
         dtype=_dtype(dtype) if dtype else None,
@@ -69,7 +70,7 @@ def randperm(n, dtype='', device='', key=None):
     ))
 
 
-def normal(mean=0.0, std=1.0, size=(), dtype='', device='', key=None):
+def normal(mean=0.0, std=1.0, size=(), dtype:Any='', device:Any='', key=None):
     return lite(neolib.normal(
         mean,
         std,
@@ -80,7 +81,7 @@ def normal(mean=0.0, std=1.0, size=(), dtype='', device='', key=None):
     ))
 
 
-def uniform(low=0.0, high=1.0, size=(), dtype='', device='', key=None):
+def uniform(low=0.0, high=1.0, size=(), dtype:Any='', device:Any='', key=None):
     gen = _resolve_generator(key, device or 'cpu')
     return lite(
         (high - low) * neolib.rand(

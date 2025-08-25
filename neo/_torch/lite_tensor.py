@@ -66,6 +66,10 @@ class LiteTensor:
     @property
     def dtype(self):
         return self.d_type
+    
+    @property
+    def ndtype(self):
+        return _neo_dtype(self.dtype)
 
     def __repr__(self):
         return self.repr()
