@@ -39,11 +39,61 @@ class _linear_tanh(Policy):
         out, X, w = self.ctx.release
         return linear_tanh_bwd(grad, out, X, w)
 
+
+# linear + sigmoid
+class _linear_sigmoid(Policy):
+    def forward(self, X, w, b):
+        out, out_, X_, w_ = linear_sigmoid_fwd(X, w, b)
+        self.ctx.save(out_, X_, w_)
+        return out
+    def backward(self, grad):
+        out, X, w = self.ctx.release
+        return linear_sigmoid_bwd(grad, out, X, w)
+
+
+# linear + softmax
+class _linear_softmax(Policy):
+    def forward(self, X, w, b):
+        out, out_, X_, w_ = linear_softmax_fwd(X, w, b)
+        self.ctx.save(out_, X_, w_)
+        return out
+    def backward(self, grad):
+        out, X, w = self.ctx.release
+        return linear_softmax_bwd(grad, out, X, w)
+
+
+# linear + leakyrelu
+class _linear_leakyrelu(Policy):
+    def forward(self, X, w, b):
+        out, out_, X_, w_, slope = linear_leakyrelu_fwd(X, w, b)
+        self.ctx.save(out_, X_, w_, slope)
+        return out
+    def backward(self, grad):
+        out, X, w, slope = self.ctx.release
+        return linear_leakyrelu_bwd(grad, out, X, w, slope)
+
+
+# linear + relu6
+class _linear_relu6(Policy):
+    def forward(self, X, w, b):
+        out, out_, X_, w_ = linear_relu6_fwd(X, w, b)
+        self.ctx.save(out_, X_, w_)
+        return out
+    def backward(self, grad):
+        out, X, w = self.ctx.release
+        return linear_relu6_bwd(grad, out, X, w)
+
+
 NONLIN_DICT = {
-    None:_linear,
-    "relu":_linear_relu,
-    "tanh":_linear_tanh
+    None: _linear,
+    "relu": _linear_relu,
+    "tanh": _linear_tanh,
+    "sigmoid": _linear_sigmoid,
+    "softmax": _linear_softmax,
+    "leaky_relu": _linear_leakyrelu,
+    "relu6": _linear_relu6,
 }
+
 
 def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor, nonlin:Any|str=None):
     """
