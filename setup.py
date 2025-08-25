@@ -27,7 +27,7 @@ setup(
     description="An autodiff library for personal use",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/kandarpa02/neonet.git",
+    url="https://github.com/kandarpa02/NEONet.git",
     packages=find_packages(),
     ext_modules=ext_modules,
     python_requires=">=3.8",
