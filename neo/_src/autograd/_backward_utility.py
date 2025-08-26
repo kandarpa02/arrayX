@@ -31,7 +31,7 @@ def is_scalar(x):
     except:
         raise RuntimeError(f"object {lite(x)} shape={x.cpu().numpy().shape} is not a scaler")
 
-def _compute(fn: Callable, safe=False):
+def _compute(fn: Callable, safe=False, end_node:int=-1):
     """
     Builds the computation graph and runs backward pass to compute gradients
     with respect to inputs.
@@ -75,11 +75,13 @@ def _compute(fn: Callable, safe=False):
         # Evaluate the function with inputs; trace begins here
 
         if isinstance(args, (tuple, list)):
-            out = fn(*args)
+            _out = fn(*args)
         elif isinstance(args, dict):
-            out = fn(args)
+            _out = fn(args)
         else:
             raise TypeError(f"input type [{type(args)}] is not supported, expected {list}, {tuple} or {dict}")
+        if isinstance(_out, tuple):
+            out = _out[end_node]
         if not hasattr(out, 'data'):
             print(out)
             raise TypeError(
@@ -148,10 +150,18 @@ def _compute(fn: Callable, safe=False):
         grads_list = list(input_grads.values())
         grad_out = grads_list[0] if len(grads_list) == 1 else grads_list
 
-        return out, grad_out
+        return _out, grad_out
 
     return wrapped_function
 
+def value_and_grad(fn: Callable, safe=False, end_node:int=-1):
+    return _compute(fn, safe=safe, end_node=end_node)
+
+def grad(fn: Callable, safe=False, end_node:int=-1):
+    def wrapper(args:list|dict|tuple):
+        _, grads = _compute(fn, safe=safe, end_node=end_node)(args)
+        return grads
+    return wrapper
 
 class build_computation_graph:
     """
@@ -185,16 +195,17 @@ class build_computation_graph:
         - Implicit detach during `with torch.no_grad()`
     """
 
-    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None, safe=False): #type: ignore
+    def __init__(self, function:Callable=None, inputs:list|tuple|dict=None, safe=False, end_node:int=-1): #type: ignore
         self._function = function
         self._variables = inputs
         self.safe = safe
+        self.end_node = end_node
         self.out, self.grad = None, None
 
     def backward(self):
-        self.out, self.grad = _compute(self._function, safe=self.safe)(self._variables)
+        self.out, self.grad = _compute(self._function, safe=self.safe, end_node=self.end_node)(self._variables)
 
     def __call__(self, fn):
         self._function = fn
-        self.out, self.grad = _compute(fn, safe=self.safe)(self._variables)
+        self.out, self.grad = _compute(fn, safe=self.safe, end_node=self.end_node)(self._variables)
         return self

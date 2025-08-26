@@ -5,59 +5,63 @@ from neo._torch.random import RNGKey
 
 ParamType = Dict[str, LiteTensor]
 
+
 class Module:
-    """
-    Base Module class with @compact-style param management.
-    """
-    _current_params: ParamType|Any = None  
+    _current_params: ParamType | None = None  
+    _name_stack: list[str] = []  
+
+    def __init__(self, name: str = ""):
+        self.name = name or self.__class__.__name__
 
     @contextmanager
     def param_context(self, params: ParamType):
-        old = Module._current_params
+        old_params, old_stack = Module._current_params, Module._name_stack
         Module._current_params = params
+        Module._name_stack = []
         try:
             yield
         finally:
-            Module._current_params = old
+            Module._current_params, Module._name_stack = old_params, old_stack
 
     @staticmethod
-    def param(name: str, shape: Tuple[int, ...], dtype:Any, device:Any, init_fn: Callable, rng: RNGKey|Any=None) -> LiteTensor:
+    def param(name: str, shape, dtype, device, init_fn, rng=None) -> LiteTensor:
         if Module._current_params is None:
-            raise RuntimeError("No param context active. Use `with module.param_context(params)`")
-        if name not in Module._current_params:
-            Module._current_params[name] = init_fn(shape, key=rng, dtype=dtype, device=device) if rng is not None else init_fn(shape, dtype=dtype, device=device)
-        return Module._current_params[name]
+            raise RuntimeError("No param context active.")
+        # Build hierarchical name
+        prefix = "/".join(Module._name_stack) if Module._name_stack else ""
+        full_name = f"{prefix}/{name}" if prefix else name
+        if full_name not in Module._current_params:
+            Module._current_params[full_name] = (
+                init_fn(shape, key=rng, dtype=dtype, device=device)
+                if rng is not None else
+                init_fn(shape, dtype=dtype, device=device)
+            )
+        return Module._current_params[full_name]
 
-    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         raise NotImplementedError
 
     def init(self, x: LiteTensor, rng: RNGKey) -> ParamType:
-        """
-        Stateless init: returns a param dict.
-        """
         params: ParamType = {}
         with self.param_context(params):
-            _ = self.forward(x, rng)
+            _ = self(x, rng)
         return params
 
-    def __call__(self, params: ParamType, x: LiteTensor, rng: RNGKey) -> LiteTensor:
-        """
-        Forward pass using given params.
-        """
+    def apply(self, params: ParamType, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         with self.param_context(params):
-            return self.forward(x, rng)
+            return self(x, rng)
 
 class Layer(Module):
-    """
-    Base class for single layers (Linear, Conv, etc.).
-    Handles param initialization inside forward automatically.
-    """
-    def __init__(self, name: str = ''):
-        super().__init__()
-        self.name = name or self.__class__.__name__
-
-    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
-        raise NotImplementedError
+    def __init__(self, name: str = "", is_leaf: bool = False):
+        super().__init__(name)
+        self.is_leaf = is_leaf
 
     def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
-        return self.forward(x, rng)
+        if not self.is_leaf: 
+            Module._name_stack.append(self.name)
+        try:
+            return self.forward(x, rng)
+        finally:
+            if not self.is_leaf:
+                Module._name_stack.pop()
+

@@ -6,7 +6,7 @@ from ..nn.layers.base_module import Layer
 
 class Dense(Layer):
     def __init__(self, out_features: int, nonlin:str|Any=None, initializer:Callable|Any=None, name: str = ''):
-        super().__init__(name)
+        super().__init__(name, is_leaf=True)
         self.out_features = out_features
         self.nonlin = nonlin
         self.init_fn = xavier_uniform if initializer is None else initializer
