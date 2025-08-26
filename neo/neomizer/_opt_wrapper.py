@@ -63,7 +63,7 @@ class NeoOptimizer:
     def state_dict(self):
         return {
             "torch_opt": self.optimizer.state_dict(),
-            "params": {k: v.detach().clone() for k, v in self.params.items()}
+            "params": {k: v.data.detach().clone() for k, v in self.params.items()}
         }
 
     def load_state_dict(self, state: Dict[str, Any]):
