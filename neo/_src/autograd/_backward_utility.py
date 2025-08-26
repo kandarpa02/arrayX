@@ -62,9 +62,13 @@ def _compute(fn: Callable, safe=False):
     """
 
     def wrapped_function(args:list|tuple|dict):
-        import torch
+        import torch, neo
         torch.set_grad_enabled(False)  # Disables PyTorch autograd to avoid interference
 
+        if not neo.record_tape.is_enabled():
+            raise RuntimeError(f"node history is empty, that has likely caused by disabling neo.record_tape()"
+                            "\n in that case set it True neo.record_tape.set(True)")
+        
         tape = Tape()
         TapeContext.push(tape)
 

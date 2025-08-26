@@ -20,6 +20,7 @@ def neo_function(fn):
 def function(fn_object: Callable):
     from neo._torch.lite_tensor import LiteTensor
     from neo._src.autograd import GRAPH_MANAGER
+    import neo
 
     def wrapped(*args, **kwargs):
         op = fn_object()
@@ -35,47 +36,13 @@ def function(fn_object: Callable):
                 valargs.append(arg)
             else:
                 raise TypeError(f"Unsupported argument type: {type(arg)}")
-
-        # if kwargs:
-        #     raise TypeError(
-        #         f"Unsupported keyword arguments: {kwargs}.\n"
-        #         f"Use positional arguments only."
-        #     )
-
+            
         out_val = op.forward(*valargs, **kwargs)
         out = LiteTensor(out_val)
 
-        node = GRAPH_MANAGER.Node(out, tuple(valargs_strict), op.backward)
-        GRAPH_MANAGER.TapeContext.add_node(node)
+        if neo.record_tape.is_enabled():
+            node = GRAPH_MANAGER.Node(out, tuple(valargs_strict), op.backward)
+            GRAPH_MANAGER.TapeContext.add_node(node)
         return out
 
     return wrapped
-
-
-# def function(fn_object: Callable):
-#     def wrapped(*args, **kwargs):
-#         from neo._torch.lite_tensor import LiteTensor
-#         from neo._src.autograd import GRAPH_MANAGER
-#         op = fn_object()
-
-#         valargs = []
-#         valargs_strict = []
-
-#         for arg in args:
-#             if isinstance(arg, LiteTensor):
-#                 valargs.append(arg.data)
-#                 valargs_strict.append(arg)
-#             elif isinstance(arg, (neolib.Tensor, int, float, bool, type(None), tuple, list)):
-#                 valargs.append(arg)
-#             else:
-#                 raise TypeError(f"Unsupported argument type: {type(arg)}")
-
-   
-#         out_val = op.forward(*args, **kwargs)
-#         out = LiteTensor(out_val)
-
-#         node = GRAPH_MANAGER.Node(out, tuple(valargs_strict), op.backward)
-#         GRAPH_MANAGER.TapeContext.add_node(node)
-#         return out
-
-#     return wrapped

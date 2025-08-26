@@ -23,3 +23,26 @@ run_graph = r_g
 eval_graph = e_g
 
 Policy = _policy
+
+
+from contextlib import contextmanager
+
+class record_tape:
+    enabled = True
+
+    @staticmethod
+    def is_enabled():
+        return record_tape.enabled
+
+    @staticmethod
+    def set(mode: bool):
+        record_tape.enabled = mode
+
+    @contextmanager
+    def no_tape():
+        old = record_tape.enabled
+        record_tape.enabled = False
+        try:
+            yield
+        finally:
+            record_tape.enabled = old
