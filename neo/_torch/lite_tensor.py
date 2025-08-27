@@ -38,7 +38,6 @@ def safe_input(self, x):
     return self, other
 
 
-
 def _device(arg):
     if arg is None:
         return None
@@ -98,7 +97,7 @@ class LiteTensor:
         return self.repr()
 
     def repr(self):
-        shape = self.data.to('cpu').numpy().shape
+        shape = self.data.detach().to('cpu').numpy().shape
         dtype = _neo_dtype(self.data.dtype)
         device = self.data.device
         def _prefix(_abc:str):
