@@ -56,12 +56,15 @@ class Layer(Module):
         super().__init__(name)
         self.is_leaf = is_leaf
 
-    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         if not self.is_leaf: 
             Module._name_stack.append(self.name)
         try:
-            return self.__call__(x, rng)
+            return self.forward(x, rng)
         finally:
             if not self.is_leaf:
                 Module._name_stack.pop()
+
+    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+        return self.forward(x, rng)
 

@@ -40,17 +40,17 @@ class Conv1D(Layer):
         self.nonlin  = None
         self.init_fn = xavier_uniform if initializer is None else initializer
 
-    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         kernel_shape = (self.out_chan, self.in_chan) + self.kernel  # (out, in, kW)
         weight = self.param(
-            name    = 'weight',
+            name    = f"{self.name}/weight",
             shape   = kernel_shape,
             dtype   = x.dtype,
             device  = x.device,
             init_fn = self.init_fn,
             rng     = rng
         )
-        bias = self.param('bias', (self.out_chan,), x.dtype, x.device, zero_init, rng) if self.bias else None
+        bias = self.param(f"{self.name}/bias", (self.out_chan,), x.dtype, x.device, zero_init, rng) if self.bias else None
 
         return conv1d(
             x,
@@ -89,10 +89,10 @@ class Conv2D(Layer):
         self.nonlin  = None
         self.init_fn = xavier_uniform if initializer is None else initializer
 
-    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         kernel_shape = (self.out_chan, self.in_chan) + self.kernel
         weight = self.param(
-            name    = 'weight',
+            name    = f"{self.name}/weight",
             shape   = kernel_shape,
             dtype   = x.dtype,
             device  = x.device,
@@ -102,7 +102,7 @@ class Conv2D(Layer):
         
         if self.bias:
             bias = self.param(
-                name    = 'bias',
+                name    = f"{self.name}/bias",
                 shape   = (self.out_chan,),
                 dtype   = x.dtype,
                 device  = x.device,
@@ -149,17 +149,17 @@ class Conv3D(Layer):
         self.nonlin  = None
         self.init_fn = xavier_uniform if initializer is None else initializer
 
-    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         kernel_shape = (self.out_chan, self.in_chan) + self.kernel 
         weight = self.param(
-            name    = 'weight',
+            name    = f"{self.name}/weight",
             shape   = kernel_shape,
             dtype   = x.dtype,
             device  = x.device,
             init_fn = self.init_fn,
             rng     = rng
         )
-        bias = self.param('bias', (self.out_chan,), x.dtype, x.device, zero_init, rng) if self.bias else None
+        bias = self.param(f"{self.name}/bias", (self.out_chan,), x.dtype, x.device, zero_init, rng) if self.bias else None
 
         return conv3d(
             x,
