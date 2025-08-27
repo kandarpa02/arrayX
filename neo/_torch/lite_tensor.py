@@ -10,11 +10,24 @@ from .functions import *
 import numpy as np
 
 
+def _auto_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    else:
+        return torch.device('cpu')
+    
+def _device_higherarchy(self, other):
+    if self.device or other.device == torch.device('cuda'):
+        self.device = torch.device('cuda') ; other.device = torch.device('cuda')
+    return self, other
+
 def safe_input(self, x):
     if not isinstance(x, LiteTensor):
         if isinstance(x, int|float|Tensor|np.ndarray):
             x = LiteTensor(x, d_type=self.dtype, device=self.device)
-    return x
+
+    self, other = _device_higherarchy(self, x)
+    return self, other
 
 def _device(arg):
     if arg is None:
@@ -49,7 +62,7 @@ class LiteTensor:
     def __init__(self, data, d_type='', device=''):
         if not isinstance(data, Tensor):
             dtype = _dtype(d_type) if d_type else None
-            dev = _device(device) if device else None
+            dev = _device(device) if device else _auto_device()
             self.data = torch.as_tensor(data, dtype=dtype, device=dev).detach()
         else:
             self.data = data.detach()
@@ -220,26 +233,27 @@ class LiteTensor:
         return neg(self)
 
     def __add__(self, other):
-        b = safe_input(self, other)
+        self, b = safe_input(self, other)
         return add(self, b)
     
     def __sub__(self, other):
-        b = safe_input(self, other)
+        self, b = safe_input(self, other)
         return sub(self, b)
     
     def __mul__(self, other):
-        b = safe_input(self, other)
+        self, b = safe_input(self, other)
         return mul(self, b)
     
     def __pow__(self, other):
-        b = safe_input(self, other)
+        self, b = safe_input(self, other)
         return power(self, other)
 
     def __truediv__(self, other):
-        b = safe_input(self, other)
+        self, b = safe_input(self, other)
         return div(self, b)
     
     def __matmul__(self, other):
+        self, other = _device_higherarchy(self, other)
         return matmul(self, other)
 
     def sum(self, dim=None, keepdim=False):
