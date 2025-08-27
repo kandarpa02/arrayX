@@ -4,8 +4,18 @@ from ._helper import _dtype, _device
 from neo._src.autograd.FUNCTION_REGISTER import Policy
 from neo.functions import function
 from typing import Any
+import warnings
 
 def lite(data, dtype='', device=''):
+    warnings.warn(
+        "'neo.lite' is deprecated. Please use neo.Tensor instead.",
+        DeprecationWarning,
+        stacklevel=2 
+    )
+    return Tensor(data, dtype, device) 
+
+
+def Tensor(data, dtype='', device=''):
     data = data.data if isinstance(data, LiteTensor) else data
     return LiteTensor(data=data, d_type=dtype, device=device)
 

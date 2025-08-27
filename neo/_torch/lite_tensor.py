@@ -18,17 +18,25 @@ def _auto_device():
     return torch.device("cpu")
 
 def _device_hierarchy(self, other):
-    # If either is on CUDA → move both to CUDA
-    if self.device.type == "cuda" or other.device.type == "cuda":
-        self.data = self.data.to("cuda")
-        other.data = other.data.to("cuda")
-    else:
-        self.data = self.data.to("cpu")
-        other.data = other.data.to("cpu")
+    # Ensure both on same device (promote to CUDA if either is CUDA)
+    target_device = "cuda" if (
+        self.data.device.type == "cuda" or 
+        (hasattr(other, "data") and other.data.device.type == "cuda") or
+        (isinstance(other, torch.Tensor) and other.device.type == "cuda")
+    ) else "cpu"
 
+    # Move both
+    self.data = self.data.to(target_device)
     self.device = self.data.device
-    other.device = other.data.device
+
+    if isinstance(other, torch.Tensor):
+        other = other.to(target_device)   # just return new torch tensor
+    elif hasattr(other, "data"):          # LiteTensor
+        other.data = other.data.to(target_device)
+        other.device = other.data.device
+
     return self, other
+
 
 def safe_input(self, x):
     if not isinstance(x, LiteTensor):
@@ -97,18 +105,14 @@ class LiteTensor:
         return self.repr()
 
     def repr(self):
-        shape = self.data.detach().to('cpu').numpy().shape
+        shape = self.data.to('cpu').detach().numpy().shape
         dtype = _neo_dtype(self.data.dtype)
         device = self.data.device
+
         def _prefix(_abc:str):
-            return " " * len(_abc)
-        def _repr_type(shape:tuple):
-            if len(shape) == 0: return 'neo_scalar'
-            elif len(shape) == 1: return 'neo_vector'
-            elif len(shape) == 2: return 'neo_matrix'
-            elif len(shape) > 2: return 'neo_tensor'
+            return (" " * (len(_abc)+1))
         
-        repr_type = _repr_type(shape)
+        repr_type = "Tensor"
         prefix = _prefix(repr_type)
 
         arr_str = np.array2string(
@@ -121,7 +125,9 @@ class LiteTensor:
             separator='  ',     
             prefix=prefix     
         )
-        return f"{repr_type}({arr_str}, <shape={shape} dtype={dtype} device={device}>)"
+        res = f"{repr_type}(<shape={shape}, dtype={dtype}, device={device}>\n"
+        res += f"       {arr_str})\n"
+        return res
         
     __str__ = __repr__
 
