@@ -316,7 +316,7 @@ def avg_pool1d(
         stride=stride or kernel_size,
         padding=padding,
         ceil_mode=ceil_mode,
-        count_include_pad=count_include_pad,
+        count_include_pad=count_include_pad
     )
 
 
@@ -327,8 +327,7 @@ def avg_pool2d(
     stride=None,
     padding=0,
     ceil_mode=False,
-    count_include_pad=True,
-    divisor_override=None
+    count_include_pad=True
 ):
     kernel_size = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
     stride = (stride, stride) if isinstance(stride, int) else stride
@@ -340,8 +339,7 @@ def avg_pool2d(
         stride=stride or kernel_size,
         padding=padding,
         ceil_mode=ceil_mode,
-        count_include_pad=count_include_pad,
-        divisor_override=divisor_override,
+        count_include_pad=count_include_pad
     )
 
 
@@ -352,8 +350,7 @@ def avg_pool3d(
     stride=None,
     padding=0,
     ceil_mode=False,
-    count_include_pad=True,
-    divisor_override=None
+    count_include_pad=True
 ):
     kernel_size = (kernel_size,) * 3 if isinstance(kernel_size, int) else kernel_size
     stride = (stride,) * 3 if isinstance(stride, int) else stride
@@ -365,6 +362,5 @@ def avg_pool3d(
         stride=stride or kernel_size,
         padding=padding,
         ceil_mode=ceil_mode,
-        count_include_pad=count_include_pad,
-        divisor_override=divisor_override,
+        count_include_pad=count_include_pad
     )
