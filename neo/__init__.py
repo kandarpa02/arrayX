@@ -11,7 +11,8 @@ from neo._src import nn, nn_static
 from neo._src.autograd._backward_utility import (
             build_computation_graph as _bcg,
             value_and_grad as _vag,
-            grad as _g
+            grad as _g,
+            Curves as _c
         )
 
 from neo._src.autograd._backward_utility_static import StaticGraphBuilder as _sgb
@@ -22,6 +23,7 @@ from neo._src.autograd.FUNCTION_REGISTER import Policy as _policy
 build_computation_graph = _bcg
 value_and_grad = _vag
 grad = _g
+Curves = _c
 # StaticGraphBuilder = _sgb
 
 Variable = var

@@ -80,8 +80,13 @@ def _compute(fn: Callable, safe=False, end_node:int=-1):
             _out = fn(args)
         else:
             raise TypeError(f"input type [{type(args)}] is not supported, expected {list}, {tuple} or {dict}")
+        
+        # PICKING THE END NODE FOR GRAD
         if isinstance(_out, tuple):
             out = _out[end_node]
+        else:
+            out = _out
+
         if not hasattr(out, 'data'):
             print(out)
             raise TypeError(
@@ -209,3 +214,37 @@ class build_computation_graph:
         self._function = fn
         self.out, self.grad = _compute(fn, safe=self.safe, end_node=self.end_node)(self._variables)
         return self
+    
+class Curves:
+    def __init__(self, persistent=False):
+        self.persistent = persistent
+        self._grads = None
+        self._func = None
+        self._inputs = None
+        self._used = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self.persistent and self._used:
+            self._grads = None
+            self._func = None
+            self._inputs = None
+
+    def lift_them(self, func, *inputs):
+        self._func = func
+        self._inputs = inputs
+
+    def gradient(self, end_node, wrt, safe=False):
+        if self._func is None:
+            raise RuntimeError("No function was watched. Did you call tape.watch(fn, inputs)?")
+        grad_fn = _compute(lambda *x: self._func(*x), safe=safe, end_node=end_node)
+
+        inputs = self._inputs if self._inputs is not None else (wrt,)
+        if not isinstance(inputs, (list, tuple, dict)):
+            inputs = (inputs,)
+
+        _, self._grads = grad_fn(inputs)
+        self._used = True
+        return self._grads

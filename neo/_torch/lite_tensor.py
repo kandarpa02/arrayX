@@ -9,25 +9,35 @@ from neo._torch import neolib
 from .functions import *
 import numpy as np
 
-
 def _auto_device():
-    if torch.cuda.is_available():
-        return torch.device('cuda')
+    try:
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+    except Exception:
+        pass
+    return torch.device("cpu")
+
+def _device_hierarchy(self, other):
+    # If either is on CUDA → move both to CUDA
+    if self.device.type == "cuda" or other.device.type == "cuda":
+        self.data = self.data.to("cuda")
+        other.data = other.data.to("cuda")
     else:
-        return torch.device('cpu')
-    
-def _device_higherarchy(self, other):
-    if self.device or other.device == torch.device('cuda'):
-        self.device = torch.device('cuda') ; other.device = torch.device('cuda')
+        self.data = self.data.to("cpu")
+        other.data = other.data.to("cpu")
+
+    self.device = self.data.device
+    other.device = other.data.device
     return self, other
 
 def safe_input(self, x):
     if not isinstance(x, LiteTensor):
-        if isinstance(x, int|float|Tensor|np.ndarray):
-            x = LiteTensor(x, d_type=self.dtype, device=self.device)
-
-    self, other = _device_higherarchy(self, x)
+        if isinstance(x, (int, float, torch.Tensor, np.ndarray)):
+            x = LiteTensor(x, d_type=self.d_type, device=self.device)
+    self, other = _device_hierarchy(self, x)
     return self, other
+
+
 
 def _device(arg):
     if arg is None:
