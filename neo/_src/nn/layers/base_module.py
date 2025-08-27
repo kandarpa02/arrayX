@@ -60,7 +60,7 @@ class Layer(Module):
         if not self.is_leaf: 
             Module._name_stack.append(self.name)
         try:
-            return self.forward(x, rng)
+            return self.__call__(x, rng)
         finally:
             if not self.is_leaf:
                 Module._name_stack.pop()

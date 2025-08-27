@@ -1,6 +1,6 @@
 import neo
-
 import math
+
 def xavier_uniform(shape, dtype, device, gain=1.0, key=None):
     """
     Xavier uniform initialization for Neo LiteTensors.
@@ -36,3 +36,7 @@ def xavier_normal(shape, dtype, device, gain=1.0, key=None):
     fan_in, fan_out = shape
     std = gain * math.sqrt(2 / (fan_in + fan_out))
     return neo.randn(shape, dtype=dtype, device=device, key=key) * std
+
+
+def zero_init(shape, dtype, device):
+    return neo.zeros(shape, dtype=dtype, device=device)

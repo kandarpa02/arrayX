@@ -11,7 +11,7 @@ class Dense(Layer):
         self.nonlin = nonlin
         self.init_fn = xavier_uniform if initializer is None else initializer
 
-    def forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         in_features = x.shape[-1]
 
         w = self.param(
