@@ -262,7 +262,7 @@ class LiteTensor:
         return div(self, b)
     
     def __matmul__(self, other):
-        self, other = _device_higherarchy(self, other)
+        self, other = _device_hierarchy(self, other)
         return matmul(self, other)
 
     def sum(self, dim=None, keepdim=False):
