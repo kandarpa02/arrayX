@@ -8,7 +8,6 @@
 
 from typing import Any
 from dataclasses import dataclass
-from neo._src.autograd import Node, TapeContext, Tape
 
 # CONTEXT: stupid simple ctx thingy, stores whatever you want.
 # inspired by PyTorch ctx, but this one is dumb as a brick.
@@ -58,6 +57,7 @@ class Tracelet:
         return self
 
     def register(self, out, parents, backward):
+        from neo._src.autograd import Node, TapeContext
         # literally shove node into the tape
         self.out = out
         self.parents = parents
