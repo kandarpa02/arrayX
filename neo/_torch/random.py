@@ -36,7 +36,7 @@ def rand(shape, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.rand(
         shape,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None,
+        device=_device(device) if device else _auto_device(),
         generator=_resolve_generator(key)
     ))
 
@@ -45,7 +45,7 @@ def randn(shape, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.randn(
         shape,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None,
+        device=_device(device) if device else _auto_device(),
         generator=_resolve_generator(key)
     ))
 
@@ -54,7 +54,7 @@ def randint(low, high, size, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.randint(
         low, high, size,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None,
+        device=_device(device) if device else _auto_device(),
         generator=_resolve_generator(key)
     ))
 
@@ -63,7 +63,7 @@ def randperm(n, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.randperm(
         n,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None,
+        device=_device(device) if device else _auto_device(),
         generator=_resolve_generator(key)
     ))
 
@@ -72,7 +72,7 @@ def normal(mean=0.0, std=1.0, size=(), dtype: Any = '', device: Any = None, key=
     return lite(neolib.normal(
         mean, std, size=size,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None,
+        device=_device(device) if device else _auto_device(),
         generator=_resolve_generator(key)
     ))
 
@@ -83,7 +83,7 @@ def uniform(low=0.0, high=1.0, size=(), dtype: Any = '', device: Any = None, key
         (high - low) * neolib.rand(
             size,
             dtype=_dtype(dtype) if dtype else None,
-            device=_device(device) if device else None,
+            device=_device(device) if device else _auto_device(),
             generator=gen
         ) + low
     )
