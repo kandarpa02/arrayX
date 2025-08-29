@@ -49,7 +49,7 @@ class Conv1D(Layer):
             init_fn = self.init_fn,
             rng     = rng
         )
-        bias = self.param(f"{self.name}/bias", (self.out_chan,), x.dtype, x.device, zero_init, rng) if self.bias else None
+        bias = self.param(f"{self.name}/bias", (self.out_chan,), x.dtype, zero_init, rng) if self.bias else None
 
         return conv1d(
             x,
@@ -103,7 +103,6 @@ class Conv2D(Layer):
                 name    = f"{self.name}/bias",
                 shape   = (self.out_chan,),
                 dtype   = x.dtype,
-                device  = x.device,
                 init_fn = zero_init,
                 rng     = rng
             )
@@ -156,7 +155,7 @@ class Conv3D(Layer):
             init_fn = self.init_fn,
             rng     = rng
         )
-        bias = self.param(f"{self.name}/bias", (self.out_chan,), x.dtype, x.device, zero_init, rng) if self.bias else None
+        bias = self.param(f"{self.name}/bias", (self.out_chan,), x.dtype, zero_init, rng) if self.bias else None
 
         return conv3d(
             x,
