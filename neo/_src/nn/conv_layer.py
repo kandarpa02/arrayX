@@ -46,7 +46,6 @@ class Conv1D(Layer):
             name    = f"{self.name}/weight",
             shape   = kernel_shape,
             dtype   = x.dtype,
-            device  = x.device,
             init_fn = self.init_fn,
             rng     = rng
         )
@@ -95,7 +94,6 @@ class Conv2D(Layer):
             name    = f"{self.name}/weight",
             shape   = kernel_shape,
             dtype   = x.dtype,
-            device  = x.device,
             init_fn = self.init_fn,
             rng     = rng
             )
@@ -155,7 +153,6 @@ class Conv3D(Layer):
             name    = f"{self.name}/weight",
             shape   = kernel_shape,
             dtype   = x.dtype,
-            device  = x.device,
             init_fn = self.init_fn,
             rng     = rng
         )
