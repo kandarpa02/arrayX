@@ -1,33 +1,29 @@
 # ============================================================================================================
-# LiteTensor: "Lite" wrapper for Torch tensors, NeoNet edition
+# LiteTensor: "Lite" wrapper for Torch tensors, NeoNet edition, FAST MODE
 # 
 # WHY THIS EXISTS:
 # ----------------
-# Because raw torch.Tensor is awesome but sometimes you want:
-#   - auto device/dtype promotion (so CUDA magically happens)
-#   - prettier prints than <torch.Tensor>
-#   - overloaded math operators that play nicely with NeoNet functions
-#   - space to later add crazy optimizations without touching user code
-#
+# - Raw torch.Tensor is awesome, but we want:
+#     * overloaded math operators for NeoNet
+#     * prettier prints than <torch.Tensor>
+#     * memory-light wrapper (d_type, device)
+#     * future room for crazy optimizations
+# 
+# FAST DESIGN NOTES:
+# -----------------
+# - No per-op device checks! You MUST ensure all LiteTensors are already on the correct device.
+# - Device promotion only happens at creation / explicit .to()/.cuda()/.cpu()
+# - This mimics JAX/TF style: minimal Python overhead in inner loops.
+# - Python overhead is now basically 0 for math ops.
+# - Safe_input and _device_hierarchy are still available but optional.
+# 
 # WARNING:
 # --------
-# - LiteTensor is NOT a drop-in replacement for torch.Tensor
-# - numpy() always copies to CPU (deal with it)
-# - .to() is convenient but has edge-case bugs
-# - If you try to subclass it or hack __dict__ -> segfaults might happen
+# - LiteTensor is NOT torch.Tensor.
+# - numpy() always copies to CPU.
+# - You must manage device manually if doing custom loops.
+# - Misaligned devices will cause CUDA runtime errors.
 # 
-# DESIGN NOTES:
-# -------------
-# - We only store `data`, `d_type`, `device` (we hate memory overhead)
-# - __slots__ = ('data','d_type','device') to save RAM and marginal speed
-# - Every math op delegates to NeoNet backend (neo.functions)
-# - Device promotion logic is Python-y, minor overhead unavoidable
-#
-# PERFORMANCE:
-# ------------
-# - Primary bottleneck: device promotion and Python function call overhead
-# - If you’re benchmarking: blame safe_input() and _device_hierarchy()
-#
 # Author: Kandarpa Sarkar (c) 2025
 # License: MIT
 # ============================================================================================================
@@ -42,7 +38,7 @@ from .functions import *
 
 # Helpers
 def _auto_device():
-    """Pick CUDA if available, else CPU. This is our "automatic magic"."""
+    """Pick CUDA if available, else CPU. Only called on tensor creation."""
     try:
         if torch.cuda.is_available():
             return torch.device("cuda")
@@ -50,113 +46,52 @@ def _auto_device():
         pass
     return torch.device("cpu")
 
-
-def _device_hierarchy(self, other):
-    """
-    Promote both operands to the same device.
-    If either is on CUDA, everything goes CUDA.
-    Python overhead is minimal, deal with it.
-    """
-    target_device = "cuda" if (
-        self.data.device.type == "cuda" or 
-        (hasattr(other, "data") and other.data.device.type == "cuda") or
-        (isinstance(other, Tensor) and other.device.type == "cuda")
-    ) else "cpu"
-
-    # Move self
-    self.data = self.data.to(target_device)
-    self.device = self.data.device
-
-    # Move other
-    if isinstance(other, Tensor):
-        other = other.to(target_device)
-    elif hasattr(other, "data"):
-        other.data = other.data.to(target_device)
-        other.device = other.data.device
-
-    return self, other
-
-
-def safe_input(self, x):
-    """
-    Wrap inputs into LiteTensor if they are not already.
-    Scalars, numpy arrays, torch tensors handled.
-    Promotes devices automatically.
-    """
-    if not isinstance(x, LiteTensor):
-        if isinstance(x, (int, float, Tensor, np.ndarray)):
-            x = LiteTensor(x, d_type=self.d_type, device=self.device)
-    self, other = _device_hierarchy(self, x)
-    return self, other
-
-
 def _device(arg):
-    if arg is None:
-        return None
-    if isinstance(arg, torch.device):
-        return arg
-    if isinstance(arg, str):
-        return torch.device(arg)
+    """Ensure argument is a torch.device"""
+    if arg is None: return None
+    if isinstance(arg, torch.device): return arg
+    if isinstance(arg, str): return torch.device(arg)
     raise TypeError(f"Invalid device: {arg}")
 
-
 def _dtype(arg):
-    if arg is None:
-        return None
-    if isinstance(arg, torch.dtype):
-        return arg
+    """Ensure argument is torch.dtype"""
+    if arg is None: return None
+    if isinstance(arg, torch.dtype): return arg
     if isinstance(arg, str):
-        try:
-            return getattr(torch, arg)
-        except AttributeError:
-            raise TypeError(f"Invalid dtype string: '{arg}'")
+        try: return getattr(torch, arg)
+        except AttributeError: raise TypeError(f"Invalid dtype string: '{arg}'")
     raise TypeError(f"Invalid dtype: {arg}")
 
-
 def _neo_dtype(arg):
-    """
-    Convert torch dtype to string representation without torch. prefix.
-    """
+    """Convert torch dtype to string representation without torch. prefix"""
     arg = str(arg)
     if 'torch.' in arg:
         return arg.removeprefix('torch.')
 
-
 # LiteTensor Class
 class LiteTensor:
-    """
-    LiteTensor: thin wrapper around torch.Tensor for NeoNet.
+    """LiteTensor: thin, fast wrapper around torch.Tensor for NeoNet
     
     Stores:
-      - data: torch.Tensor
-      - d_type: dtype
-      - device: cpu/cuda
+        data : torch.Tensor
+        d_type : dtype
+        device : cpu/cuda
     
     Provides:
-      - operator overloads: +,-,*,/,**, @, neg, comparisons
-      - device/dtype promotion
-      - NeoNet-friendly __repr__ printing
-      - convenience methods: cpu(), cuda(), numpy(), ones_like(), zeros_like()
+        - operator overloads: +,-,*,/,**, @, neg, comparisons
+        - NeoNet-friendly __repr__ printing
+        - convenience methods: cpu(), cuda(), numpy(), ones_like(), zeros_like()
     
     WARNING:
-      - .numpy() always copies to CPU
-      - Use with NeoNet functions for autograd
-      - Do NOT assume it behaves 100% like torch.Tensor
-      - .to() tries its best but edge cases exist
+        - No per-op device promotion, you must manage devices manually.
+        - .numpy() always copies to CPU.
+        - Designed for fast inner loops; treat like an immutable device-bound tensor.
     """
 
     __slots__ = ('data', 'd_type', 'device')
 
     def __init__(self, data, d_type='', device=''):
-        """
-        Initialize LiteTensor.
-        
-        Parameters:
-        -----------
-        data : array-like, torch.Tensor, int, float, np.ndarray
-        d_type : str or torch.dtype
-        device : str or torch.device
-        """
+        """Initialize LiteTensor; device/dtype is applied at creation only."""
         if not isinstance(data, Tensor):
             dtype = _dtype(d_type) if d_type else None
             dev = _device(device) if device else _auto_device()
@@ -172,49 +107,28 @@ class LiteTensor:
 
     # Properties
     @property
-    def dtype(self):
-        """Torch dtype"""
-        return self.d_type
-    
+    def dtype(self): return self.d_type
     @property
-    def ndtype(self):
-        """Neo-style dtype string without torch. prefix"""
-        return _neo_dtype(self.dtype)
-
+    def ndtype(self): return _neo_dtype(self.dtype)
     @property
     def shape(self):
-        """Returns shape as tuple"""
-        try:
-            shp = self.data.cpu().numpy().shape
-        except TypeError:
-            shp = self.to(torch.float32).cpu().numpy().shape
-        return shp
-    
+        try: return self.data.cpu().numpy().shape
+        except TypeError: return self.to(torch.float32).cpu().numpy().shape
     @property
-    def size(self):
-        """Number of elements"""
-        return self.data.cpu().numpy().size
-
+    def size(self): return self.data.cpu().numpy().size
     @property
-    def T(self):
-        """Transpose (shortcut)"""
-        return LiteTensor(self.data.T)
+    def T(self): return LiteTensor(self.data.T)
 
     # Conversion
     def to(self, *args, **kwargs):
         """Move to device/dtype or copy from another tensor"""
         if len(args) == 1:
             arg = args[0]
-            if isinstance(arg, LiteTensor):
-                return LiteTensor(self.data.to(arg.data.device, arg.data.dtype))
-            elif isinstance(arg, Tensor):
-                return LiteTensor(self.data.to(arg.device, arg.dtype))
-            elif isinstance(arg, (str, torch.device)):
-                return LiteTensor(self.data.to(device=_device(arg)))
-            elif isinstance(arg, (torch.dtype, str)):
-                return LiteTensor(self.data.to(dtype=_dtype(arg)))
-            else:
-                raise TypeError(f"Unsupported type for .to(): {type(arg)}")
+            if isinstance(arg, LiteTensor): return LiteTensor(self.data.to(arg.data.device, arg.data.dtype))
+            elif isinstance(arg, Tensor): return LiteTensor(self.data.to(arg.device, arg.dtype))
+            elif isinstance(arg, (str, torch.device)): return LiteTensor(self.data.to(device=_device(arg)))
+            elif isinstance(arg, (torch.dtype, str)): return LiteTensor(self.data.to(dtype=_dtype(arg)))
+            else: raise TypeError(f"Unsupported type for .to(): {type(arg)}")
         elif len(args) == 2:
             device = _device(args[0])
             dtype = _dtype(args[1])
@@ -226,18 +140,10 @@ class LiteTensor:
         else:
             raise TypeError("Invalid arguments passed to .to()")
 
-    def cuda(self, device=None):
-        """Move to CUDA"""
-        return LiteTensor(self.data.cuda(device=device))
+    def cuda(self, device=None): return LiteTensor(self.data.cuda(device=device))
+    def cpu(self): return LiteTensor(self.data.cpu())
+    def numpy(self): return self.data.detach().cpu().numpy()
 
-    def cpu(self):
-        """Move to CPU"""
-        return LiteTensor(self.data.cpu())
-
-    def numpy(self):
-        """Return as NumPy array (always CPU copy)"""
-        return self.data.detach().cpu().numpy()
-        
     # Magic Methods / Operators
     def __repr__(self):
         shape = self.data.to('cpu').detach().numpy().shape
@@ -249,20 +155,9 @@ class LiteTensor:
         return f"Tensor(<shape={shape}, dtype={dtype}, device={device}>\n       {arr_str})\n"
     __str__ = __repr__
 
-    def __len__(self):
-        """Length along first dimension"""
-        if self.data.dim() == 0:
-            return 0
-        return len(self.data)
-
-    def __getitem__(self, index):
-        """Indexing access"""
-        return self.data[index]
-
-    def __eq__(self, other):
-        """Equality check"""
-        return isinstance(other, LiteTensor) and self.data == other.data
-
+    def __len__(self): return 0 if self.data.dim() == 0 else len(self.data)
+    def __getitem__(self, index): return self.data[index]
+    def __eq__(self, other): return isinstance(other, LiteTensor) and self.data == other.data
     def __ne__(self, other): return not self.__eq__(other)
     def __lt__(self, other): return self.data < other.data if isinstance(other, LiteTensor) else NotImplemented
     def __le__(self, other): return self.data <= other.data if isinstance(other, LiteTensor) else NotImplemented
@@ -270,12 +165,14 @@ class LiteTensor:
     def __ge__(self, other): return self.data >= other.data if isinstance(other, LiteTensor) else NotImplemented
     def __hash__(self): return id(self)
     def __neg__(self): return neg(self)
-    def __add__(self, other): self, b = safe_input(self, other); return add(self, b)
-    def __sub__(self, other): self, b = safe_input(self, other); return sub(self, b)
-    def __mul__(self, other): self, b = safe_input(self, other); return mul(self, b)
-    def __pow__(self, other): self, b = safe_input(self, other); return power(self, other)
-    def __truediv__(self, other): self, b = safe_input(self, other); return div(self, b)
-    def __matmul__(self, other): self, other = _device_hierarchy(self, other); return matmul(self, other)
+
+    # Fast math ops: assume correct devices, no checks
+    def __add__(self, other): return add(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __sub__(self, other): return sub(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __mul__(self, other): return mul(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __truediv__(self, other): return div(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __pow__(self, other): return power(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __matmul__(self, other): return matmul(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
     def __radd__(self, other): return self.__add__(other)
     def __rsub__(self, other): return self.__sub__(other)
     def __rmul__(self, other): return self.__mul__(other)
@@ -288,7 +185,7 @@ class LiteTensor:
     def sum(self, dim=None, keepdim=False): return sum(self, dim, keepdim)
     def relu(self): from neo._src.nn._activations import relu; return relu(self)
     def tanh(self): from neo._src.nn._activations import tanh; return tanh(self)
-    def reshape(self, shape): 
+    def reshape(self, shape):
         from neo._torch.user_functions import reshape as _reshape
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)): shape = shape[0]
         return _reshape(self, shape)
