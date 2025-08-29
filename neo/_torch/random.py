@@ -5,80 +5,80 @@ from ._helper import _device, _dtype, _auto_device
 from typing import Any
 import torch
 
+
 class RNGKey:
     def __init__(self, seed: int):
         self.seed = int(seed)
 
-    def generator(self, device=None):
-        """Return a torch.Generator on given device (None => auto_device)"""
-        dev = _auto_device() if device in ('', None) else _device(device)
-        g = torch.Generator(device=dev)
+    def generator(self):
+        """Always return a CPU torch.Generator with this seed"""
+        g = torch.Generator(device="cpu")  # torch only supports CPU
         g.manual_seed(self.seed)
         return g
 
     def split(self, n=2):
+        """JAX-style splitting: just bump the seed deterministically"""
         return [RNGKey(self.seed + i + 1) for i in range(n)]
 
     def __repr__(self):
         return f"RNGKey({self.seed})"
 
 
-def _resolve_generator(key=None, device=None):
-    dev = _auto_device() if device in ('', None) else _device(device)
+def _resolve_generator(key=None):
     if key is not None:
-        return key.generator(dev)
-    g = torch.Generator(device=dev)
+        return key.generator()
+    g = torch.Generator(device="cpu")
     g.manual_seed(int(time.time()))
     return g
 
 
-def rand(shape, dtype:Any='', device:Any=None, key=None):
+def rand(shape, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.rand(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key, device)
+        generator=_resolve_generator(key)
     ))
 
 
-def randn(shape, dtype:Any='', device:Any=None, key=None):
+def randn(shape, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.randn(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key, device)
+        generator=_resolve_generator(key)
     ))
 
 
-def randint(low, high, size, dtype:Any='', device:Any=None, key=None):
+def randint(low, high, size, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.randint(
         low, high, size,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key, device)
+        generator=_resolve_generator(key)
     ))
 
 
-def randperm(n, dtype:Any='', device:Any=None, key=None):
+def randperm(n, dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.randperm(
         n,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key, device)
+        generator=_resolve_generator(key)
     ))
 
 
-def normal(mean=0.0, std=1.0, size=(), dtype:Any='', device:Any=None, key=None):
+def normal(mean=0.0, std=1.0, size=(), dtype: Any = '', device: Any = None, key=None):
     return lite(neolib.normal(
         mean, std, size=size,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else None,
-        generator=_resolve_generator(key, device)
+        generator=_resolve_generator(key)
     ))
 
 
-def uniform(low=0.0, high=1.0, size=(), dtype:Any='', device:Any=None, key=None):
-    gen = _resolve_generator(key, device)
+def uniform(low=0.0, high=1.0, size=(), dtype: Any = '', device: Any = None, key=None):
+    gen = _resolve_generator(key)
     return lite(
         (high - low) * neolib.rand(
             size,
