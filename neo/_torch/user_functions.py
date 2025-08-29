@@ -22,26 +22,23 @@ def Tensor(data, dtype='', device=''):
 
 # === Tensor Constructors ===
 
-def full(shape, fill_value, dtype:Any='', device:Any=''):
+def full(shape, fill_value, dtype:Any=''):
     return lite(neolib.full(
         shape, fill_value,
-        dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+        dtype=_dtype(dtype) if dtype else None
+    ).numpy())
 
-def ones(shape, dtype:Any='', device:Any=''):
+def ones(shape, dtype:Any=''):
     return lite(neolib.ones(
         shape,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+    ).numpy())
 
-def zeros(shape, dtype:Any='', device:Any=''):
+def zeros(shape, dtype:Any=''):
     return lite(neolib.zeros(
         shape,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+    ).numpy())
 
 def arange(start, end=None, step=1, dtype:Any='', device:Any=''):
     dtype = _dtype(dtype) if dtype else None
@@ -53,36 +50,32 @@ def arange(start, end=None, step=1, dtype:Any='', device:Any=''):
         return lite(neolib.arange(start, end, step, dtype=dtype, device=device))
 
 
-def empty(shape, dtype:Any='', device:Any=''):
+def empty(shape, dtype:Any=''):
     return lite(neolib.empty(
         shape,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+    ).numpy())
 
 
 # === _like Constructors ===
 
-def ones_like(x, dtype:Any='', device:Any=''):
+def ones_like(x, dtype:Any=''):
     return lite(neolib.ones_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+    ).numpy())
 
-def zeros_like(x, dtype:Any='', device:Any=''):
+def zeros_like(x, dtype:Any=''):
     return lite(neolib.zeros_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+    ).numpy())
 
-def empty_like(x, dtype:Any='', device:Any=''):
+def empty_like(x, dtype:Any=''):
     return lite(neolib.empty_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else None
-    ))
+    ).numpy())
 
 
 # === Shape/View/Manipulation Ops ===
