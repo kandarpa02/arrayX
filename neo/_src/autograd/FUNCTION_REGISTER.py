@@ -58,19 +58,21 @@ class Tracelet:
 
     def register(self, out, parents, backward):
         from neo._src.autograd import Node, TapeContext
+        from neo import record_tape as rt
         # literally shove node into the tape
         self.out = out
         self.parents = parents
         self.backward = backward
 
         # Node creation is messy, deals with raw tensors, closures, and tears
-        TapeContext.add_node(
-            Node(
-                output=self.out,     # yeah output, could be anything
-                parents=self.parents, # tuple of inputs, should be LiteTensors ideally
-                bwd_fn=self.backward # lambda / function to call for backward
+        if rt.is_enabled():
+            TapeContext.add_node(
+                Node(
+                    output=self.out,     # yeah output, could be anything
+                    parents=self.parents, # tuple of inputs, should be LiteTensors ideally
+                    bwd_fn=self.backward # lambda / function to call for backward
+                )
             )
-        )
         # after this, Python overhead = basically zero, GPU does the work
 
     def __exit__(self, val1, val2, val3):
