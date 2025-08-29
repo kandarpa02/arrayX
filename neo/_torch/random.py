@@ -32,58 +32,58 @@ def _resolve_generator(key=None):
     return g
 
 
-def rand(shape, dtype: Any = '', device: Any = None, key=None):
+def rand(shape, dtype: Any = '', key=None):
     return lite(neolib.rand(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         device=_device(device) if device else _auto_device(),
         generator=_resolve_generator(key)
-    ))
+    ).numpy())
 
 
-def randn(shape, dtype: Any = '', device: Any = None, key=None):
+def randn(shape, dtype: Any = '', key=None):
     return lite(neolib.randn(
         shape,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else _auto_device(),
+        device=_device(device) if device else None,
         generator=_resolve_generator(key)
-    ))
+    ).numpy())
 
 
-def randint(low, high, size, dtype: Any = '', device: Any = None, key=None):
+def randint(low, high, size, dtype: Any = '', key=None):
     return lite(neolib.randint(
         low, high, size,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else _auto_device(),
+        device=_device(device) if device else None,
         generator=_resolve_generator(key)
-    ))
+    ).numpy())
 
 
-def randperm(n, dtype: Any = '', device: Any = None, key=None):
+def randperm(n, dtype: Any = '', key=None):
     return lite(neolib.randperm(
         n,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else _auto_device(),
+        device=_device(device) if device else None,
         generator=_resolve_generator(key)
-    ))
+    ).numpy())
 
 
-def normal(mean=0.0, std=1.0, size=(), dtype: Any = '', device: Any = None, key=None):
+def normal(mean=0.0, std=1.0, size=(), dtype: Any = '', key=None):
     return lite(neolib.normal(
         mean, std, size=size,
         dtype=_dtype(dtype) if dtype else None,
-        device=_device(device) if device else _auto_device(),
+        device=_device(device) if device else None,
         generator=_resolve_generator(key)
-    ))
+    ).numpy())
 
 
-def uniform(low=0.0, high=1.0, size=(), dtype: Any = '', device: Any = None, key=None):
+def uniform(low=0.0, high=1.0, size=(), dtype: Any = '', key=None):
     gen = _resolve_generator(key)
     return lite(
         (high - low) * neolib.rand(
             size,
             dtype=_dtype(dtype) if dtype else None,
-            device=_device(device) if device else _auto_device(),
+            device=_device(device) if device else None,
             generator=gen
-        ) + low
+        ).numpy() + low
     )
