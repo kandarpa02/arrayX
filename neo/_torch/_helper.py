@@ -7,6 +7,15 @@ def _device(arg):
     if isinstance(arg, str): return torch.device(arg)
     raise TypeError(f"Invalid device: {arg}")
 
+def _auto_device():
+    """Pick CUDA if available, else CPU. Only called on tensor creation."""
+    try:
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+    except Exception:
+        pass
+    return torch.device("cpu")
+
 def _dtype(arg):
     """Ensure argument is torch.dtype"""
     if arg is None: return None
