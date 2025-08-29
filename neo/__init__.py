@@ -17,7 +17,7 @@ from neo._src.autograd._backward_utility import (
 
 from neo._src.autograd._backward_utility_static import StaticGraphBuilder as _sgb
 from neo._src.autograd.define_then_run import Variable as var, Constant as cnst, Symbol as sym, run_graph as r_g, eval_graph as e_g
-from neo._src.autograd.FUNCTION_REGISTER import Policy as _policy
+from neo._src.autograd.FUNCTION_REGISTER import Policy as _policy, Tracelet as _tracelet
 
 
 build_computation_graph = _bcg
@@ -33,6 +33,7 @@ run_graph = r_g
 eval_graph = e_g
 
 Policy = _policy
+Tracelet = _tracelet
 
 
 from contextlib import contextmanager
