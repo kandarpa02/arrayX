@@ -36,5 +36,5 @@ def xavier_normal(shape, dtype, gain=1.0, key=None):
     return neo.randn(shape, dtype=dtype, key=key) * std
 
 
-def zero_init(shape, dtype, device, key=None):
-    return neo.zeros(shape, dtype=dtype, device=device)
+def zero_init(shape, dtype, key=None):
+    return neo.zeros(shape, dtype=dtype)
