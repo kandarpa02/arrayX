@@ -24,7 +24,7 @@ class Module:
             Module._current_params, Module._name_stack = old_params, old_stack
 
     @staticmethod
-    def param(name: str, shape, dtype, device, init_fn, rng=None) -> LiteTensor:
+    def param(name: str, shape, dtype, init_fn, rng=None) -> LiteTensor:
         if Module._current_params is None:
             raise RuntimeError("No param context active.")
         # Build hierarchical name
@@ -32,9 +32,9 @@ class Module:
         full_name = f"{prefix}/{name}" if prefix else name
         if full_name not in Module._current_params:
             Module._current_params[full_name] = (
-                init_fn(shape, key=rng, dtype=dtype, device=device)
+                init_fn(shape, key=rng, dtype=dtype)
                 if rng is not None else
-                init_fn(shape, dtype=dtype, device=device)
+                init_fn(shape, dtype=dtype)
             )
         return Module._current_params[full_name]
 
