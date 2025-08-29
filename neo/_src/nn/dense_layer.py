@@ -17,8 +17,7 @@ class Dense(Layer):
         w = self.param(
             f"{self.name}/weight", 
             (self.out_features, in_features), 
-            x.dtype, 
-            x.device, 
+            x.dtype,
             self.init_fn, 
             rng
             )
@@ -27,7 +26,7 @@ class Dense(Layer):
             
             f"{self.name}/bias", 
             (self.out_features,), 
-            x.dtype, x.device, 
+            x.dtype,
             neo.zeros, 
             None
             )
