@@ -31,7 +31,17 @@ def conv1d(
     padding = to_tuple(padding)
     dilation = to_tuple(dilation)
 
-    out = torch.nn.functional.conv1d(input, weight, bias, stride, padding, dilation, groups)
+    _out = torch.nn.functional.conv1d(
+        input=input.data,
+        weight=weight.data,
+        bias=bias.data,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        groups=groups
+        )
+    
+    out = LiteTensor(_out)
 
     def conv1d_backward(grad):
         grad_input = conv1d_input(
@@ -75,8 +85,17 @@ def conv2d(
     padding = to_tuple(padding)
     dilation = to_tuple(dilation)
 
-    out = torch.nn.functional.conv2d(input, weight, bias, stride, padding, dilation, groups)
-
+    _out = torch.nn.functional.conv2d(
+        input=input.data,
+        weight=weight.data,
+        bias=bias.data,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        groups=groups
+        )
+    
+    out = LiteTensor(_out)
 
     def conv2d_backward(grad):
         grad_input = conv2d_input(
@@ -120,8 +139,17 @@ def conv3d(
     padding = to_tuple(padding)
     dilation = to_tuple(dilation)
 
-    out = torch.nn.functional.conv3d(input, weight, bias, stride, padding, dilation, groups)
-
+    _out = torch.nn.functional.conv3d(
+        input=input.data,
+        weight=weight.data,
+        bias=bias.data,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        groups=groups
+        )
+    
+    out = LiteTensor(_out)
 
     def conv3d_backward( grad):
         grad_input = conv3d_input(
