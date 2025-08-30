@@ -45,13 +45,13 @@ def conv1d(
 
     def conv1d_backward(grad):
         grad_input = conv1d_input(
-            input.shape, weight, grad,
+            input.data.shape, weight.data, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
         grad_weight = conv1d_weight(
-            input, weight.shape, grad,
+            input.data, weight.data.shape, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
@@ -99,13 +99,13 @@ def conv2d(
 
     def conv2d_backward(grad):
         grad_input = conv2d_input(
-            input.shape, weight, grad,
+            input.data.shape, weight.data, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
         grad_weight = conv2d_weight(
-            input, weight.shape, grad,
+            input.data, weight.data.shape, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
@@ -153,13 +153,13 @@ def conv3d(
 
     def conv3d_backward( grad):
         grad_input = conv3d_input(
-            input.shape, weight, grad,
+            input.data.shape, weight.data, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
 
         grad_weight = conv3d_weight(
-            input, weight.shape, grad,
+            input.data, weight.data.shape, grad,
             stride=stride, padding=padding,
             dilation=dilation, groups=groups
         )
