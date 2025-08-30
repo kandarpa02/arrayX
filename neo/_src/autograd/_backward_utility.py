@@ -95,7 +95,7 @@ def _compute(fn: Callable, safe=False, end_node:int=-1):
         )
         TapeContext.pop()
 
-        out_grad = neolib.ones_like(is_scalar(out.data))
+        out_grad = torch.ones_like(out.data)
         grad_dict = {id(out): out_grad}
 
         any_cuda = out_grad.is_cuda  
@@ -215,7 +215,7 @@ class build_computation_graph:
         self.out, self.grad = _compute(fn, safe=self.safe, end_node=self.end_node)(self._variables)
         return self
     
-class Curves:
+class GraphContext:
     def __init__(self, persistent=False):
         self.persistent = persistent
         self._grads = None
@@ -232,7 +232,7 @@ class Curves:
             self._func = None
             self._inputs = None
 
-    def lift_them(self, func, *inputs):
+    def watch(self, func, *inputs):
         self._func = func
         self._inputs = inputs
 

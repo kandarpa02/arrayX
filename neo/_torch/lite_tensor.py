@@ -28,13 +28,12 @@
 # License: MIT
 # ============================================================================================================
 
-from typing import Any
+from typing import Any, Callable
 from dataclasses import dataclass
 from torch import Tensor
 import torch
 import numpy as np
 from neo._torch import neolib
-from .functions import *
 
 # Helpers
 def _auto_device():
@@ -105,7 +104,21 @@ class LiteTensor:
         self.d_type = self.data.dtype
         self.device = self.data.device
 
+    # Op creation
+    def binary_op(self, other, fn:Callable):
+        out = LiteTensor(
+            data = fn(self.data, other.data),
+        )
+        return out
+    def unary_op(self, fn:Callable):
+        out = LiteTensor(
+            data = fn(self.data)
+        )
+        return out
+
     # Properties
+    @property
+    def _t(self): return self.data
     @property
     def dtype(self): return self.d_type
     @property
@@ -149,10 +162,13 @@ class LiteTensor:
         shape = self.data.to('cpu').detach().numpy().shape
         dtype = _neo_dtype(self.data.dtype)
         device = self.data.device
-        arr_str = np.array2string(self.numpy(), precision=4, suppress_small=True,
+        arr_str = np.array2string(self.numpy(), precision=2, suppress_small=False,
                                   threshold=6, edgeitems=3, max_line_width=80, separator='  ',
-                                  prefix=' ' * 8)
-        return f"Tensor(<shape={shape}, dtype={dtype}, device={device}>\n       {arr_str})\n"
+                                  prefix=(' ' * 7))
+        rpr =  f"Tensor(<shape={shape}, dtype={dtype}, device={device}>\n"
+        rpr += f"       {arr_str})\n"
+        return rpr
+    
     __str__ = __repr__
 
     def __len__(self): return 0 if self.data.dim() == 0 else len(self.data)
@@ -164,15 +180,29 @@ class LiteTensor:
     def __gt__(self, other): return self.data > other.data if isinstance(other, LiteTensor) else NotImplemented
     def __ge__(self, other): return self.data >= other.data if isinstance(other, LiteTensor) else NotImplemented
     def __hash__(self): return id(self)
-    def __neg__(self): return neg(self)
+    def __neg__(self): 
+        from neo._torch.functions import neg
+        return neg(self)
 
     # Fast math ops: assume correct devices, no checks
-    def __add__(self, other): return add(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
-    def __sub__(self, other): return sub(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
-    def __mul__(self, other): return mul(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
-    def __truediv__(self, other): return div(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
-    def __pow__(self, other): return power(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
-    def __matmul__(self, other): return matmul(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __add__(self, other): 
+        from neo._torch.functions import add
+        return add(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __sub__(self, other): 
+        from neo._torch.functions import sub
+        return sub(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __mul__(self, other): 
+        from neo._torch.functions import mul
+        return mul(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __truediv__(self, other): 
+        from neo._torch.functions import div
+        return div(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __pow__(self, other): 
+        from neo._torch.functions import power
+        return power(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
+    def __matmul__(self, other): 
+        from neo._torch.functions import matmul
+        return matmul(self, other if isinstance(other, LiteTensor) else LiteTensor(other))
     def __radd__(self, other): return self.__add__(other)
     def __rsub__(self, other): return self.__sub__(other)
     def __rmul__(self, other): return self.__mul__(other)
@@ -182,7 +212,9 @@ class LiteTensor:
     # Convenience
     def ones_like(self): return LiteTensor(neolib.ones_like(self.data))
     def zeros_like(self): return LiteTensor(neolib.zeros_like(self.data))
-    def sum(self, dim=None, keepdim=False): return sum(self, dim, keepdim)
+    def sum(self, dim=None, keepdim=False): 
+        from neo._torch.functions import sum
+        return sum(self, dim, keepdim)
     def relu(self): from neo._src.nn._activations import relu; return relu(self)
     def tanh(self): from neo._src.nn._activations import tanh; return tanh(self)
     def reshape(self, shape):

@@ -1,4 +1,5 @@
-from neo._src.autograd import Node, TapeContext, Policy
+from neo._src.autograd.FUNCTION_REGISTER import Policy, Tracelet
+from neo._torch.lite_tensor import LiteTensor
 from ..math import neolib
 
 class addition(Policy):
@@ -99,35 +100,3 @@ class negative(Policy):
     def backward(self, grad):
         return -grad
     
-
-class matmul_op(Policy):
-    def forward(self, X, Y):
-        self.ctx.save(X, Y)
-        return X @ Y
-
-    def backward(self, grad):
-        X, Y = self.ctx.release
-
-        X_shape = X.shape
-        Y_shape = Y.shape
-
-        # Match PyTorch matmul rules for grad shapes
-        if X.ndim == 1 and Y.ndim == 1:
-            # dot product case -> scalar grad
-            grad_x = grad * Y
-            grad_y = grad * X
-        elif X.ndim == 2 and Y.ndim == 1:
-            # matrix @ vector -> vector grad
-            grad_x = grad.unsqueeze(1) @ Y.unsqueeze(0)  # outer product
-            grad_y = X.T @ grad
-        elif X.ndim == 1 and Y.ndim == 2:
-            # vector @ matrix -> vector grad
-            grad_x = grad @ Y.T
-            grad_y = X.unsqueeze(1) @ grad.unsqueeze(0)
-        else:
-            # matrix @ matrix
-            grad_x = grad @ Y.T
-            grad_y = X.T @ grad
-
-        # Ensure same shapes as original inputs
-        return grad_x.reshape(X_shape), grad_y.reshape(Y_shape)
