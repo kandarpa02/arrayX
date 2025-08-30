@@ -34,7 +34,7 @@ def conv1d(
     _out = torch.nn.functional.conv1d(
         input=input.data,
         weight=weight.data,
-        bias=bias.data,
+        bias= None if bias is None else bias.data,
         stride=stride,
         padding=padding,
         dilation=dilation,
@@ -88,7 +88,7 @@ def conv2d(
     _out = torch.nn.functional.conv2d(
         input=input.data,
         weight=weight.data,
-        bias=bias.data,
+        bias=None if bias is None else bias.data,
         stride=stride,
         padding=padding,
         dilation=dilation,
@@ -142,7 +142,7 @@ def conv3d(
     _out = torch.nn.functional.conv3d(
         input=input.data,
         weight=weight.data,
-        bias=bias.data,
+        bias=None if bias is None else bias.data,
         stride=stride,
         padding=padding,
         dilation=dilation,
