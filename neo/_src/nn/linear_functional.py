@@ -1,87 +1,92 @@
 from neo.functions import function
-from neo._src.autograd.FUNCTION_REGISTER import Policy
+from neo._src.autograd.FUNCTION_REGISTER import Tracelet
 from neo._src.nn._linear_fused_fn import *
 from neo._torch.lite_tensor import LiteTensor
 from typing import Any
 
+# plain linear
+def _linear(X, w, b):
+    out, X_, w_ = linear_fwd(X, w, b)
 
-# raw linear policy
-class _linear(Policy):
-    def forward(self, X, w, b):
-        out, X, w = linear_fwd(X, w, b)
-        self.ctx.save(X, w)
-        return out
+    def linear_backward(grad):
+        return linear_bwd(grad, X_, w_)
 
-    def backward(self, grad):
-        X, w = self.ctx.release
-        return linear_bwd(grad, X, w)
-    
-# linear relu policy
-class _linear_relu(Policy):
-    def forward(self, X, w, b):
-        out, X, w = linear_relu_fwd(X, w, b)
-        self.ctx.save(out, X, w)
-        return out
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_backward)
+    return out
 
-    def backward(self, grad):
-        out, X, w = self.ctx.release
-        return linear_relu_bwd(grad, out, X, w)
-    
 
-# linear tanh policy
-class _linear_tanh(Policy):
-    def forward(self, X, w, b):
-        out, X, w = linear_tanh_fwd(X, w, b)
-        self.ctx.save(out, X, w)
-        return out
+# linear + relu
+def _linear_relu(X, w, b):
+    out, out_, X_, w_ = linear_relu_fwd(X, w, b)
 
-    def backward(self, grad):
-        out, X, w = self.ctx.release
-        return linear_tanh_bwd(grad, out, X, w)
+    def linear_relu_backward(grad):
+        return linear_relu_bwd(grad, out_, X_, w_)
+
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_relu_backward)
+    return out
+
+
+# linear + tanh
+def _linear_tanh(X, w, b):
+    out, out_, X_, w_ = linear_tanh_fwd(X, w, b)
+
+    def linear_tanh_backward(grad):
+        return linear_tanh_bwd(grad, out_, X_, w_)
+
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_tanh_backward)
+    return out
 
 
 # linear + sigmoid
-class _linear_sigmoid(Policy):
-    def forward(self, X, w, b):
-        out, out_, X_, w_ = linear_sigmoid_fwd(X, w, b)
-        self.ctx.save(out_, X_, w_)
-        return out
-    def backward(self, grad):
-        out, X, w = self.ctx.release
-        return linear_sigmoid_bwd(grad, out, X, w)
+def _linear_sigmoid(X, w, b):
+    out, out_, X_, w_ = linear_sigmoid_fwd(X, w, b)
+
+    def linear_sigmoid_backward(grad):
+        return linear_sigmoid_bwd(grad, out_, X_, w_)
+
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_sigmoid_backward)
+    return out
 
 
 # linear + softmax
-class _linear_softmax(Policy):
-    def forward(self, X, w, b):
-        out, out_, X_, w_ = linear_softmax_fwd(X, w, b)
-        self.ctx.save(out_, X_, w_)
-        return out
-    def backward(self, grad):
-        out, X, w = self.ctx.release
-        return linear_softmax_bwd(grad, out, X, w)
+def _linear_softmax(X, w, b):
+    out, out_, X_, w_ = linear_softmax_fwd(X, w, b)
+
+    def linear_softmax_backward(grad):
+        return linear_softmax_bwd(grad, out_, X_, w_)
+
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_softmax_backward)
+    return out
 
 
 # linear + leakyrelu
-class _linear_leakyrelu(Policy):
-    def forward(self, X, w, b):
-        out, out_, X_, w_, slope = linear_leakyrelu_fwd(X, w, b)
-        self.ctx.save(out_, X_, w_, slope)
-        return out
-    def backward(self, grad):
-        out, X, w, slope = self.ctx.release
-        return linear_leakyrelu_bwd(grad, out, X, w, slope)
+def _linear_leakyrelu(X, w, b):
+    out, out_, X_, w_, slope = linear_leakyrelu_fwd(X, w, b)
+
+    def linear_leakyrelu_backward(grad):
+        return linear_leakyrelu_bwd(grad, out_, X_, w_, slope)
+
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_leakyrelu_backward)
+    return out
 
 
 # linear + relu6
-class _linear_relu6(Policy):
-    def forward(self, X, w, b):
-        out, out_, X_, w_ = linear_relu6_fwd(X, w, b)
-        self.ctx.save(out_, X_, w_)
-        return out
-    def backward(self, grad):
-        out, X, w = self.ctx.release
-        return linear_relu6_bwd(grad, out, X, w)
+def _linear_relu6(X, w, b):
+    out, out_, X_, w_ = linear_relu6_fwd(X, w, b)
+
+    def linear_relu6_backward(grad):
+        return linear_relu6_bwd(grad, out_, X_, w_)
+
+    with Tracelet() as t:
+        t.register(out, (X, w, b), backward=linear_relu6_backward)
+    return out
+
 
 
 NONLIN_DICT = {
