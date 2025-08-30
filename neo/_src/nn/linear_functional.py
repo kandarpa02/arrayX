@@ -142,37 +142,5 @@ def linear(x: LiteTensor, w: LiteTensor, b: LiteTensor, nonlin:Any|str=None):
     if _fn is None:
         raise NotImplementedError(f"[{nonlin}] has not been implemented yet")
 
-    return function(_fn)(x, w, b)
+    return _fn(x, w, b)
 
-
-from typing import Dict, Any, List, Optional
-
-def MLP(x: LiteTensor, params: Dict[str, LiteTensor], nonlins: Optional[List[Optional[str]]] = None):
-    """
-    N-layer MLP using neo.nn.linear with autograd support.
-    
-    Args:
-        x (LiteTensor): Input tensor of shape (N, in_features).
-        params (dict): Dictionary of weights & biases:
-            {
-              "w1": Tensor, "b1": Tensor,
-              "w2": Tensor, "b2": Tensor,
-              ...
-              "wN": Tensor, "bN": Tensor
-            }
-        nonlins (list[str|None]): List of nonlinearities per layer.
-                                  If None, defaults to ReLU for all but last.
-                                  Example: ["relu", "relu", None]
-    
-    Returns:
-        LiteTensor: Output tensor of shape (N, out_features).
-    """
-    num_layers = len(params) // 2
-    if nonlins is None:
-        # Default: ReLU for all but last
-        nonlins = ["relu"] * (num_layers - 1) + [None]
-    
-    for i in range(1, num_layers + 1):
-        w, b = params[f"w{i}"], params[f"b{i}"]
-        x = linear(x, w, b, nonlin=nonlins[i - 1])
-    return x
