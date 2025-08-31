@@ -172,7 +172,7 @@ class LiteTensor:
     __str__ = __repr__
 
     def __len__(self): return 0 if self.data.dim() == 0 else len(self.data)
-    def __getitem__(self, index): return self.data[index]
+    def __getitem__(self, index): return self.unary_op(lambda x:x[index])
     def __eq__(self, other): return isinstance(other, LiteTensor) and self.data == other.data
     def __ne__(self, other): return not self.__eq__(other)
     def __lt__(self, other): return self.data < other.data if isinstance(other, LiteTensor) else NotImplemented
