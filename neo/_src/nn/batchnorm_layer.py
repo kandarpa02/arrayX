@@ -30,7 +30,7 @@ class BatchNorm2D(Layer):
             x, 
             gamma, 
             beta, 
-            momentum=self.momentum
+            momentum=self.momentum,
             eps=self.eps, 
             train=self.train
             )
