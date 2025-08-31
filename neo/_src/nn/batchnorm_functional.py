@@ -4,14 +4,14 @@ from neo._src.autograd.FUNCTION_REGISTER import Tracelet
 import torch
 import torch.nn.functional as F
 
-def batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor, eps=1e-5, train=True):
-    def bn2d_forward(x_t, gamma_t, beta_t, eps=eps, train=train):
+def batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor, momentum=0.0, eps=1e-5, train=True):
+    def bn2d_forward(x_t, gamma, beta, momentum=momentum, eps=eps, train=train):
         return F.batch_norm(
             x_t,
             running_mean=None,
             running_var=None,
-            weight=gamma_t,
-            bias=beta_t,
+            weight=gamma,
+            bias=beta,
             training=train,  
             momentum=0.0,
             eps=eps
@@ -38,5 +38,5 @@ def batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor, eps=1e-5, tr
 
     with Tracelet() as t:
         t.register(out, (x, gamma, beta), bn2d_backward)
-        
+
     return out
