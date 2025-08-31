@@ -111,9 +111,9 @@ class LiteTensor:
         )
         return out
     
-    def nary_op(self, args, fn:Callable):
+    def nary_op(self, args, fn: Callable):
         out = LiteTensor(
-            data = fn(arg.data for arg in args)
+            data = fn(self.data, *(arg.data for arg in args))
         )
         return out
 
