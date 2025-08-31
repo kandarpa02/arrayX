@@ -1,17 +1,14 @@
 # Copyright (c) 2025 Kandarpa Sarkar
 # This file is part of the NeoNet project and is licensed under the MIT License.
 # See the LICENSE file in the root directory for more information.
+cimport cython
+# cython: language_level=3
 
 from libcpp.vector cimport vector
 from libcpp cimport bool
-
-cimport cython
+from neo._src.autograd.GRAPH_MANAGER cimport Node, Tape
 
 cdef class Node:
-    cdef public object output
-    cdef public tuple parents
-    cdef public object bwd_fn
-
     def __cinit__(self, object output, tuple parents, object bwd_fn):
         self.output = output
         self.parents = parents
@@ -19,12 +16,10 @@ cdef class Node:
 
 
 cdef class Tape:
-    cdef list nodes 
-
     def __cinit__(self):
         self.nodes = []
 
-    def add(self, Node node):
+    cpdef add(self, Node node):
         self.nodes.append(node)
 
     def __getitem__(self, int i):
@@ -33,12 +28,13 @@ cdef class Tape:
     def __len__(self):
         return len(self.nodes)
 
-    def clear(self):
+    cpdef clear(self):
         self.nodes.clear()
 
 
+# Keep this pure Python, not declared in .pxd
 class TapeContext:
-    current = None 
+    current = None
 
     @staticmethod
     def push(Tape tape):

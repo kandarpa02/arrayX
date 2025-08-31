@@ -16,7 +16,13 @@ ext_modules = cythonize([
         sources=["neo/_src/autograd/GRAPH_MANAGER.pyx"],
         language="c++",
     ),
+    Extension(
+        name="neo._src.autograd._backward_loop",
+        sources=["neo/_src/autograd/_backward_loop.pyx"],
+        language="c++",
+    ),
 ])
+
 
 # Setup configuration
 setup(

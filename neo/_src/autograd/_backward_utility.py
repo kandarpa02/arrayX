@@ -14,6 +14,7 @@ execution will raise immediately to avoid silent miscomputations.
 """
 
 from neo._src.autograd import Tape, TapeContext
+from neo._src.autograd._backward_loop import run_backward
 from typing import Callable, List, Any
 from neo._torch import neolib
 from neo._torch.lite_tensor import LiteTensor
@@ -96,52 +97,53 @@ def _compute(fn: Callable, safe=False, end_node:int=-1):
         TapeContext.pop()
 
         out_grad = torch.ones_like(out.data)
-        grad_dict = {id(out): out_grad}
+        grad_dict = run_backward(tape, out, out_grad, safe)
+        # grad_dict = {id(out): out_grad}
 
         any_cuda = out_grad.is_cuda  
 
-        for node in reversed(tape):
-            node_out_id = id(node.output)
-            node_out_grad = grad_dict.pop(node_out_id, None)
-            if node_out_grad is None:
-                continue
+        # for node in reversed(tape):
+        #     node_out_id = id(node.output)
+        #     node_out_grad = grad_dict.pop(node_out_id, None)
+        #     if node_out_grad is None:
+        #         continue
 
-            grads = node.bwd_fn(grad=node_out_grad)
+        #     grads = node.bwd_fn(grad=node_out_grad)
 
-            # Cleanup: free references from graph
-            node.output = None
-            node.bwd_fn = None
+        #     # Cleanup: free references from graph
+        #     node.output = None
+        #     node.bwd_fn = None
 
-            if grads is None:
-                node.parents = None
-                continue
+        #     if grads is None:
+        #         node.parents = None
+        #         continue
 
-            if not isinstance(grads, tuple):
-                grads = (grads,)
+        #     if not isinstance(grads, tuple):
+        #         grads = (grads,)
             
-            # Pad missing grads with None (e.g., unused inputs)
-            if len(grads) < len(node.parents):
-                grads = grads + (None,) * (len(node.parents) - len(grads))
+        #     # Pad missing grads with None (e.g., unused inputs)
+        #     if len(grads) < len(node.parents):
+        #         grads = grads + (None,) * (len(node.parents) - len(grads))
 
-            for parent, grad in zip(node.parents, grads):
-                if grad is None:
-                    continue
+        #     for parent, grad in zip(node.parents, grads):
+        #         if grad is None:
+        #             continue
 
-                if grad.is_cuda:
-                    any_cuda = True
+        #         if grad.is_cuda:
+        #             any_cuda = True
 
-                pid = id(parent)
-                # Accumulate gradients. `safe` controls whether to clone before modifying.
-                if pid in grad_dict:
-                    grad_dict[pid].add_(grad.clone() if safe else grad)
-                else:
-                    grad_dict[pid] = grad.clone() if safe else grad
+        #         pid = id(parent)
+        #         # Accumulate gradients. `safe` controls whether to clone before modifying.
+        #         if pid in grad_dict:
+        #             grad_dict[pid].add_(grad.clone() if safe else grad)
+        #         else:
+        #             grad_dict[pid] = grad.clone() if safe else grad
 
 
-                del grad  
+        #         del grad  
 
-            node.parents = None 
-            del node  
+        #     node.parents = None 
+        #     del node  
 
         input_grads = {}
         for arg in check_dict(args):
