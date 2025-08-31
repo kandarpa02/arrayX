@@ -3,9 +3,10 @@ from neo._src.nn.batchnorm_functional import batchnorm2d
 import neo
 
 class BatchNorm2D(Layer):
-    def __init__(self, num_features: int, eps: float = 1e-5, train=True, name: str = ""):
+    def __init__(self, num_features: int, momentum=0.0, eps: float = 1e-5, train=True, name: str = ""):
         super().__init__(name, is_leaf=True)
         self.num_features = num_features
+        self.momentum = momentum
         self.eps = eps
         self.train = train
 
@@ -29,6 +30,7 @@ class BatchNorm2D(Layer):
             x, 
             gamma, 
             beta, 
+            momentum=self.momentum
             eps=self.eps, 
             train=self.train
             )
