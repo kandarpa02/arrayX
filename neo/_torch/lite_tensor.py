@@ -110,6 +110,13 @@ class LiteTensor:
             data = fn(self.data, other.data),
         )
         return out
+    
+    def nary_op(self, args, fn:Callable):
+        out = LiteTensor(
+            data = fn(arg.data for arg in args)
+        )
+        return out
+
     def unary_op(self, fn:Callable):
         out = LiteTensor(
             data = fn(self.data)
