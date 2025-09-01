@@ -3,7 +3,7 @@ import neo
 from neo._src.autograd.FUNCTION_REGISTER import Tracelet
 from neo._torch.lite_tensor import LiteTensor
 
-def batchnorm2d_fused(
+def batchnorm2d(
     x: LiteTensor,
     gamma: LiteTensor,
     beta: LiteTensor,
