@@ -6,7 +6,7 @@
 # You break it → you die (maybe not literally but GPU tears guaranteed)
 # ================================================================
 
-from typing import Any
+from typing import Any, Callable
 from dataclasses import dataclass
 
 # CONTEXT: stupid simple ctx thingy, stores whatever you want.
@@ -80,3 +80,19 @@ class Tracelet:
         self.out = None
         self.parents = None
         self.backward = None
+
+def custom_grad(fn:Callable):
+    def wrapper(*args, **kwargs):
+        from neo._src.autograd import Node, TapeContext
+        from neo import record_tape as rt
+        out, parents, grad_fn = fn(*args, **kwargs)
+        if rt.is_enabled():
+            TapeContext.add_node(
+                Node(
+                    output = out,
+                    parents = parents, 
+                    bwd_fn = grad_fn
+                )
+            )
+        return out
+    return wrapper
