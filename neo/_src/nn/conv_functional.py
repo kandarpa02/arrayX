@@ -1,5 +1,5 @@
 from neo.functions import function
-from neo._src.autograd.FUNCTION_REGISTER import Tracelet
+from neo._src.autograd.FUNCTION_REGISTER import Tracelet, custom_grad
 
 from neo._torch.lite_tensor import LiteTensor
 from typing import Optional, Union, Tuple
@@ -11,10 +11,8 @@ from torch.nn.grad import (
     conv3d_input, conv3d_weight,
 )
 
-__all__ = ['conv1d', 'conv2d', 'conv3d']
-
-
-def conv1d(
+@custom_grad
+def _conv1d(
     input: LiteTensor,
     weight: LiteTensor,
     bias: Optional[LiteTensor] = None,
@@ -62,13 +60,12 @@ def conv1d(
             grad_input, grad_weight, grad_bias,
             None, None, None, None
         )
-    with Tracelet() as t:
-        t.register(out, (input, weight, bias), backward=conv1d_backward)
-    return out
+    return out, (input, weight, bias), conv1d_backward
 
 
 
-def conv2d(
+@custom_grad
+def _conv2d(
     input: LiteTensor,
     weight: LiteTensor,
     bias: Optional[LiteTensor] = None,
@@ -116,13 +113,12 @@ def conv2d(
             grad_input, grad_weight, grad_bias,
             None, None, None, None
         )
-    with Tracelet() as t:
-        t.register(out, (input, weight, bias), backward=conv2d_backward)
-    return out
+    return out, (input, weight, bias), conv2d_backward
 
 
 
-def conv3d(
+@custom_grad
+def _conv3d(
     input: LiteTensor,
     weight: LiteTensor,
     bias: Optional[LiteTensor] = None,
@@ -171,8 +167,66 @@ def conv3d(
             None, None, None, None
         )
     
-    with Tracelet() as t:
-        t.register(out, (input, weight, bias), backward=conv3d_backward)
-    return out
+    return out, (input, weight, bias), conv3d_backward
 
-    
+
+def conv1d(
+    input: LiteTensor,
+    weight: LiteTensor,
+    bias: Optional[LiteTensor] = None,
+    stride: Union[int, Tuple[int, int]] = 1,
+    padding: Union[int, Tuple[int, int]] = 0,
+    dilation: Union[int, Tuple[int, int]] = 1,
+    groups: int = 1
+    ):
+    return _conv1d(
+        input = input,
+        weight = weight,
+        bias  = bias,
+        stride = stride,
+        padding = padding,
+        dilation = dilation,
+        groups = groups
+    )
+
+def conv2d(
+    input: LiteTensor,
+    weight: LiteTensor,
+    bias: Optional[LiteTensor] = None,
+    stride: Union[int, Tuple[int, int]] = 1,
+    padding: Union[int, Tuple[int, int]] = 0,
+    dilation: Union[int, Tuple[int, int]] = 1,
+    groups: int = 1
+    ):
+    return _conv2d(
+        input = input,
+        weight = weight,
+        bias  = bias,
+        stride = stride,
+        padding = padding,
+        dilation = dilation,
+        groups = groups
+    )
+
+def conv3d(
+    input: LiteTensor,
+    weight: LiteTensor,
+    bias: Optional[LiteTensor] = None,
+    stride: Union[int, Tuple[int, int]] = 1,
+    padding: Union[int, Tuple[int, int]] = 0,
+    dilation: Union[int, Tuple[int, int]] = 1,
+    groups: int = 1
+    ):
+    return _conv3d(
+        input = input,
+        weight = weight,
+        bias  = bias,
+        stride = stride,
+        padding = padding,
+        dilation = dilation,
+        groups = groups
+    )
+
+
+
+__all__ = ['conv1d', 'conv2d', 'conv3d']

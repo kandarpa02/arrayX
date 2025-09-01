@@ -1,10 +1,12 @@
 from neo.functions import function
-from neo._src.autograd.FUNCTION_REGISTER import Tracelet
+from neo._src.autograd.FUNCTION_REGISTER import Tracelet, custom_grad
 from neo._src.nn._linear_fused_fn import *
 from neo._torch.lite_tensor import LiteTensor
 from typing import Any
 
 # plain linear
+
+@custom_grad
 def _linear(X, w, b):
     out_t, X_, w_ = linear_fwd(X.data, w.data, b.data)
 
@@ -12,11 +14,10 @@ def _linear(X, w, b):
         return linear_bwd(grad, X_, w_)
     
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_backward)
-    return out
+    return out, (X, w, b), linear_backward
 
 # linear + relu
+@custom_grad
 def _linear_relu(X, w, b):
     out_t, X_, w_ = linear_relu_fwd(X.data, w.data, b.data)
 
@@ -24,12 +25,11 @@ def _linear_relu(X, w, b):
         return linear_relu_bwd(grad, out_t, X_, w_)
 
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_relu_backward)
-    return out
+    return out, (X, w, b), linear_relu_backward
 
 
 # linear + tanh
+@custom_grad
 def _linear_tanh(X, w, b):
     out_t, X_, w_ = linear_tanh_fwd(X.data, w.data, b.data)
 
@@ -37,12 +37,11 @@ def _linear_tanh(X, w, b):
         return linear_tanh_bwd(grad, out_t, X_, w_)
 
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_tanh_backward)
-    return out
+    return out, (X, w, b), linear_tanh_backward
 
 
 # linear + sigmoid
+@custom_grad
 def _linear_sigmoid(X, w, b):
     out_t, out_act, X_, w_ = linear_sigmoid_fwd(X.data, w.data, b.data)
 
@@ -50,12 +49,11 @@ def _linear_sigmoid(X, w, b):
         return linear_sigmoid_bwd(grad, out_act, X_, w_)
 
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_sigmoid_backward)
-    return out
+    return out, (X, w, b), linear_sigmoid_backward
 
 
 # linear + softmax
+@custom_grad
 def _linear_softmax(X, w, b):
     out_t, out_act, X_, w_ = linear_softmax_fwd(X.data, w.data, b.data)
 
@@ -63,12 +61,11 @@ def _linear_softmax(X, w, b):
         return linear_softmax_bwd(grad, out_act, X_, w_)
 
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_softmax_backward)
-    return out
+    return out, (X, w, b), linear_softmax_backward
 
 
 # linear + leakyrelu
+@custom_grad
 def _linear_leakyrelu(X, w, b):
     out_t, out_act, X_, w_, slope = linear_leakyrelu_fwd(X.data, w.data, b.data)
 
@@ -76,12 +73,11 @@ def _linear_leakyrelu(X, w, b):
         return linear_leakyrelu_bwd(grad, out_act, X_, w_, slope)
 
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_leakyrelu_backward)
-    return out
+    return out, (X, w, b), linear_leakyrelu_backward
 
 
 # linear + relu6
+@custom_grad
 def _linear_relu6(X, w, b):
     out_t, out_act, X_, w_ = linear_relu6_fwd(X.data, w.data, b.data)
 
@@ -89,9 +85,7 @@ def _linear_relu6(X, w, b):
         return linear_relu6_bwd(grad, out_act, X_, w_)
 
     out = LiteTensor(out_t)
-    with Tracelet() as t:
-        t.register(out, (X, w, b), backward=linear_relu6_backward)
-    return out
+    return out, (X, w, b), linear_relu6_backward
 
 
 

@@ -1,5 +1,6 @@
 from neo.functions import function
-from neo._src.autograd.FUNCTION_REGISTER import Policy
+from neo._src.autograd.FUNCTION_REGISTER import Policy, custom_grad
+from neo._torch.lite_tensor import LiteTensor
 
 import torch
 import torch.nn.functional as F
@@ -10,219 +11,178 @@ __all__ = [
 ]
 
 
-class _max_pool1d(Policy):
-    def forward(self, input, *, kernel_size, stride=None,
-                padding=0, dilation=1, ceil_mode=False):
-        stride = stride or kernel_size
-        output, indices = F.max_pool1d(
-            input, kernel_size=kernel_size, stride=stride,
-            padding=padding, dilation=dilation,
-            ceil_mode=ceil_mode, return_indices=True
-        )
-        self.ctx.save(indices, input.shape, kernel_size, stride, padding)
-        return output
+# ---------- MAX POOLING ----------
 
-    def backward(self, grad):
-        indices, input_shape, kernel_size, stride, padding = self.ctx.release
-        return (
-            F.max_unpool1d(grad, indices, kernel_size, stride, padding, output_size=input_shape),
-            None, None, None, None, None
-        )
+@custom_grad
+def _max_pool1d(input, *, kernel_size, stride=None, padding, dilation, ceil_mode=False):
+    stride = stride or kernel_size
+    output, indices = F.max_pool1d(
+        input.data, kernel_size=kernel_size, stride=stride,
+        padding=padding, dilation=dilation,
+        ceil_mode=ceil_mode, return_indices=True
+    )
+    out = LiteTensor(output)
 
+    def backward(grad,
+                 indices=indices,
+                 out_shape=input.data.shape,
+                 kernel_size=kernel_size,
+                 stride=stride,
+                 padding=padding):
+        grad_in = F.max_unpool1d(grad, indices, kernel_size, stride, padding, output_size=out_shape)
+        return (grad_in,)
 
-class _max_pool2d(Policy):
-    def forward(self, input, *, kernel_size, stride=None,
-                padding=0, dilation=1, ceil_mode=False):
-        stride = stride or kernel_size
-        output, indices = F.max_pool2d(
-            input, kernel_size=kernel_size, stride=stride,
-            padding=padding, dilation=dilation,
-            ceil_mode=ceil_mode, return_indices=True
-        )
-        self.ctx.save(indices, input.shape, kernel_size, stride, padding)
-        return output
-
-    def backward(self, grad):
-        indices, input_shape, kernel_size, stride, padding = self.ctx.release
-        return (
-            F.max_unpool2d(grad, indices, kernel_size, stride, padding, output_size=input_shape),
-            None, None, None, None, None
-        )
+    return out, (input,), backward
 
 
+@custom_grad
+def _max_pool2d(input, *, kernel_size, stride=None, padding, dilation, ceil_mode=False):
+    stride = stride or kernel_size
+    output, indices = F.max_pool2d(
+        input.data, kernel_size=kernel_size, stride=stride,
+        padding=padding, dilation=dilation,
+        ceil_mode=ceil_mode, return_indices=True
+    )
+    out = LiteTensor(output)
 
-class _max_pool3d(Policy):
-    def forward(self, input, *, kernel_size, stride=None,
-                padding=0, dilation=1, ceil_mode=False):
-        stride = stride or kernel_size
-        output, indices = F.max_pool3d(
-            input, kernel_size=kernel_size, stride=stride,
-            padding=padding, dilation=dilation,
-            ceil_mode=ceil_mode, return_indices=True
-        )
-        self.ctx.save(indices, input.shape, kernel_size, stride, padding)
-        return output
+    def backward(grad,
+                 indices=indices,
+                 out_shape=input.data.shape,
+                 kernel_size=kernel_size,
+                 stride=stride,
+                 padding=padding):
+        grad_in = F.max_unpool2d(grad, indices, kernel_size, stride, padding, output_size=out_shape)
+        return (grad_in,)
 
-    def backward(self, grad):
-        indices, input_shape, kernel_size, stride, padding = self.ctx.release
-        return (
-            F.max_unpool3d(grad, indices, kernel_size, stride, padding, output_size=input_shape),
-            None, None, None, None, None
-        )
+    return out, (input,), backward
 
 
-class _avg_pool1d(Policy):
-    def forward(
-        self,
-        input,
-        *,
-        kernel_size,
-        stride=None,
-        padding=0,
-        ceil_mode=False,
-        count_include_pad=True
-    ):
-        stride = stride or kernel_size
-        self.ctx.save(
-            input.shape, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
-        )
-        return F.avg_pool1d(
-            input, kernel_size=kernel_size, stride=stride,
-            padding=padding, ceil_mode=ceil_mode,
-            count_include_pad=count_include_pad
-        )
+@custom_grad
+def _max_pool3d(input, *, kernel_size, stride=None, padding, dilation, ceil_mode=False):
+    stride = stride or kernel_size
+    output, indices = F.max_pool3d(
+        input.data, kernel_size=kernel_size, stride=stride,
+        padding=padding, dilation=dilation,
+        ceil_mode=ceil_mode, return_indices=True
+    )
+    out = LiteTensor(output)
 
-    def backward(self, grad):
-        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = self.ctx.release
-        batch_size, channels, input_length = input_shape
+    def backward(grad,
+                 indices=indices,
+                 out_shape=input.data.shape,
+                 kernel_size=kernel_size,
+                 stride=stride,
+                 padding=padding):
+        grad_in = F.max_unpool3d(grad, indices, kernel_size, stride, padding, output_size=out_shape)
+        return (grad_in,)
 
-        weight = torch.ones((channels, 1, kernel_size),
-                            dtype=grad.dtype, device=grad.device)
+    return out, (input,), backward
 
-        grad_input = F.conv_transpose1d(
-            grad, weight, stride=stride, padding=padding, groups=channels
-        )
 
+# ---------- AVG POOLING ----------
+
+@custom_grad
+def _avg_pool1d(input, *, kernel_size, stride=None, padding, ceil_mode=False, count_include_pad=True):
+    stride = stride or kernel_size
+    output = F.avg_pool1d(
+        input.data, kernel_size=kernel_size, stride=stride,
+        padding=padding, ceil_mode=ceil_mode,
+        count_include_pad=count_include_pad
+    )
+    out = LiteTensor(output)
+
+    def backward(grad,
+                 in_shape=input.data.shape,
+                 kernel_size=kernel_size,
+                 stride=stride,
+                 padding=padding,
+                 ceil_mode=ceil_mode,
+                 count_include_pad=count_include_pad):
+        B, C, L = in_shape
+        weight = torch.ones((C, 1, kernel_size), dtype=grad.dtype, device=grad.device)
+        grad_in = F.conv_transpose1d(grad, weight, stride=stride, padding=padding, groups=C)
         if count_include_pad:
-            norm = kernel_size
-            grad_input = grad_input / norm
+            grad_in = grad_in / kernel_size
         else:
-            input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
-            norm = F.avg_pool1d(
-                input_ones, kernel_size=kernel_size, stride=stride,
-                padding=padding, ceil_mode=ceil_mode,
-                count_include_pad=count_include_pad
-            )
-            norm = F.conv_transpose1d(
-                norm, weight, stride=stride, padding=padding, groups=channels
-            )
-            grad_input = grad_input / (norm + 1e-8)
+            ones = torch.ones(in_shape, dtype=grad.dtype, device=grad.device)
+            norm = F.avg_pool1d(ones, kernel_size=kernel_size, stride=stride,
+                                padding=padding, ceil_mode=ceil_mode,
+                                count_include_pad=count_include_pad)
+            norm = F.conv_transpose1d(norm, weight, stride=stride, padding=padding, groups=C)
+            grad_in = grad_in / (norm + 1e-8)
+        return (grad_in,)
 
-        return grad_input, None, None, None, None, None
+    return out, (input,), backward
 
 
-class _avg_pool2d(Policy):
-    def forward(
-        self,
-        input,
-        # *,
-        kernel_size,
-        stride=None,
-        padding=0,
-        ceil_mode=False,
-        count_include_pad=True
-    ):
-        stride = stride or kernel_size
-        self.ctx.save(
-            input.shape, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
-        )
-        return F.avg_pool2d(
-            input, kernel_size=kernel_size, stride=stride,
-            padding=padding, ceil_mode=ceil_mode,
-            count_include_pad=count_include_pad
-        )
+@custom_grad
+def _avg_pool2d(input, *, kernel_size, stride=None, padding, ceil_mode=False, count_include_pad=True):
+    stride = stride or kernel_size
+    output = F.avg_pool2d(
+        input.data, kernel_size=kernel_size, stride=stride,
+        padding=padding, ceil_mode=ceil_mode,
+        count_include_pad=count_include_pad
+    )
+    out = LiteTensor(output)
 
-    def backward(self, grad):
-        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = self.ctx.release
-        batch_size, channels, height, width = input_shape
-
+    def backward(grad,
+                 in_shape=input.data.shape,
+                 kernel_size=kernel_size,
+                 stride=stride,
+                 padding=padding,
+                 ceil_mode=ceil_mode,
+                 count_include_pad=count_include_pad):
+        B, C, H, W = in_shape
         kH, kW = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
-        weight = torch.ones((channels, 1, kH, kW),
-                            dtype=grad.dtype, device=grad.device)
-
-        grad_input = F.conv_transpose2d(
-            grad, weight, stride=stride, padding=padding, groups=channels
-        )
-
+        weight = torch.ones((C, 1, kH, kW), dtype=grad.dtype, device=grad.device)
+        grad_in = F.conv_transpose2d(grad, weight, stride=stride, padding=padding, groups=C)
         if count_include_pad:
-            grad_input = grad_input / (kH * kW)
+            grad_in = grad_in / (kH * kW)
         else:
-            input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
-            norm = F.avg_pool2d(
-                input_ones, kernel_size=kernel_size, stride=stride,
-                padding=padding, ceil_mode=ceil_mode,
-                count_include_pad=count_include_pad
-            )
-            norm = F.conv_transpose2d(
-                norm, weight, stride=stride, padding=padding, groups=channels
-            )
-            grad_input = grad_input / (norm + 1e-8)
+            ones = torch.ones(in_shape, dtype=grad.dtype, device=grad.device)
+            norm = F.avg_pool2d(ones, kernel_size=kernel_size, stride=stride,
+                                padding=padding, ceil_mode=ceil_mode,
+                                count_include_pad=count_include_pad)
+            norm = F.conv_transpose2d(norm, weight, stride=stride, padding=padding, groups=C)
+            grad_in = grad_in / (norm + 1e-8)
+        return (grad_in,)
 
-        return grad_input, None, None, None, None, None
+    return out, (input,), backward
 
 
-class _avg_pool3d(Policy):
-    def forward(
-        self,
-        input,
-        *,
-        kernel_size,
-        stride=None,
-        padding=0,
-        ceil_mode=False,
-        count_include_pad=True
-    ):
-        stride = stride or kernel_size
-        self.ctx.save(
-            input.shape, kernel_size, stride,
-            padding, ceil_mode, count_include_pad
-        )
-        return F.avg_pool3d(
-            input, kernel_size=kernel_size, stride=stride,
-            padding=padding, ceil_mode=ceil_mode,
-            count_include_pad=count_include_pad
-        )
+@custom_grad
+def _avg_pool3d(input, *, kernel_size, stride=None, padding, ceil_mode=False, count_include_pad=True):
+    stride = stride or kernel_size
+    output = F.avg_pool3d(
+        input.data, kernel_size=kernel_size, stride=stride,
+        padding=padding, ceil_mode=ceil_mode,
+        count_include_pad=count_include_pad
+    )
+    out = LiteTensor(output)
 
-    def backward(self, grad):
-        input_shape, kernel_size, stride, padding, ceil_mode, count_include_pad = self.ctx.release
-        batch_size, channels, D, H, W = input_shape
-
+    def backward(grad,
+                 in_shape=input.data.shape,
+                 kernel_size=kernel_size,
+                 stride=stride,
+                 padding=padding,
+                 ceil_mode=ceil_mode,
+                 count_include_pad=count_include_pad):
+        B, C, D, H, W = in_shape
         kD, kH, kW = kernel_size if isinstance(kernel_size, tuple) else (kernel_size,) * 3
-        weight = torch.ones((channels, 1, kD, kH, kW),
-                            dtype=grad.dtype, device=grad.device)
-
-        grad_input = F.conv_transpose3d(
-            grad, weight, stride=stride, padding=padding, groups=channels
-        )
-
+        weight = torch.ones((C, 1, kD, kH, kW), dtype=grad.dtype, device=grad.device)
+        grad_in = F.conv_transpose3d(grad, weight, stride=stride, padding=padding, groups=C)
         if count_include_pad:
-            grad_input = grad_input / (kD * kH * kW)
+            grad_in = grad_in / (kD * kH * kW)
         else:
-            input_ones = torch.ones(input_shape, dtype=grad.dtype, device=grad.device)
-            norm = F.avg_pool3d(
-                input_ones, kernel_size=kernel_size, stride=stride,
-                padding=padding, ceil_mode=ceil_mode,
-                count_include_pad=count_include_pad
-            )
-            norm = F.conv_transpose3d(
-                norm, weight, stride=stride, padding=padding, groups=channels
-            )
-            grad_input = grad_input / (norm + 1e-8)
+            ones = torch.ones(in_shape, dtype=grad.dtype, device=grad.device)
+            norm = F.avg_pool3d(ones, kernel_size=kernel_size, stride=stride,
+                                padding=padding, ceil_mode=ceil_mode,
+                                count_include_pad=count_include_pad)
+            norm = F.conv_transpose3d(norm, weight, stride=stride, padding=padding, groups=C)
+            grad_in = grad_in / (norm + 1e-8)
+        return (grad_in,)
 
-        return grad_input, None, None, None, None, None
-
+    return out, (input,), backward
 
 
 def max_pool1d(
@@ -239,7 +199,7 @@ def max_pool1d(
     padding = (padding,) if isinstance(padding, int) else padding
     dilation = (dilation,) if isinstance(dilation, int) else dilation
 
-    return function(_max_pool1d)(
+    return _max_pool1d(
         input,
         kernel_size=kernel_size,
         stride=stride or kernel_size,
@@ -263,7 +223,7 @@ def max_pool2d(
     padding = (padding, padding) if isinstance(padding, int) else padding
     dilation = (dilation, dilation) if isinstance(dilation, int) else dilation
 
-    return function(_max_pool2d)(
+    return _max_pool2d(
         input,
         kernel_size=kernel_size,
         stride=stride or kernel_size,
@@ -287,7 +247,7 @@ def max_pool3d(
     padding = (padding,) * 3 if isinstance(padding, int) else padding
     dilation = (dilation,) * 3 if isinstance(dilation, int) else dilation
 
-    return function(_max_pool3d)(
+    return _max_pool3d(
         input,
         kernel_size=kernel_size,
         stride=stride or kernel_size,
@@ -310,7 +270,7 @@ def avg_pool1d(
     stride = (stride,) if isinstance(stride, int) else stride
     padding = (padding,) if isinstance(padding, int) else padding
 
-    return function(_avg_pool1d)(
+    return _avg_pool1d(
         input,
         kernel_size=kernel_size,
         stride=stride or kernel_size,
@@ -333,7 +293,7 @@ def avg_pool2d(
     stride = (stride, stride) if isinstance(stride, int) else stride
     padding = (padding, padding) if isinstance(padding, int) else padding
 
-    return function(_avg_pool2d)(
+    return _avg_pool2d(
         input,
         kernel_size=kernel_size,
         stride=stride or kernel_size,
@@ -356,7 +316,7 @@ def avg_pool3d(
     stride = (stride,) * 3 if isinstance(stride, int) else stride
     padding = (padding,) * 3 if isinstance(padding, int) else padding
 
-    return function(_avg_pool3d)(
+    return _avg_pool3d(
         input,
         kernel_size=kernel_size,
         stride=stride or kernel_size,
