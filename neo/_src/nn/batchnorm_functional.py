@@ -49,12 +49,27 @@ def batchnorm2d(
 
     # backward
     def bn2d_backward(grad, x=x, gamma=gamma, beta=beta, x_norm=x_norm, var=var, eps=eps):
-        N = x.data.shape[0] * x.data.shape[2] * x.data.shape[3]
+        # grad: raw torch.Tensor (N,C,H,W)
+        # x, gamma, beta are LiteTensor closure objects; use .data when needed.
+        xd = x.data
+        gd = gamma.data
+        bd = beta.data
 
-        gamma_b = gamma.data.view(1, -1, 1, 1)
+        N = xd.shape[0] * xd.shape[2] * xd.shape[3]
 
+        # make sure broadcasting views live on same device/dtype
+        gamma_b = gd.view(1, -1, 1, 1)
+
+        # ensure grad is on same device/dtype as x
+        if grad.device != xd.device:
+            grad = grad.to(xd.device)
+        if grad.dtype != xd.dtype:
+            grad = grad.to(xd.dtype)
+
+        # compute
         dx_norm = grad * gamma_b
-        dx = (1. / N) * (1. / (var + eps).sqrt()) * (
+        inv = 1.0 / (var + eps).sqrt()          # var is kept as (1,C,1,1)
+        dx = (1.0 / N) * inv * (
             N * dx_norm
             - dx_norm.sum(dim=(0,2,3), keepdim=True)
             - x_norm * (dx_norm * x_norm).sum(dim=(0,2,3), keepdim=True)
@@ -63,11 +78,17 @@ def batchnorm2d(
         dgamma = (grad * x_norm).sum(dim=(0,2,3))
         dbeta  = grad.sum(dim=(0,2,3))
 
-        return (
-            dx,
-            dgamma,
-            dbeta
-        )
+        # ensure contiguous + correct dtype/device
+        dx = dx.contiguous()
+        dgamma = dgamma.contiguous()
+        dbeta = dbeta.contiguous()
+
+        # Make sure shapes match params exactly
+        dgamma = dgamma.view(gd.shape)
+        dbeta = dbeta.view(bd.shape)
+
+        return dx, dgamma, dbeta
+
 
     with Tracelet() as t:
         t.register(out, (x, gamma, beta), bn2d_backward)
