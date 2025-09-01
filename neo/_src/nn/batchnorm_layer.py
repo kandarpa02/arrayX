@@ -3,13 +3,14 @@ from neo._src.nn.batchnorm_functional import batchnorm2d
 import neo
 from typing import Optional, Dict, Tuple
 
+
 class BatchNorm2D(Layer):
     def __init__(self, num_features: int, momentum=0.1, eps: float = 1e-5, name: str = ""):
         super().__init__(name, is_leaf=True)
         self.num_features = num_features
         self.momentum = momentum
         self.eps = eps
-    
+
     def forward(
         self,
         x: neo.LiteTensor,
@@ -58,9 +59,14 @@ class BatchNorm2D(Layer):
             train=train
         )
 
+        if not isinstance(updated_mean, neo.LiteTensor):
+            updated_mean = neo.Tensor(updated_mean, dtype=x.dtype)
+        if not isinstance(updated_var, neo.LiteTensor):
+            updated_var = neo.Tensor(updated_var, dtype=x.dtype)
+
         new_state = {
             f"{self.name}/mean": updated_mean,
             f"{self.name}/var": updated_var
         }
-        return out, new_state
 
+        return out, new_state
