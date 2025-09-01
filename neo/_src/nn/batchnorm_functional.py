@@ -54,24 +54,21 @@ def batchnorm2d(
         xd = x.data
         gd = gamma.data
 
-        # Ensure grad is same device/dtype as x
+        # Ensure grad matches device/dtype
         grad = grad.to(device=xd.device, dtype=xd.dtype)
 
-        # N = number of elements per channel
+        # N = number of elements per channel (batch * H * W)
         N = xd.shape[0] * xd.shape[2] * xd.shape[3]
 
         # dbeta / dgamma
         dbeta = grad.sum(dim=(0, 2, 3))                 # shape (C,)
         dgamma = (grad * x_norm).sum(dim=(0, 2, 3))    # shape (C,)
 
-        # input gradient using the compact correct formula
-        # keepdim=True for the reductions so broadcasting works cleanly
-        sum_grad = grad.sum(dim=(0, 2, 3), keepdim=True)                    # shape (1, C, 1, 1)
-        sum_grad_xnorm = (grad * x_norm).sum(dim=(0, 2, 3), keepdim=True)   # shape (1, C, 1, 1)
+        # compact input gradient
+        sum_grad = grad.sum(dim=(0, 2, 3), keepdim=True)                  # (1,C,1,1)
+        sum_grad_xnorm = (grad * x_norm).sum(dim=(0, 2, 3), keepdim=True) # (1,C,1,1)
 
-        # gd view for broadcasting
-        g_view = gd.view(1, -1, 1, 1)
-
+        g_view = gd.view(1, -1, 1, 1)  # broadcast shape
         dx = (1.0 / N) * g_view * inv_std * (
             N * grad
             - sum_grad
