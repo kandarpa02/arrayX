@@ -70,16 +70,20 @@ def batchnorm2d(
 
     # Backward (fused formula)
     def bn2d_backward(grad, x=x.data, gamma_b=gamma_b, x_norm=x_norm, var=var, eps=eps):
-        N = x.shape[0] * x.shape[2] * x.shape[3]
+        N = x.shape[0]*x.shape[2]*x.shape[3]  # total elements per channel
         dx_norm = grad * gamma_b
-        dx = (1.0 / (var + eps).sqrt()) * (
-            dx_norm
-            - dx_norm.mean(dim=(0, 2, 3), keepdim=True)
-            - x_norm * (dx_norm * x_norm).mean(dim=(0, 2, 3), keepdim=True)
+
+        # Corrected fused formula
+        dx = (1. / N) * (1. / (var + eps).sqrt()) * (
+            N * dx_norm
+            - dx_norm.sum(dim=(0,2,3), keepdim=True)
+            - x_norm * (dx_norm * x_norm).sum(dim=(0,2,3), keepdim=True)
         )
-        dgamma = (grad * x_norm).sum(dim=(0, 2, 3))
-        dbeta  = grad.sum(dim=(0, 2, 3))
+
+        dgamma = (grad * x_norm).sum(dim=(0,2,3))
+        dbeta  = grad.sum(dim=(0,2,3))
         return dx, dgamma, dbeta
+
 
     with Tracelet() as t:
         t.register(out, (x, gamma, beta), bn2d_backward)
