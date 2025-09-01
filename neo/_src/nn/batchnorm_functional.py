@@ -64,9 +64,9 @@ def batchnorm2d(
         dbeta  = grad.sum(dim=(0,2,3))
 
         return (
-            LiteTensor(dx, d_type=x.dtype),
-            LiteTensor(dgamma, d_type=gamma.dtype),
-            LiteTensor(dbeta, d_type=beta.dtype),
+            dx,
+            dgamma,
+            dbeta
         )
 
     with Tracelet() as t:
