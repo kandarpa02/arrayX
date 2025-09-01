@@ -37,4 +37,28 @@ def xavier_normal(shape, dtype, gain=1.0, key=None):
 
 
 def zero_init(shape, dtype, key=None):
+    """
+    zero initialization for Neo LiteTensors.
+
+    Args:
+        shape (tuple): (fan_in, fan_out)
+        dtype: Neo dtype
+
+    Returns:
+        LiteTensor with zero initialization
+    """
     return neo.zeros(shape, dtype=dtype)
+
+
+def one_init(shape, dtype, key=None):
+    """
+    one initialization for Neo LiteTensors.
+
+    Args:
+        shape (tuple): (fan_in, fan_out)
+        dtype: Neo dtype
+
+    Returns:
+        LiteTensor with one initialization
+    """
+    return neo.ones(shape, dtype=dtype)
