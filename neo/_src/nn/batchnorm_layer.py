@@ -1,7 +1,6 @@
 from neo._src.nn.layers.base_module import Layer
 from neo._src.nn.batchnorm_functional import batchnorm2d
-import neo
-from typing import Optional, Dict, Tuple
+from neo import LiteTensor, zeros, ones
 
 
 class BatchNorm2D(Layer):
@@ -11,47 +10,23 @@ class BatchNorm2D(Layer):
         self.momentum = momentum
         self.eps = eps
 
-    def forward(
-        self,
-        x: neo.LiteTensor,
-        rng,
-        state: Optional[Dict[str, neo.LiteTensor]] = None,
-        train: bool = True
-    ) -> Tuple[neo.LiteTensor, Dict[str, neo.LiteTensor]]:
-        """
-        Flax/Haiku-style BatchNorm forward.
+    def forward(self, x: LiteTensor, rng, state=None, train: bool = True):
+        gamma = self.param(f"{self.name}/gamma", (self.num_features,), x.dtype, ones, None)
+        beta = self.param(f"{self.name}/beta", (self.num_features,), x.dtype, zeros, None)
 
-        Args:
-            x: input LiteTensor
-            rng: random key (not used here, but part of Layer API)
-            state: optional dict containing running stats
-                e.g., {"layer_name/mean": LiteTensor, "layer_name/var": LiteTensor}
-            train: True for training, False for inference
-
-        Returns:
-            out: normalized tensor
-            new_state: updated running stats dict for this layer
-        """
-
-        gamma = self.param(f"{self.name}/gamma", (self.num_features,), x.dtype, neo.ones, None)
-        beta  = self.param(f"{self.name}/beta",  (self.num_features,), x.dtype, neo.zeros, None)
-
-        # Initialize running stats if not provided
         if state is None:
             state = {}
+
         running_mean = state.get(f"{self.name}/mean")
-        running_var  = state.get(f"{self.name}/var")
+        running_var = state.get(f"{self.name}/var")
 
         if running_mean is None:
-            running_mean = neo.zeros((self.num_features,), dtype=x.dtype)
+            running_mean = zeros((self.num_features,), dtype=x.dtype)
         if running_var is None:
-            running_var = neo.ones((self.num_features,), dtype=x.dtype)
+            running_var = ones((self.num_features,), dtype=x.dtype)
 
-        # Call functional batchnorm
         out, updated_mean, updated_var = batchnorm2d(
-            x,
-            gamma,
-            beta,
+            x, gamma, beta,
             running_mean=running_mean,
             running_var=running_var,
             momentum=self.momentum,
@@ -59,14 +34,8 @@ class BatchNorm2D(Layer):
             train=train
         )
 
-        if not isinstance(updated_mean, neo.LiteTensor):
-            updated_mean = neo.Tensor(updated_mean, dtype=x.dtype)
-        if not isinstance(updated_var, neo.LiteTensor):
-            updated_var = neo.Tensor(updated_var, dtype=x.dtype)
-
         new_state = {
             f"{self.name}/mean": updated_mean,
-            f"{self.name}/var": updated_var
+            f"{self.name}/var": updated_var,
         }
-
         return out, new_state

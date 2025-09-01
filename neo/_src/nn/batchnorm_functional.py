@@ -1,80 +1,52 @@
 from typing import Optional, Tuple
 import neo
-from neo._src.autograd.FUNCTION_REGISTER import Tracelet
+from neo._src.autograd.FUNCTION_REGISTER import Tracelet, custom_grad
 from neo._torch.lite_tensor import LiteTensor
+import torch.nn.functional as F
+import torch
 
-def batchnorm2d(
-    x: LiteTensor,
-    gamma: LiteTensor,
-    beta: LiteTensor,
-    running_mean: Optional[LiteTensor] = None,
-    running_var: Optional[LiteTensor] = None,
-    momentum: float = 0.1,
-    eps: float = 1e-5,
-    train: bool = True
-) -> Tuple[LiteTensor, Optional[LiteTensor], Optional[LiteTensor]]:
+@custom_grad
+def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
+                running_mean: LiteTensor, running_var: LiteTensor,
+                momentum: float = 0.1, eps: float = 1e-5, train: bool = True):
 
-    C = x.data.shape[1]
+    # Forward: use native_batch_norm (updates running_mean / running_var in-place)
+    out, save_mean, save_invstd = torch.ops.aten.native_batch_norm(
+        x.data, gamma.data, beta.data,
+        running_mean.data, running_var.data,
+        training=train, momentum=momentum, eps=eps
+    )
 
-    # init running stats if None
-    if running_mean is None:
-        running_mean = neo.zeros((C,), dtype=x.dtype)
-    if running_var is None:
-        running_var = neo.ones((C,), dtype=x.dtype)
-
-    # forward stats
-    if train:
-        mean = x.data.mean(dim=(0, 2, 3), keepdim=True)
-        var  = x.data.var(dim=(0, 2, 3), unbiased=False, keepdim=True)
-        updated_running_mean = LiteTensor(
-            (1 - momentum) * running_mean.data + momentum * mean.squeeze(), 
-            d_type=x.dtype
+    # Backward closure
+    def backward(grad_out, x=x, gamma=gamma, beta=beta,
+                 save_mean=save_mean, save_invstd=save_invstd):
+        grad_input, grad_gamma, grad_beta = torch.ops.aten.native_batch_norm_backward(
+            grad_out, x.data, save_mean, save_invstd,
+            gamma.data, training=train, eps=eps,
+            output_mask=(True, True, True)
         )
-        updated_running_var = LiteTensor(
-            (1 - momentum) * running_var.data + momentum * var.squeeze(), 
-            d_type=x.dtype
-        )
-    else:
-        mean = running_mean.data.view(1, -1, 1, 1)
-        var  = running_var.data.view(1, -1, 1, 1)
-        updated_running_mean = running_mean
-        updated_running_var = running_var
+        # only grads for x, gamma, beta
+        return grad_input, grad_gamma, grad_beta
 
-    # forward compute
-    inv_std = 1.0 / (var + eps).sqrt()
-    out_data = gamma.data.view(1, -1, 1, 1) * (x.data - mean) * inv_std + beta.data.view(1, -1, 1, 1)
-    out = LiteTensor(out_data, d_type=x.dtype)
+    # Wrap forward outputs as LiteTensors
+    return (
+        LiteTensor(out),
+        running_mean,
+        running_var,
+    ), (x, gamma, beta), backward
 
-    # backward closure with matching args
-    def bn2d_backward(grad, x=x, gamma=gamma, beta=beta):
-        xd = x.data
-        gd = gamma.data
-        grad = grad.to(device=xd.device, dtype=xd.dtype)
-
-        N = xd.shape[0] * xd.shape[2] * xd.shape[3]
-
-        # recompute mean/var/inv_std/x_norm
-        mean = xd.mean(dim=(0, 2, 3), keepdim=True)
-        var  = xd.var(dim=(0, 2, 3), unbiased=False, keepdim=True)
-        inv_std = 1.0 / (var + eps).sqrt()
-        x_norm = (xd - mean) * inv_std
-
-        # param grads
-        dbeta  = grad.sum(dim=(0, 2, 3))
-        dgamma = (grad * x_norm).sum(dim=(0, 2, 3))
-
-        # input grad
-        sum_grad = grad.sum(dim=(0, 2, 3), keepdim=True)
-        sum_grad_xnorm = (grad * x_norm).sum(dim=(0, 2, 3), keepdim=True)
-        g_view = gd.view(1, -1, 1, 1)
-        dx = (1.0 / N) * g_view * inv_std * (
-            N * grad - sum_grad - x_norm * sum_grad_xnorm
-        )
-
-        return dx, dgamma, dbeta
-
-    # register: now inputs line up with backward
-    with Tracelet() as t:
-        t.register(out, (x, gamma, beta), bn2d_backward)
-
-    return out, updated_running_mean, updated_running_var
+    
+def batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
+                running_mean: LiteTensor, running_var: LiteTensor,
+                momentum: float = 0.1, eps: float = 1e-5, train: bool = True):
+    
+    return _batchnorm2d(
+        x, 
+        gamma, 
+        beta,
+        running_mean, 
+        running_var,
+        momentum, 
+        eps, 
+        train)
+    
