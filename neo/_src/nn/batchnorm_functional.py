@@ -53,22 +53,32 @@ def batchnorm2d(
     def bn2d_backward(grad, x=x, gamma=gamma, mean=mean, inv_std=inv_std, x_norm=x_norm):
         xd = x.data
         gd = gamma.data
-        
-        # Ensure grad is on same device/dtype as x
-        grad = grad.to(device=xd.device, dtype=xd.dtype)
-        
-        N = xd.shape[0] * xd.shape[2] * xd.shape[3]
-        
-        # Compute gradients
-        dbeta = grad.sum(dim=(0, 2, 3))
-        dgamma = (grad * x_norm).sum(dim=(0, 2, 3))
-        
-        # Gradient for input
-        dx_norm = grad * gd.view(1, -1, 1, 1)
-        dv = (dx_norm * x_norm).sum(dim=(0, 2, 3), keepdim=True) * (-0.5) * inv_std**3
-        dm = dx_norm.sum(dim=(0, 2, 3), keepdim=True) * (-inv_std) + dv * (xd - mean).sum(dim=(0, 2, 3), keepdim=True) * (-2 / N)
-        dx = dx_norm * inv_std + dv * 2 * (xd - mean) / N + dm / N
 
+        # Ensure grad is same device/dtype as x
+        grad = grad.to(device=xd.device, dtype=xd.dtype)
+
+        # N = number of elements per channel
+        N = xd.shape[0] * xd.shape[2] * xd.shape[3]
+
+        # dbeta / dgamma
+        dbeta = grad.sum(dim=(0, 2, 3))                 # shape (C,)
+        dgamma = (grad * x_norm).sum(dim=(0, 2, 3))    # shape (C,)
+
+        # input gradient using the compact correct formula
+        # keepdim=True for the reductions so broadcasting works cleanly
+        sum_grad = grad.sum(dim=(0, 2, 3), keepdim=True)                    # shape (1, C, 1, 1)
+        sum_grad_xnorm = (grad * x_norm).sum(dim=(0, 2, 3), keepdim=True)   # shape (1, C, 1, 1)
+
+        # gd view for broadcasting
+        g_view = gd.view(1, -1, 1, 1)
+
+        dx = (1.0 / N) * g_view * inv_std * (
+            N * grad
+            - sum_grad
+            - x_norm * sum_grad_xnorm
+        )
+
+        # return shapes: dx (N,C,H,W), dgamma (C,), dbeta (C,)
         return dx, dgamma, dbeta
 
     with Tracelet() as t:
