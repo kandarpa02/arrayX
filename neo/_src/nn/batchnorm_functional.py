@@ -14,66 +14,46 @@ def batchnorm2d(
     train: bool = True
 ) -> Tuple[LiteTensor, Optional[LiteTensor], Optional[LiteTensor]]:
     """
-    Flax/Haiku-style 2D BatchNorm.
-
-    Args:
-        x: input LiteTensor of shape (N, C, H, W)
-        gamma: scale parameter (C,)
-        beta: shift parameter (C,)
-        running_mean: running mean (C,), updated only in train mode
-        running_var: running var (C,), updated only in train mode
-        momentum: for running stats
-        eps: numerical stability
-        train: True for training, False for inference
-
-    Returns:
-        out: normalized tensor
-        updated_running_mean: updated running mean (C,) or same as input if train=False
-        updated_running_var: updated running var (C,) or same as input if train=False
+    Neo BatchNorm2d (Flax/Haiku style).
     """
 
-    # Pre-broadcast gamma/beta for channel-wise scaling
-    gamma_b = gamma.data.view(1, -1, 1, 1)
-    beta_b = beta.data.view(1, -1, 1, 1)
+    C = x.data.shape[1]
 
-    # Initialize running stats if missing
     if running_mean is None:
-        running_mean = neo.zeros((x.data.shape[1],), dtype=x.dtype)
+        running_mean = neo.zeros((C,), dtype=x.dtype)
     if running_var is None:
-        running_var = neo.ones((x.data.shape[1],), dtype=x.dtype)
+        running_var = neo.ones((C,), dtype=x.dtype)
 
     if train:
-        # Compute batch stats
-        mean = x.data.mean(dim=(0, 2, 3), keepdim=True)   # shape (1, C, 1, 1)
-        var  = x.data.var(dim=(0, 2, 3), unbiased=False, keepdim=True)
+        mean = x.data.mean(dim=(0,2,3), keepdim=True)   # (1,C,1,1)
+        var  = x.data.var(dim=(0,2,3), unbiased=False, keepdim=True)
 
-        # Update running stats (keep 1D shape)
-        updated_running_mean = neo.Tensor(
+        updated_running_mean = LiteTensor(
             (1 - momentum) * running_mean.data + momentum * mean.view(-1),
-            dtype=x.dtype
+            d_type=x.dtype
         )
-        updated_running_var = neo.Tensor(
+        updated_running_var = LiteTensor(
             (1 - momentum) * running_var.data + momentum * var.view(-1),
-            dtype=x.dtype
+            d_type=x.dtype
         )
     else:
-        # Use running stats for inference, expand for broadcasting
         mean = running_mean.data.view(1, -1, 1, 1)
         var  = running_var.data.view(1, -1, 1, 1)
         updated_running_mean = running_mean
         updated_running_var = running_var
 
-    # Normalize
+    # normalize
     x_norm = (x.data - mean) / (var + eps).sqrt()
-    out_data = gamma_b * x_norm + beta_b
+    out_data = gamma.data.view(1, -1, 1, 1) * x_norm + beta.data.view(1, -1, 1, 1)
     out = LiteTensor(out_data, d_type=x.dtype)
 
-    # Backward (fused formula)
-    def bn2d_backward(grad, x=x.data, gamma_b=gamma_b, x_norm=x_norm, var=var, eps=eps):
-        N = x.shape[0]*x.shape[2]*x.shape[3]  # total elements per channel
-        dx_norm = grad * gamma_b
+    # backward
+    def bn2d_backward(grad, x=x, gamma=gamma, beta=beta, x_norm=x_norm, var=var, eps=eps):
+        N = x.data.shape[0] * x.data.shape[2] * x.data.shape[3]
 
-        # Corrected fused formula
+        gamma_b = gamma.data.view(1, -1, 1, 1)
+
+        dx_norm = grad * gamma_b
         dx = (1. / N) * (1. / (var + eps).sqrt()) * (
             N * dx_norm
             - dx_norm.sum(dim=(0,2,3), keepdim=True)
@@ -82,8 +62,12 @@ def batchnorm2d(
 
         dgamma = (grad * x_norm).sum(dim=(0,2,3))
         dbeta  = grad.sum(dim=(0,2,3))
-        return dx, dgamma, dbeta
 
+        return (
+            LiteTensor(dx, d_type=x.dtype),
+            LiteTensor(dgamma, d_type=gamma.dtype),
+            LiteTensor(dbeta, d_type=beta.dtype),
+        )
 
     with Tracelet() as t:
         t.register(out, (x, gamma, beta), bn2d_backward)
