@@ -47,24 +47,24 @@ class Module:
             _ = self(x, rng)
         return params
 
-    def apply(self, params: ParamType, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def apply(self, params: ParamType, x: LiteTensor, rng: RNGKey, *args, **kwargs) -> LiteTensor:
         with self.param_context(params):
-            return self(x, rng)
+            return self(x, rng, *args, **kwargs)
+        
 
 class Layer(Module):
     def __init__(self, name: str = "", is_leaf: bool = False):
         super().__init__(name)
         self.is_leaf = is_leaf
 
-    def _forward(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
-        if not self.is_leaf: 
+    def _forward(self, *args, **kwargs):
+        if not self.is_leaf:
             Module._name_stack.append(self.name)
         try:
-            return self.forward(x, rng)
+            return self.forward(*args, **kwargs)
         finally:
             if not self.is_leaf:
                 Module._name_stack.pop()
 
-    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
-        return self._forward(x, rng)
-
+    def __call__(self, *args, **kwargs):
+        return self._forward(*args, **kwargs)

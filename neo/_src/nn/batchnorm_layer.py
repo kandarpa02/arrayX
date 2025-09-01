@@ -9,7 +9,7 @@ class BatchNorm2D(Layer):
         self.num_features = num_features
         self.momentum = momentum
         self.eps = eps
-
+    
     def forward(
         self,
         x: neo.LiteTensor,
@@ -31,27 +31,22 @@ class BatchNorm2D(Layer):
             out: normalized tensor
             new_state: updated running stats dict for this layer
         """
-        # Trainable parameters
-        gamma = self.param(
-            f"{self.name}/gamma",
-            (self.num_features,),
-            x.dtype,
-            neo.ones,
-            None,
-        )
-        beta = self.param(
-            f"{self.name}/beta",
-            (self.num_features,),
-            x.dtype,
-            neo.zeros,
-            None,
-        )
 
-        # Layer-specific state lookup
-        running_mean = state[f"{self.name}/mean"] if state and f"{self.name}/mean" in state else None
-        running_var  = state[f"{self.name}/var"]  if state and f"{self.name}/var" in state else None
+        gamma = self.param(f"{self.name}/gamma", (self.num_features,), x.dtype, neo.ones, None)
+        beta  = self.param(f"{self.name}/beta",  (self.num_features,), x.dtype, neo.zeros, None)
 
-        # Functional batchnorm call
+        # Initialize running stats if not provided
+        if state is None:
+            state = {}
+        running_mean = state.get(f"{self.name}/mean")
+        running_var  = state.get(f"{self.name}/var")
+
+        if running_mean is None:
+            running_mean = neo.zeros((self.num_features,), dtype=x.dtype)
+        if running_var is None:
+            running_var = neo.ones((self.num_features,), dtype=x.dtype)
+
+        # Call functional batchnorm
         out, updated_mean, updated_var = batchnorm2d(
             x,
             gamma,
@@ -63,10 +58,9 @@ class BatchNorm2D(Layer):
             train=train
         )
 
-        # Return updated state keyed by layer name
         new_state = {
             f"{self.name}/mean": updated_mean,
             f"{self.name}/var": updated_var
         }
-
         return out, new_state
+
