@@ -18,10 +18,10 @@ def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
     )
 
     # Backward closure
-    def backward(grad_out, x=x, gamma=gamma, beta=beta,
+    def backward(grad, x=x, gamma=gamma, beta=beta,
                  save_mean=save_mean, save_invstd=save_invstd):
         grad_input, grad_gamma, grad_beta = torch.ops.aten.native_batch_norm_backward(
-            grad_out, x.data, save_mean, save_invstd,
+            grad, x.data, save_mean, save_invstd,
             gamma.data, training=train, eps=eps,
             output_mask=(True, True, True)
         )
