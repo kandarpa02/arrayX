@@ -5,7 +5,6 @@ from neo._torch.lite_tensor import LiteTensor
 import torch.nn.functional as F
 import torch
 
-@custom_grad
 def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
                 running_mean: LiteTensor, running_var: LiteTensor,
                 momentum: float = 0.1, eps: float = 1e-5, train: bool = True):
@@ -28,12 +27,14 @@ def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
         # only grads for x, gamma, beta
         return grad_input, grad_gamma, grad_beta
 
-    # Wrap forward outputs as LiteTensors
+    with Tracelet() as t:
+        t.register(LiteTensor(out), (x, gamma, beta), backward)
+        
     return (
         LiteTensor(out),
         running_mean,
         running_var,
-    ), (x, gamma, beta), backward
+    )
 
     
 def batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
