@@ -84,7 +84,7 @@ def one_hot(x, num_classes):
     return Tensor(neolib.nn.functional.one_hot(
         x.data,
         num_classes=num_classes
-    ).numpy())
+    ).cpu().numpy())
 
 # === Shape/View/Manipulation Ops ===
     
