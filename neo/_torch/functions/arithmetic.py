@@ -92,7 +92,7 @@ def neg(x):
     out = x.unary_op(lambda x: -x)
     neg_backward = lambda grad: -grad
     with Tracelet() as t:
-        t.register(out, (x), neg_backward)
+        t.register(out, (x, ), neg_backward)
     return out
 
 

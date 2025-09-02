@@ -1,14 +1,10 @@
 from neo.functions import function
-from neo._src.autograd.FUNCTION_REGISTER import Policy
+from neo._src.autograd.FUNCTION_REGISTER import Policy, custom_grad
 from neo import neolib
+import torch
 from neo._torch.lite_tensor import LiteTensor
+from typing import Any
 
-
-def tanh_fwd(x: neolib.Tensor):
-    return neolib.tanh(x)
-
-def tanh_bwd(out: neolib.Tensor, grad: neolib.Tensor):
-    return grad * (1 - out * out)
 
 def softmax_fwd(x:neolib.Tensor, dim:int):
     return neolib.nn.functional.softmax(x, dim=dim)
@@ -23,16 +19,15 @@ def sigmoid_fwd(x:neolib.Tensor):
 def sigmoid_bwd(out:neolib.Tensor, grad:neolib.Tensor):
     return grad * out * (1 - out)
 
+@custom_grad
+def _relu(x):
+    out =  x.unary_op(lambda x: x.relu_())
 
-class _relu(Policy):
-    def forward(self, X):
-        self.ctx.save(X)
-        return X.relu_()
-
-    def backward(self, grad):
-        X, = self.ctx.release
-        mask = X > 0
+    def backward(grad):
+        mask = x.data > 0
         return grad.mul(mask)
+    
+    return out, (x, ), backward
 
 def relu(x: LiteTensor):
     """
@@ -48,18 +43,16 @@ def relu(x: LiteTensor):
         >>> relu(LiteTensor([-2.0, 0.0, 3.0]))
         LiteTensor([0.0, 0.0, 3.0])
     """
-    return function(_relu)(x)
+    return _relu(x)
 
-
-class _tanh(Policy):
-    def forward(self, x):
-        out = tanh_fwd(x)
-        self.ctx.save(out)
-        return out
+@custom_grad
+def  _tanh(x):
+    out = x.unary_op(lambda x: x.tanh_())
 
     def backward(self, grad):
-        out, = self.ctx.release
-        return tanh_bwd(out, grad)
+        return grad * (1 - (out.data)**2)
+    
+    return out, (x, ), backward
 
 def tanh(x: LiteTensor):
     """
@@ -75,22 +68,19 @@ def tanh(x: LiteTensor):
         >>> tanh(LiteTensor([0.0, 1.0]))
         LiteTensor([0.0, 0.7616])
     """
-    return function(_tanh)(x)
+    return _tanh(x)
 
+@custom_grad
+def _softmax(x, dim):
+    x = x.to_(neolib.float32)
+    out = x.unary_op(lambda x, dim: torch.ops.aten.softmax(x, dim=dim), dim=dim)
 
-class _softmax(Policy):
-    def forward(self, x, dim):
-        x = x.to(neolib.float32)
-        out = softmax_fwd(x, dim=dim)
-        self.ctx.save(out, dim)
-        return out
-
+    def backward(grad, dim=dim, out=out._t):
+        return torch.ops.aten._softmax_backward_data(grad, out, dim, grad.dtype)
     
-    def backward(self, grad):
-        out, dim = self.ctx.release
-        return softmax_bwd(out, grad, dim=dim), None
+    return out, (x,), backward
     
-def softmax(x: LiteTensor, dim: int = None):
+def softmax(x: LiteTensor, dim: int|Any = -1):
     """
     Applies the softmax function along the specified dimension.
 
@@ -107,7 +97,7 @@ def softmax(x: LiteTensor, dim: int = None):
         >>> softmax(LiteTensor([1.0, 2.0, 3.0]), dim=0)
         LiteTensor([0.0900, 0.2447, 0.6652])
     """
-    return function(_softmax)(x, dim)
+    return _softmax(x, dim)
 
 class _sigmoid(Policy):
     def forward(self, x):

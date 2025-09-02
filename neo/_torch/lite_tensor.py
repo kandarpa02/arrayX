@@ -105,21 +105,21 @@ class LiteTensor:
         self.device = self.data.device
 
     # Op creation
-    def binary_op(self, other, fn:Callable):
+    def binary_op(self, other, fn:Callable, **kwargs):
         out = LiteTensor(
-            data = fn(self.data, other.data),
+            data = fn(self.data, other.data, **kwargs),
         )
         return out
     
-    def nary_op(self, args, fn: Callable):
+    def nary_op(self, args, fn: Callable, **kwargs):
         out = LiteTensor(
-            data = fn(self.data, *(arg.data for arg in args))
+            data = fn(self.data, *(arg.data for arg in args), **kwargs)
         )
         return out
 
-    def unary_op(self, fn:Callable):
+    def unary_op(self, fn:Callable, **kwargs):
         out = LiteTensor(
-            data = fn(self.data)
+            data = fn(self.data, **kwargs)
         )
         return out
 
@@ -159,6 +159,40 @@ class LiteTensor:
             return LiteTensor(self.data.to(device=device, dtype=dtype))
         else:
             raise TypeError("Invalid arguments passed to .to()")
+
+    def to_(self, *args, **kwargs):
+        """In-place device/dtype conversion (returns self)."""
+        if len(args) == 1:
+            arg = args[0]
+            if isinstance(arg, LiteTensor):
+                self.data = self.data.to(arg.data.device, arg.data.dtype)
+                return self
+            elif isinstance(arg, torch.Tensor):
+                self.data = self.data.to(arg.device, arg.dtype)
+                return self
+            elif isinstance(arg, (str, torch.device)):
+                self.data = self.data.to(device=_device(arg))
+                return self
+            elif isinstance(arg, (torch.dtype, str)):
+                self.data = self.data.to(dtype=_dtype(arg))
+                return self
+            else:
+                raise TypeError(f"Unsupported type for .to_(): {type(arg)}")
+
+        elif len(args) == 2:
+            device = _device(args[0])
+            dtype = _dtype(args[1])
+            self.data = self.data.to(device=device, dtype=dtype)
+            return self
+
+        elif not args and kwargs:
+            device = _device(kwargs.get("device")) if "device" in kwargs else None
+            dtype = _dtype(kwargs.get("dtype")) if "dtype" in kwargs else None
+            self.data = self.data.to(device=device, dtype=dtype)
+            return self
+
+        else:
+            raise TypeError("Invalid arguments passed to .to_()")
 
     def cuda(self, device=None): return LiteTensor(self.data.cuda(device=device))
     def cpu(self): return LiteTensor(self.data.cpu())
