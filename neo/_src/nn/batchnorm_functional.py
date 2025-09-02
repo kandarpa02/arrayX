@@ -15,6 +15,7 @@ def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
         running_mean.data, running_var.data,
         training=train, momentum=momentum, eps=eps
     )
+    out = LiteTensor(out)
 
     # Backward closure
     def backward(grad, x=x, gamma=gamma, beta=beta,
@@ -28,10 +29,10 @@ def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
         return grad_input, grad_gamma, grad_beta
 
     with Tracelet() as t:
-        t.register(LiteTensor(out), (x, gamma, beta), backward)
+        t.register(out, (x, gamma, beta), backward)
         
     return (
-        LiteTensor(out),
+        out,
         running_mean,
         running_var,
     )
