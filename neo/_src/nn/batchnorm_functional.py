@@ -33,7 +33,7 @@ def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
         LiteTensor(out),
         running_mean,
         running_var,
-    ), (x, gamma, beta), backward
+    ), (gamma, beta), backward
 
     
 def batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
