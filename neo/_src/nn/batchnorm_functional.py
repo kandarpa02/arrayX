@@ -26,7 +26,7 @@ def _batchnorm2d(x: LiteTensor, gamma: LiteTensor, beta: LiteTensor,
             output_mask=(True, True, True)
         )
         # only grads for x, gamma, beta
-        return grad_gamma, grad_beta
+        return grad_input, grad_gamma, grad_beta
 
     # Wrap forward outputs as LiteTensors
     return (
