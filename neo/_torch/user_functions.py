@@ -25,19 +25,19 @@ def Tensor(data, dtype='', device=''):
 # === Tensor Constructors ===
 
 def full(shape, fill_value, dtype:Any=''):
-    return lite(neolib.full(
+    return Tensor(neolib.full(
         shape, fill_value,
         dtype=_dtype(dtype) if dtype else None
     ).numpy())
 
 def ones(shape, dtype:Any=''):
-    return lite(neolib.ones(
+    return Tensor(neolib.ones(
         shape,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 def zeros(shape, dtype:Any=''):
-    return lite(neolib.zeros(
+    return Tensor(neolib.zeros(
         shape,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
@@ -47,13 +47,13 @@ def arange(start, end=None, step=1, dtype:Any='', device:Any=''):
     device = _device(device) if device else None
 
     if end is None:
-        return lite(neolib.arange(0, start, step, dtype=dtype, device=device))
+        return Tensor(neolib.arange(0, start, step, dtype=dtype, device=device))
     else:
-        return lite(neolib.arange(start, end, step, dtype=dtype, device=device))
+        return Tensor(neolib.arange(start, end, step, dtype=dtype, device=device))
 
 
 def empty(shape, dtype:Any=''):
-    return lite(neolib.empty(
+    return Tensor(neolib.empty(
         shape,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
@@ -62,23 +62,29 @@ def empty(shape, dtype:Any=''):
 # === _like Constructors ===
 
 def ones_like(x, dtype:Any=''):
-    return lite(neolib.ones_like(
+    return Tensor(neolib.ones_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 def zeros_like(x, dtype:Any=''):
-    return lite(neolib.zeros_like(
+    return Tensor(neolib.zeros_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 def empty_like(x, dtype:Any=''):
-    return lite(neolib.empty_like(
+    return Tensor(neolib.empty_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
+
+def one_hot(x, num_classes):
+    return Tensor(neolib.nn.functional.one_hot(
+        x.data,
+        num_classes=num_classes
+    ).numpy())
 
 # === Shape/View/Manipulation Ops ===
     
