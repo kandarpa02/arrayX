@@ -43,8 +43,7 @@ cpdef dict run_backward(Tape tape, object out, object out_grad, bint safe):
 
             pid = id(parent)
 
-            if safe:
-                grad = grad.clone()
+            grad = grad.data.clone() if safe else grad.data
 
             if pid in grad_dict:
                 grad_dict[pid].add_(grad)

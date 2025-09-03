@@ -129,15 +129,15 @@ def _compute(fn: Callable, safe=False, end_node:int=-1):
         #         if grad is None:
         #             continue
 
-        #         if grad.is_cuda:
+        #         if grad.data.is_cuda:
         #             any_cuda = True
 
         #         pid = id(parent)
         #         # Accumulate gradients. `safe` controls whether to clone before modifying.
         #         if pid in grad_dict:
-        #             grad_dict[pid].add_(grad.clone() if safe else grad)
+        #             grad_dict[pid].add_(grad.data.clone() if safe else grad.data)
         #         else:
-        #             grad_dict[pid] = grad.clone() if safe else grad
+        #             grad_dict[pid] = grad.data.clone() if safe else grad.data
 
 
         #         del grad  

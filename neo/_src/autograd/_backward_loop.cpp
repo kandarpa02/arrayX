@@ -2336,6 +2336,7 @@ static const char __pyx_k_add[] = "add_";
 static const char __pyx_k_out[] = "out";
 static const char __pyx_k_pop[] = "pop";
 static const char __pyx_k_zip[] = "zip";
+static const char __pyx_k_data[] = "data";
 static const char __pyx_k_func[] = "__func__";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
@@ -2354,7 +2355,7 @@ static const char __pyx_k_run_backward[] = "run_backward";
 static const char __pyx_k_class_getitem[] = "__class_getitem__";
 static const char __pyx_k_asyncio_coroutines[] = "asyncio.coroutines";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
-static const char __pyx_k_Qb_F_a_b_Q_Qe1_A_G1A_Ja_Ja_6_A[] = "\200\001\360\010\000\005\033\230!\360\n\000\005\016\210Q\210b\220\001\220\030\230\021\360\006\000\005\t\210\010\220\004\220F\230$\230a\330\010\016\210b\220\001\220\024\220Q\330\010\030\230\t\240\024\240Q\240e\2501\330\010\013\210>\230\023\230A\330\014\r\340\010\020\220\004\220G\2301\230A\340\010\014\210J\220a\330\010\014\210J\220a\340\010\013\2106\220\023\220A\330\014\020\220\013\2301\330\014\r\340\010\013\2104\210z\230\021\230'\240\021\330\014\025\220Q\340\010\013\2103\210a\210w\220b\230\003\2301\230D\240\001\330\014\024\220F\230#\230Z\240s\250!\2504\250z\270\022\2703\270a\270q\340\010\014\210H\220H\230C\230q\240\004\240J\250a\330\014\017\210u\220C\220q\330\020\021\340\014\022\220\"\220A\220Q\340\014\017\210q\330\020\027\220t\2306\240\021\340\014\017\210t\2203\220a\330\020\031\230\021\230$\230e\2401\240A\340\020\031\230\021\230'\240\021\340\010\014\210K\220q\340\004\013\2101";
+static const char __pyx_k_Qb_F_a_b_Q_Qe1_A_G1A_Ja_Ja_6_A[] = "\200\001\360\010\000\005\033\230!\360\n\000\005\016\210Q\210b\220\001\220\030\230\021\360\006\000\005\t\210\010\220\004\220F\230$\230a\330\010\016\210b\220\001\220\024\220Q\330\010\030\230\t\240\024\240Q\240e\2501\330\010\013\210>\230\023\230A\330\014\r\340\010\020\220\004\220G\2301\230A\340\010\014\210J\220a\330\010\014\210J\220a\340\010\013\2106\220\023\220A\330\014\020\220\013\2301\330\014\r\340\010\013\2104\210z\230\021\230'\240\021\330\014\025\220Q\340\010\013\2103\210a\210w\220b\230\003\2301\230D\240\001\330\014\024\220F\230#\230Z\240s\250!\2504\250z\270\022\2703\270a\270q\340\010\014\210H\220H\230C\230q\240\004\240J\250a\330\014\017\210u\220C\220q\330\020\021\340\014\022\220\"\220A\220Q\340\014\023\2204\220u\230F\240&\250\n\260$\260a\340\014\017\210t\2203\220a\330\020\031\230\021\230$\230e\2401\240A\340\020\031\230\021\230'\240\021\340\010\014\210K\220q\340\004\013\2101";
 static const char __pyx_k_Note_that_Cython_is_deliberately[] = "Note that Cython is deliberately stricter than PEP-484 and rejects subclasses of builtin types. If you need to pass subclasses then set the 'annotation_typing' directive to False.";
 static const char __pyx_k_neo__src_autograd__backward_loop[] = "neo._src.autograd._backward_loop";
 static const char __pyx_k_neo__src_autograd__backward_loop_2[] = "neo/_src/autograd/_backward_loop.pyx";
@@ -2404,7 +2405,7 @@ typedef struct {
   PyObject *__pyx_slice[1];
   PyObject *__pyx_tuple[1];
   PyObject *__pyx_codeobj_tab[1];
-  PyObject *__pyx_string_tab[27];
+  PyObject *__pyx_string_tab[28];
   PyObject *__pyx_int_neg_1;
 /* #### Code section: module_state_contents ### */
 /* CommonTypesMetaclass.module_state_decls */
@@ -2451,25 +2452,26 @@ static __pyx_mstatetype * const __pyx_mstate_global = &__pyx_mstate_global_stati
 #define __pyx_n_u_class_getitem __pyx_string_tab[5]
 #define __pyx_n_u_cline_in_traceback __pyx_string_tab[6]
 #define __pyx_n_u_clone __pyx_string_tab[7]
-#define __pyx_n_u_func __pyx_string_tab[8]
-#define __pyx_n_u_id __pyx_string_tab[9]
-#define __pyx_n_u_is_coroutine __pyx_string_tab[10]
-#define __pyx_n_u_main __pyx_string_tab[11]
-#define __pyx_n_u_module __pyx_string_tab[12]
-#define __pyx_n_u_name __pyx_string_tab[13]
-#define __pyx_n_u_neo__src_autograd__backward_loop __pyx_string_tab[14]
-#define __pyx_kp_u_neo__src_autograd__backward_loop_2 __pyx_string_tab[15]
-#define __pyx_n_u_out __pyx_string_tab[16]
-#define __pyx_n_u_out_grad __pyx_string_tab[17]
-#define __pyx_n_u_pop __pyx_string_tab[18]
-#define __pyx_n_u_pyx_vtable __pyx_string_tab[19]
-#define __pyx_n_u_qualname __pyx_string_tab[20]
-#define __pyx_n_u_run_backward __pyx_string_tab[21]
-#define __pyx_n_u_safe __pyx_string_tab[22]
-#define __pyx_n_u_set_name __pyx_string_tab[23]
-#define __pyx_n_u_tape __pyx_string_tab[24]
-#define __pyx_n_u_test __pyx_string_tab[25]
-#define __pyx_n_u_zip __pyx_string_tab[26]
+#define __pyx_n_u_data __pyx_string_tab[8]
+#define __pyx_n_u_func __pyx_string_tab[9]
+#define __pyx_n_u_id __pyx_string_tab[10]
+#define __pyx_n_u_is_coroutine __pyx_string_tab[11]
+#define __pyx_n_u_main __pyx_string_tab[12]
+#define __pyx_n_u_module __pyx_string_tab[13]
+#define __pyx_n_u_name __pyx_string_tab[14]
+#define __pyx_n_u_neo__src_autograd__backward_loop __pyx_string_tab[15]
+#define __pyx_kp_u_neo__src_autograd__backward_loop_2 __pyx_string_tab[16]
+#define __pyx_n_u_out __pyx_string_tab[17]
+#define __pyx_n_u_out_grad __pyx_string_tab[18]
+#define __pyx_n_u_pop __pyx_string_tab[19]
+#define __pyx_n_u_pyx_vtable __pyx_string_tab[20]
+#define __pyx_n_u_qualname __pyx_string_tab[21]
+#define __pyx_n_u_run_backward __pyx_string_tab[22]
+#define __pyx_n_u_safe __pyx_string_tab[23]
+#define __pyx_n_u_set_name __pyx_string_tab[24]
+#define __pyx_n_u_tape __pyx_string_tab[25]
+#define __pyx_n_u_test __pyx_string_tab[26]
+#define __pyx_n_u_zip __pyx_string_tab[27]
 /* #### Code section: module_state_clear ### */
 #if CYTHON_USE_MODULE_STATE
 static CYTHON_SMALL_CODE int __pyx_m_clear(PyObject *m) {
@@ -2495,7 +2497,7 @@ static CYTHON_SMALL_CODE int __pyx_m_clear(PyObject *m) {
   for (int i=0; i<1; ++i) { Py_CLEAR(clear_module_state->__pyx_slice[i]); }
   for (int i=0; i<1; ++i) { Py_CLEAR(clear_module_state->__pyx_tuple[i]); }
   for (int i=0; i<1; ++i) { Py_CLEAR(clear_module_state->__pyx_codeobj_tab[i]); }
-  for (int i=0; i<27; ++i) { Py_CLEAR(clear_module_state->__pyx_string_tab[i]); }
+  for (int i=0; i<28; ++i) { Py_CLEAR(clear_module_state->__pyx_string_tab[i]); }
   Py_CLEAR(clear_module_state->__pyx_int_neg_1);
   return 0;
 }
@@ -2522,7 +2524,7 @@ static CYTHON_SMALL_CODE int __pyx_m_traverse(PyObject *m, visitproc visit, void
   for (int i=0; i<1; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_slice[i]); }
   for (int i=0; i<1; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_tuple[i]); }
   for (int i=0; i<1; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_codeobj_tab[i]); }
-  for (int i=0; i<27; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_string_tab[i]); }
+  for (int i=0; i<28; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_string_tab[i]); }
   __Pyx_VISIT_CONST(traverse_module_state->__pyx_int_neg_1);
   return 0;
 }
@@ -3049,7 +3051,7 @@ static PyObject *__pyx_f_3neo_4_src_8autograd_14_backward_loop_run_backward(stru
  * 
  *             pid = id(parent)             # <<<<<<<<<<<<<<
  * 
- *             if safe:
+ *             grad = grad.data.clone() if safe else grad.data
 */
       __pyx_t_14 = NULL;
       __Pyx_INCREF(__pyx_builtin_id);
@@ -3070,90 +3072,84 @@ static PyObject *__pyx_f_3neo_4_src_8autograd_14_backward_loop_run_backward(stru
       /* "neo/_src/autograd/_backward_loop.pyx":46
  *             pid = id(parent)
  * 
- *             if safe:             # <<<<<<<<<<<<<<
- *                 grad = grad.clone()
- * 
-*/
-      if (__pyx_v_safe) {
-
-        /* "neo/_src/autograd/_backward_loop.pyx":47
- * 
- *             if safe:
- *                 grad = grad.clone()             # <<<<<<<<<<<<<<
+ *             grad = grad.data.clone() if safe else grad.data             # <<<<<<<<<<<<<<
  * 
  *             if pid in grad_dict:
 */
-        __pyx_t_6 = __pyx_v_grad;
-        __Pyx_INCREF(__pyx_t_6);
+      if (__pyx_v_safe) {
+        __pyx_t_15 = __Pyx_PyObject_GetAttrStr(__pyx_v_grad, __pyx_mstate_global->__pyx_n_u_data); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 46, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_15);
+        __pyx_t_14 = __pyx_t_15;
+        __Pyx_INCREF(__pyx_t_14);
         __pyx_t_4 = 0;
         {
-          PyObject *__pyx_callargs[2] = {__pyx_t_6, NULL};
-          __pyx_t_2 = __Pyx_PyObject_FastCallMethod(__pyx_mstate_global->__pyx_n_u_clone, __pyx_callargs+__pyx_t_4, (1-__pyx_t_4) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 47, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_2);
+          PyObject *__pyx_callargs[2] = {__pyx_t_14, NULL};
+          __pyx_t_6 = __Pyx_PyObject_FastCallMethod(__pyx_mstate_global->__pyx_n_u_clone, __pyx_callargs+__pyx_t_4, (1-__pyx_t_4) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+          __Pyx_XDECREF(__pyx_t_14); __pyx_t_14 = 0;
+          __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
+          if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 46, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_6);
         }
-        __Pyx_DECREF_SET(__pyx_v_grad, __pyx_t_2);
-        __pyx_t_2 = 0;
-
-        /* "neo/_src/autograd/_backward_loop.pyx":46
- *             pid = id(parent)
- * 
- *             if safe:             # <<<<<<<<<<<<<<
- *                 grad = grad.clone()
- * 
-*/
+        __pyx_t_2 = __pyx_t_6;
+        __pyx_t_6 = 0;
+      } else {
+        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_grad, __pyx_mstate_global->__pyx_n_u_data); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 46, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __pyx_t_2 = __pyx_t_6;
+        __pyx_t_6 = 0;
       }
+      __Pyx_DECREF_SET(__pyx_v_grad, __pyx_t_2);
+      __pyx_t_2 = 0;
 
-      /* "neo/_src/autograd/_backward_loop.pyx":49
- *                 grad = grad.clone()
+      /* "neo/_src/autograd/_backward_loop.pyx":48
+ *             grad = grad.data.clone() if safe else grad.data
  * 
  *             if pid in grad_dict:             # <<<<<<<<<<<<<<
  *                 grad_dict[pid].add_(grad)
  *             else:
 */
-      __pyx_t_2 = PyLong_FromSsize_t(__pyx_v_pid); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
+      __pyx_t_2 = PyLong_FromSsize_t(__pyx_v_pid); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 48, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_9 = (__Pyx_PyDict_ContainsTF(__pyx_t_2, __pyx_v_grad_dict, Py_EQ)); if (unlikely((__pyx_t_9 < 0))) __PYX_ERR(0, 49, __pyx_L1_error)
+      __pyx_t_9 = (__Pyx_PyDict_ContainsTF(__pyx_t_2, __pyx_v_grad_dict, Py_EQ)); if (unlikely((__pyx_t_9 < 0))) __PYX_ERR(0, 48, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       if (__pyx_t_9) {
 
-        /* "neo/_src/autograd/_backward_loop.pyx":50
+        /* "neo/_src/autograd/_backward_loop.pyx":49
  * 
  *             if pid in grad_dict:
  *                 grad_dict[pid].add_(grad)             # <<<<<<<<<<<<<<
  *             else:
  *                 grad_dict[pid] = grad
 */
-        __pyx_t_14 = PyLong_FromSsize_t(__pyx_v_pid); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 50, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_14);
-        __pyx_t_15 = __Pyx_PyDict_GetItem(__pyx_v_grad_dict, __pyx_t_14); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 50, __pyx_L1_error)
+        __pyx_t_15 = PyLong_FromSsize_t(__pyx_v_pid); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 49, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_15);
-        __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
-        __pyx_t_6 = __pyx_t_15;
+        __pyx_t_14 = __Pyx_PyDict_GetItem(__pyx_v_grad_dict, __pyx_t_15); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 49, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_14);
+        __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
+        __pyx_t_6 = __pyx_t_14;
         __Pyx_INCREF(__pyx_t_6);
         __pyx_t_4 = 0;
         {
           PyObject *__pyx_callargs[2] = {__pyx_t_6, __pyx_v_grad};
           __pyx_t_2 = __Pyx_PyObject_FastCallMethod(__pyx_mstate_global->__pyx_n_u_add, __pyx_callargs+__pyx_t_4, (2-__pyx_t_4) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
           __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-          __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 50, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
         }
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-        /* "neo/_src/autograd/_backward_loop.pyx":49
- *                 grad = grad.clone()
+        /* "neo/_src/autograd/_backward_loop.pyx":48
+ *             grad = grad.data.clone() if safe else grad.data
  * 
  *             if pid in grad_dict:             # <<<<<<<<<<<<<<
  *                 grad_dict[pid].add_(grad)
  *             else:
 */
-        goto __pyx_L15;
+        goto __pyx_L14;
       }
 
-      /* "neo/_src/autograd/_backward_loop.pyx":52
+      /* "neo/_src/autograd/_backward_loop.pyx":51
  *                 grad_dict[pid].add_(grad)
  *             else:
  *                 grad_dict[pid] = grad             # <<<<<<<<<<<<<<
@@ -3161,12 +3157,12 @@ static PyObject *__pyx_f_3neo_4_src_8autograd_14_backward_loop_run_backward(stru
  *         node.parents = None
 */
       /*else*/ {
-        __pyx_t_2 = PyLong_FromSsize_t(__pyx_v_pid); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 52, __pyx_L1_error)
+        __pyx_t_2 = PyLong_FromSsize_t(__pyx_v_pid); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 51, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
-        if (unlikely((PyDict_SetItem(__pyx_v_grad_dict, __pyx_t_2, __pyx_v_grad) < 0))) __PYX_ERR(0, 52, __pyx_L1_error)
+        if (unlikely((PyDict_SetItem(__pyx_v_grad_dict, __pyx_t_2, __pyx_v_grad) < 0))) __PYX_ERR(0, 51, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       }
-      __pyx_L15:;
+      __pyx_L14:;
 
       /* "neo/_src/autograd/_backward_loop.pyx":40
  *             grads = grads + (None,) * (len(node.parents) - len(grads))
@@ -3179,7 +3175,7 @@ static PyObject *__pyx_f_3neo_4_src_8autograd_14_backward_loop_run_backward(stru
     }
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-    /* "neo/_src/autograd/_backward_loop.pyx":54
+    /* "neo/_src/autograd/_backward_loop.pyx":53
  *                 grad_dict[pid] = grad
  * 
  *         node.parents = None             # <<<<<<<<<<<<<<
@@ -3203,7 +3199,7 @@ static PyObject *__pyx_f_3neo_4_src_8autograd_14_backward_loop_run_backward(stru
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "neo/_src/autograd/_backward_loop.pyx":56
+  /* "neo/_src/autograd/_backward_loop.pyx":55
  *         node.parents = None
  * 
  *     return grad_dict             # <<<<<<<<<<<<<<
@@ -3871,6 +3867,7 @@ static const __Pyx_StringTabEntry __pyx_string_tab[] = {
   {__pyx_k_class_getitem, sizeof(__pyx_k_class_getitem), 0, 1, 1}, /* PyObject cname: __pyx_n_u_class_getitem */
   {__pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 1, 1}, /* PyObject cname: __pyx_n_u_cline_in_traceback */
   {__pyx_k_clone, sizeof(__pyx_k_clone), 0, 1, 1}, /* PyObject cname: __pyx_n_u_clone */
+  {__pyx_k_data, sizeof(__pyx_k_data), 0, 1, 1}, /* PyObject cname: __pyx_n_u_data */
   {__pyx_k_func, sizeof(__pyx_k_func), 0, 1, 1}, /* PyObject cname: __pyx_n_u_func */
   {__pyx_k_id, sizeof(__pyx_k_id), 0, 1, 1}, /* PyObject cname: __pyx_n_u_id */
   {__pyx_k_is_coroutine, sizeof(__pyx_k_is_coroutine), 0, 1, 1}, /* PyObject cname: __pyx_n_u_is_coroutine */
@@ -3980,7 +3977,7 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
   PyObject* tuple_dedup_map = PyDict_New();
   if (unlikely(!tuple_dedup_map)) return -1;
   {
-    const __Pyx_PyCode_New_function_description descr = {4, 0, 0, 4, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 7, 276};
+    const __Pyx_PyCode_New_function_description descr = {4, 0, 0, 4, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 7, 279};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_tape, __pyx_mstate->__pyx_n_u_out, __pyx_mstate->__pyx_n_u_out_grad, __pyx_mstate->__pyx_n_u_safe};
     __pyx_mstate_global->__pyx_codeobj_tab[0] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_neo__src_autograd__backward_loop_2, __pyx_mstate->__pyx_n_u_run_backward, __pyx_k_Qb_F_a_b_Q_Qe1_A_G1A_Ja_Ja_6_A, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[0])) goto bad;
   }
