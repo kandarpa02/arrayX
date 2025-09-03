@@ -14,10 +14,14 @@ class Module:
     def __init__(self, name: str = ""):
         cls_name = self.__class__.__name__
         if not name:
-            count = Module._name_counters.get(cls_name, 0)
-            name = f"{cls_name}_{count}"
-            Module._name_counters[cls_name] = count + 1
+            if not Module._name_stack:  # root module -> stable name
+                name = cls_name
+            else:  # submodule -> auto-increment
+                count = Module._name_counters.get(cls_name, 0)
+                name = f"{cls_name}_{count}"
+                Module._name_counters[cls_name] = count + 1
         self.name = name
+
 
     @contextmanager
     def param_context(self, params: ParamType):
