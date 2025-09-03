@@ -1,18 +1,7 @@
-<pre>
-
-███╗   ██╗███████╗ ██████╗ ███╗   ██╗███████╗████████╗
-████╗  ██║██╔════╝██╔═══██╗████╗  ██║██╔════╝╚══██╔══╝
-██╔██╗ ██║█████╗  ██║   ██║██╔██╗ ██║█████╗     ██║   
-██║╚██╗██║██╔══╝  ██║   ██║██║╚██╗██║██╔══╝     ██║   
-██║ ╚████║███████╗╚██████╔╝██║ ╚████║███████╗   ██║   
-╚═╝  ╚═══╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝    -The Gradient is Yours to Define
+# * NEXnet*
 
 
-</pre>
-
-
-
-**Neo was built out of frustration with PyTorch’s `backward()` limitations and JAX’s compiler obsession.**
+**nexnet was built out of frustration with PyTorch’s `backward()` limitations and JAX’s compiler obsession.**
 **I just wanted to define the gradient myself 👾 — not fight with a compiler to get it. 😵‍💫**
 
 ---
@@ -96,7 +85,7 @@ This system:
 
 
 
-Unlike PyTorch, **Neo's LiteTensor does not store**:
+Unlike PyTorch, **nexnet's LiteTensor does not store**:
 - `.grad`
 - `.grad_fn`
 - Backward hooks
@@ -107,34 +96,34 @@ This leads to:
 - Simpler tracing
 - Explicit, functional-style programs
 
-Neo is not a full ML framework, but a **research-grade functional autodiff system**, targeting researchers who want *clarity over abstraction*. Best for people who want to conduct fast paced experiments on new theories
+nexnet is not a full ML framework, but a **research-grade functional autodiff system**, targeting researchers who want *clarity over abstraction*. Best for people who want to conduct fast paced experiments on new theories
 
 
-## Why Neo?
+## Why nexnet?
 
 Modern deep learning frameworks like PyTorch and TensorFlow are engineering marvels; fast, feature-rich, and battle-tested at scale. However, their internal complexity often makes them difficult to inspect, modify, or understand at a fundamental level. For students, researchers, and curious developers interested in the *"how"* behind autodiff, optimization, and training loops, these frameworks can feel like opaque black boxes.
 
-**Neo** was created to fill this gap: a minimalist, modular reverse-mode autodiff system designed for clarity, extensibility, and hands-on learning. It provides a clean, functional interface to core deep learning mechanics, computation graphs, gradient propagation, and optimization, without hiding them behind abstractions. The entire system is written in Python (with selective Cython acceleration), making it easy to read, modify, and extend.
+**nexnet** was created to fill this gap: a minimalist, modular reverse-mode autodiff system designed for clarity, extensibility, and hands-on learning. It provides a clean, functional interface to core deep learning mechanics, computation graphs, gradient propagation, and optimization, without hiding them behind abstractions. The entire system is written in Python (with selective Cython acceleration), making it easy to read, modify, and extend.
 
-What sets Neo apart is that it doesn’t just prioritize transparency, it also delivers surprising performance. Thanks to a carefully designed trace-based execution model, Neo achieves **~97-99% of PyTorch’s training performance** on real workloads like MNIST MLPs, despite lacking kernel fusion, mixed precision, or GPU acceleration. This balance of **simplicity and speed** makes Neo ideal for:
+What sets nexnet apart is that it doesn’t just prioritize transparency, it also delivers surprising performance. Thanks to a carefully designed trace-based execution model, nexnet achieves **~97-99% of PyTorch’s training performance** on real workloads like MNIST MLPs, despite lacking kernel fusion, mixed precision, or GPU acceleration. This balance of **simplicity and speed** makes nexnet ideal for:
 - Learning the internals of deep learning frameworks,
 - Prototyping new autodiff rules or optimizers,
 - Experimenting with gradient manipulation,
 - Building research tools without heavyweight dependencies.
 
-In short, **Neo is not a replacement for PyTorch — it is a companion for those who want to understand what’s under the hood, and who believe that clarity is power.**
+In short, **nexnet is not a replacement for PyTorch — it is a companion for those who want to understand what’s under the hood, and who believe that clarity is power.**
 
 
 ## Design Principle:
-**Neo** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch** but easier to use!
+**nexnet** is a minmal, lightweight, efficient yet a very powerful Machine Leanring Library. It follows the functional and stateless structure of **JAX**, defining custom `backward` rule via `autograd.Policy` module, just like `torch.autograd.Function` of **PyTorch** but easier to use!
 
 
 ## The Backend Math:
-Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **Neonet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I went with **PyTorch's Tensors**(`torch.Tensor.detach()`) without its autograd and other functionalities, as the **torch.Tensor** is already very mature and a battle tested backend. In future I will manually define the compute heavy function like `softmax` and `matmul` in **Triron**.
+Leading ML frameworks use C/C++ and CUDA as backend, which is great but while developing **nexnetnet**, I realized learning low-level C/C++ just to get started would take too long. Instead, I went with **PyTorch's Tensors**(`torch.Tensor.detach()`) without its autograd and other functionalities, as the **torch.Tensor** is already very mature and a battle tested backend. In future I will manually define the compute heavy function like `softmax` and `matmul` in **Triron**.
 
 ## Experiment: 3-Layer MLP on MNIST
 
-Here is the kaggle link of the test, you can inspect that too [`Neo-mnist`](https://www.kaggle.com/code/kandarpasarkar/mini-mlpe644d0e26d)
+Here is the kaggle link of the test, you can inspect that too [`nexnet-mnist`](https://www.kaggle.com/code/kandarpasarkar/mini-mlpe644d0e26d)
 
 - **Architecture:** `784 → 256 → 64 → 10`  
 - **Optimizer:** SGD (default settings for both)  
@@ -144,16 +133,16 @@ Here is the kaggle link of the test, you can inspect that too [`Neo-mnist`](http
 
 ---
 
-## Performance Comparison: Neo vs. PyTorch
+## Performance Comparison: nexnet vs. PyTorch
 
-**Remark:** Despite being implemented primarily in Python (with some Cython acceleration), **Neo** achieves ~99% of PyTorch’s speed on a 3-layer MLP for MNIST. This is thanks to its clean reverse-mode autodiff design and minimal graph overhead. The remaining performance gap is mainly due to Python function dispatch and lack of fused ops, which are optimizable in future versions.
+**Remark:** Despite being implemented primarily in Python (with some Cython acceleration), **nexnet** achieves ~99% of PyTorch’s speed on a 3-layer MLP for MNIST. This is thanks to its clean reverse-mode autodiff design and minimal graph overhead. The remaining performance gap is mainly due to Python function dispatch and lack of fused ops, which are optimizable in future versions.
 
-> **Why does Neo converge slightly faster?**
-While both Neo and PyTorch use the same initialization, architecture, and training setup, tiny implementation-level differences can affect convergence. Neo’s custom autograd system may apply ops with less internal overhead, fewer dispatch layers, and slightly more deterministic gradient flow. Meanwhile, PyTorch; being a production-scale framework, performs additional runtime checks, optimizations, and backend dispatching, which can subtly affect training dynamics. These minor factors accumulate and may explain the small differences in early convergence and final accuracy.
+> **Why does nexnet converge slightly faster?**
+While both nexnet and PyTorch use the same initialization, architecture, and training setup, tiny implementation-level differences can affect convergence. nexnet’s custom autograd system may apply ops with less internal overhead, fewer dispatch layers, and slightly more deterministic gradient flow. Meanwhile, PyTorch; being a production-scale framework, performs additional runtime checks, optimizations, and backend dispatching, which can subtly affect training dynamics. These minor factors accumulate and may explain the small differences in early convergence and final accuracy.
 
-### Neo Results
+### nexnet Results
 
-#### Neo
+#### nexnet
 ```
 Epoch: 1  Train Acc: 0.5860  Val Acc: 0.7896  (12.65s)
 Epoch: 2  Train Acc: 0.8256  Val Acc: 0.8590  (12.42s)
@@ -182,19 +171,19 @@ Epoch: 10  Train Acc: 0.9258  Val Acc: 0.9279  (12.59s)
 ```
 
 ## Minimal Example:
-Here is a minimal example how we can define new backward logic and compute grads with **Neo**
+Here is a minimal example how we can define new backward logic and compute grads with **nexnet**
 
 ```python
-import neo
-from neo.functions import function
+import nexnet
+from nexnet.functions import function
 
 
 # You can define any function and its backward rule
-# with neo.Policy module, its inner working is a bit
+# with nexnet.Policy module, its inner working is a bit
 # verbose, I will make everythng clear once it is complete
 
 @function # Returns a function & records nodes 
-class IF_IT_WORKS_DONT_TOUCH_IT(neo.Policy):
+class IF_IT_WORKS_DONT_TOUCH_IT(nexnet.Policy):
     def forward(self, X, Y, b):
         self.ctx.save(X, Y, b)
         return (X @ Y) + b
@@ -207,13 +196,13 @@ class IF_IT_WORKS_DONT_TOUCH_IT(neo.Policy):
         return x_grad, y_grad, b_grad
 
 
-X = neo.randn((3,4), device='cuda')
-Y = neo.randn((4,2), device='cuda')
-b = neo.randn((2,), device='cuda')
+X = nexnet.randn((3,4), device='cuda')
+Y = nexnet.randn((4,2), device='cuda')
+b = nexnet.randn((2,), device='cuda')
 
 output = None
 
-@neo.build_computation_graph(inputs=[X, Y, b])
+@nexnet.build_computation_graph(inputs=[X, Y, b])
 def forward(X, y, b):
     out = IF_IT_WORKS_DONT_TOUCH_IT(X, Y, b)
     global output
@@ -255,7 +244,7 @@ Now if we do the same thing with **JAX**:
 import jax.numpy as jnp
 from jax import grad as gfn
 
-# .numpy() method is used to get NumPy arrays from Neo.Array object 
+# .numpy() method is used to get NumPy arrays from nexnet.LiteTensor object 
 # JAX wants NumPy arrays so first convert it to 'cpu' then expose NumPy arrays
 
 X_, Y_, b_ = X.numpy(), Y.numpy(), b.numpy()
@@ -287,11 +276,11 @@ Matrix b_JAX_grad:
 
 ### Should you use it?
 
-Neo is intentionally *not* built to be production-ready but to:
+nexnet is intentionally *not* built to be production-ready but to:
 - Study the anatomy of modern autodiff
 - Create a functional playground to tinker with gradients
 - Allow you to define your own rules, math, and optimization stack
 
 ---
 
-**I am building this for personal research, so Neo reflects my favorite abstractions. It may feel verbose, but every layer is transparentand fun ⌁**
+**I am building this for personal research, so nexnet reflects my favorite abstractions. It may feel verbose, but every layer is transparentand fun ⌁**
