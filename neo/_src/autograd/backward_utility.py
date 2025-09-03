@@ -14,7 +14,7 @@ execution will raise immediately to avoid silent miscomputations.
 """
 
 from neo._src.autograd import Tape, TapeContext
-from neo._src.autograd._backward_loop import run_backward
+from neo._src.autograd.backward_loop import run_backward
 from typing import Callable, List, Any
 from neo._torch import neolib
 from neo._torch.lite_tensor import LiteTensor

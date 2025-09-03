@@ -17,8 +17,8 @@ ext_modules = cythonize([
         language="c++",
     ),
     Extension(
-        name="neo._src.autograd._backward_loop",
-        sources=["neo/_src/autograd/_backward_loop.pyx"],
+        name="neo._src.autograd.backward_loop",
+        sources=["neo/_src/autograd/backward_loop.pyx"],
         language="c++",
     ),
 ])
