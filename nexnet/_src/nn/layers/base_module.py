@@ -21,18 +21,20 @@ class Module:
 
     @contextmanager
     def param_context(self, params: ParamType):
-        old_params, old_stack, old_counters = (
-            Module._current_params, Module._name_stack, Module._name_counters
-        )
+        old_params = Module._current_params
         Module._current_params = params
-        Module._name_stack = []
-        Module._name_counters = {}  # reset counters for each init/apply
         try:
             yield
         finally:
-            Module._current_params, Module._name_stack, Module._name_counters = (
-                old_params, old_stack, old_counters
-            )
+            Module._current_params = old_params
+
+    @contextmanager
+    def name_context(self):
+        Module._name_stack.append(self.name)
+        try:
+            yield
+        finally:
+            Module._name_stack.pop()
 
     @staticmethod
     def param(name: str, shape, dtype, init_fn, rng=None) -> LiteTensor:
@@ -52,12 +54,40 @@ class Module:
         raise NotImplementedError
 
     def init(self, x: LiteTensor, rng: RNGKey) -> ParamType:
+        # Save current state
+        old_stack = Module._name_stack.copy()
+        old_counters = Module._name_counters.copy()
+        
+        # Reset for this initialization
+        Module._name_stack = []
+        Module._name_counters = {}
+        
         params: ParamType = {}
         with self.param_context(params):
-            _ = self(x, rng)
+            with self.name_context():
+                _ = self(x, rng)
+        
+        # Restore previous state
+        Module._name_stack = old_stack
+        Module._name_counters = old_counters
+        
         return params
 
     def apply(self, params: ParamType, x: LiteTensor, rng: RNGKey, *args, **kwargs) -> LiteTensor:
+        # Save current state
+        old_stack = Module._name_stack.copy()
+        old_counters = Module._name_counters.copy()
+        
+        # Reset for this application
+        Module._name_stack = []
+        Module._name_counters = {}
+        
         with self.param_context(params):
-            return self(x, rng, *args, **kwargs)
-
+            with self.name_context():
+                result = self(x, rng, *args, **kwargs)
+        
+        # Restore previous state
+        Module._name_stack = old_stack
+        Module._name_counters = old_counters
+        
+        return result

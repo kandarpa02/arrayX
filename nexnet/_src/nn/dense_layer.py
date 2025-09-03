@@ -1,4 +1,4 @@
-import nexnet
+import nexnet as nx
 from typing import Any, Callable
 from nexnet._torch.random import RNGKey
 from nexnet._torch.lite_tensor import LiteTensor
@@ -16,20 +16,21 @@ class Dense(Module):
     def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
         in_features = x.shape[-1]
 
-        w = self.param(
-            f"{self.name}/weight",
-            (self.out_features, in_features),
-            x.dtype,
-            self.init_fn,
-            rng
-        )
+        with self.name_context():
+            w = self.param(
+                "weight",
+                (self.out_features, in_features),
+                x.dtype,
+                self.init_fn,
+                rng
+            )
 
-        b = self.param(
-            f"{self.name}/bias",
-            (self.out_features,),
-            x.dtype,
-            nexnet.zeros,
-            None
-        )
+            b = self.param(
+                "bias",
+                (self.out_features,),
+                x.dtype,
+                zero_init,
+                None
+            )
 
-        return nexnet.nn.linear(x, w, b, nonlin=self.nonlin)
+        return nx.nn.linear(x, w, b, nonlin=self.nonlin)
