@@ -12,13 +12,13 @@ with open("README.md", encoding="utf-8") as f:
 # Define Cython extension
 ext_modules = cythonize([
     Extension(
-        name="neo._src.autograd.GRAPH_MANAGER",
-        sources=["neo/_src/autograd/GRAPH_MANAGER.pyx"],
+        name="nexnet._src.autograd.GRAPH_MANAGER",
+        sources=["nexnet/_src/autograd/GRAPH_MANAGER.pyx"],
         language="c++",
     ),
     Extension(
-        name="neo._src.autograd.backward_loop",
-        sources=["neo/_src/autograd/backward_loop.pyx"],
+        name="nexnet._src.autograd.backward_loop",
+        sources=["nexnet/_src/autograd/backward_loop.pyx"],
         language="c++",
     ),
 ])
@@ -26,7 +26,7 @@ ext_modules = cythonize([
 
 # Setup configuration
 setup(
-    name="neonet",
+    name="nexnet",
     version="0.0.1a1",
     author="Kandarpa Sarkar",
     author_email="kandarpaexe@gmail.com",
