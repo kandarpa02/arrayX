@@ -1,4 +1,4 @@
-# *NEXnet*
+# *#NEXnet*
 
 
 **nexnet was built out of frustration with PyTorch’s `backward()` limitations and JAX’s compiler obsession.**
