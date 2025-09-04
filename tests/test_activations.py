@@ -59,12 +59,11 @@ def run_test(act_name, shape):
     def f(x, y): 
         return NEO_ACTS[act_name](x @ y).sum()
     xg, yg = nexnet.grad(f)([x_neo, y_neo])
-    xg, yg = xg._t, yg._t
 
     # Torch grads
     torch.set_grad_enabled(True)
-    x = x_neo._t.clone().requires_grad_()
-    y = y_neo._t.clone().requires_grad_()
+    x = x_neo.clone().requires_grad_()
+    y = y_neo.clone().requires_grad_()
     out = ACTIVATIONS[act_name](x @ y).sum()
     out.backward()
 

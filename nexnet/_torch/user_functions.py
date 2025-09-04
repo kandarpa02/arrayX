@@ -1,43 +1,32 @@
-from nexnet._torch.lite_tensor import LiteTensor
-from nexnet._torch import neolib
-from ._helper import _dtype, _device
-from nexnet._src.autograd.FUNCTION_REGISTER import Policy
-from nexnet.functions import function
+import torch
+from ._helper import _dtype, _device, _auto_device
 from nexnet._src.autograd.FUNCTION_REGISTER import Tracelet
 import torch
 from typing import Any
 import warnings
 
-def lite(data, dtype='', device=''):
-    warnings.warn(
-        "'neo.lite' is deprecated. Please use neo.Tensor instead.",
-        DeprecationWarning,
-        stacklevel=2 
-    )
-    return Tensor(data, dtype, device) 
 
+def tensor(data, dtype:torch.device|str|Any=None, device:torch.device|str|Any=None):
+    dtype = _dtype(dtype)
+    device = _auto_device() if device is None else _device(device)
+    return torch.as_tensor(data, dtype=dtype, device=device)
 
-def Tensor(data, dtype='', device=''):
-    data = data.data if isinstance(data, LiteTensor) else data
-    return LiteTensor(data=data, d_type=dtype, device=device)
-
-
-# === Tensor Constructors ===
+# === tensor Constructors ===
 
 def full(shape, fill_value, dtype:Any=''):
-    return Tensor(neolib.full(
+    return tensor(torch.full(
         shape, fill_value,
         dtype=_dtype(dtype) if dtype else None
     ).numpy())
 
 def ones(shape, dtype:Any=''):
-    return Tensor(neolib.ones(
+    return tensor(torch.ones(
         shape,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 def zeros(shape, dtype:Any=''):
-    return Tensor(neolib.zeros(
+    return tensor(torch.zeros(
         shape,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
@@ -47,13 +36,13 @@ def arange(start, end=None, step=1, dtype:Any='', device:Any=''):
     device = _device(device) if device else None
 
     if end is None:
-        return Tensor(neolib.arange(0, start, step, dtype=dtype, device=device))
+        return tensor(torch.arange(0, start, step, dtype=dtype, device=device))
     else:
-        return Tensor(neolib.arange(start, end, step, dtype=dtype, device=device))
+        return tensor(torch.arange(start, end, step, dtype=dtype, device=device))
 
 
 def empty(shape, dtype:Any=''):
-    return Tensor(neolib.empty(
+    return tensor(torch.empty(
         shape,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
@@ -62,38 +51,40 @@ def empty(shape, dtype:Any=''):
 # === _like Constructors ===
 
 def ones_like(x, dtype:Any=''):
-    return Tensor(neolib.ones_like(
+    return tensor(torch.ones_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 def zeros_like(x, dtype:Any=''):
-    return Tensor(neolib.zeros_like(
+    return tensor(torch.zeros_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 def empty_like(x, dtype:Any=''):
-    return Tensor(neolib.empty_like(
+    return tensor(torch.empty_like(
         x.data,
         dtype=_dtype(dtype) if dtype else None,
     ).numpy())
 
 
 def one_hot(x, num_classes):
-    return Tensor(neolib.nn.functional.one_hot(
+    return tensor(torch.nn.functional.one_hot(
         x.data,
         num_classes=num_classes
     ).cpu().numpy())
 
 # === Shape/View/Manipulation Ops ===
     
-def permute(x, *dims):
-    out = x.unary_op(lambda x: x.permute(*dims))
+from nexnet._src.autograd.FUNCTION_REGISTER import Tracelet
+import torch
 
-    def permute_backward(grad, dims=dims):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        # inverse permutation
+
+def permute(x, *dims):
+    out = x.permute(*dims)
+
+    def permute_backward(grad):
         inv_dims = [0] * len(dims)
         for i, d in enumerate(dims):
             inv_dims[d] = i
@@ -104,11 +95,11 @@ def permute(x, *dims):
 
     return out
 
+
 def transpose(x, dim0, dim1):
-    out = x.unary_op(lambda x: x.transpose(dim0, dim1))
+    out = x.transpose(dim0, dim1)
 
     def transpose_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
         return grad.transpose(dim0, dim1)
 
     with Tracelet() as t:
@@ -118,16 +109,12 @@ def transpose(x, dim0, dim1):
 
 
 def squeeze(x, dim=None):
-    out = x.unary_op(lambda x: x.squeeze(dim))
+    out = x.squeeze(dim)
 
     def squeeze_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
         if dim is None:
-            # expand all singleton dims
-            shape = [s if s != 1 else 1 for s in x.data.shape]
-            return grad.reshape(x.data.shape)
+            return grad.reshape(x.shape)
         else:
-            # expand only the specified dim
             shape = list(grad.shape)
             shape.insert(dim, 1)
             return grad.reshape(shape)
@@ -139,10 +126,9 @@ def squeeze(x, dim=None):
 
 
 def unsqueeze(x, dim):
-    out = x.unary_op(lambda x: x.unsqueeze(dim))
+    out = x.unsqueeze(dim)
 
     def unsqueeze_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
         return grad.squeeze(dim)
 
     with Tracelet() as t:
@@ -152,11 +138,10 @@ def unsqueeze(x, dim):
 
 
 def flatten(x, start_dim=0, end_dim=-1):
-    out = x.unary_op(lambda x: x.flatten(start_dim, end_dim))
+    out = x.flatten(start_dim, end_dim)
 
     def flatten_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        return grad.reshape(x.data.shape)
+        return grad.reshape(x.shape)
 
     with Tracelet() as t:
         t.register(out, (x,), flatten_backward)
@@ -165,11 +150,10 @@ def flatten(x, start_dim=0, end_dim=-1):
 
 
 def view(x, shape):
-    out = x.unary_op(lambda x: x.view(shape))
+    out = x.view(shape)
 
     def view_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        return grad.view(x.data.shape)
+        return grad.view(x.shape)
 
     with Tracelet() as t:
         t.register(out, (x,), view_backward)
@@ -178,14 +162,12 @@ def view(x, shape):
 
 
 def expand(x, shape):
-    out = x.unary_op(lambda x: x.expand(shape))
+    out = x.expand(shape)
 
     def expand_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        # sum over broadcasted dims
-        while len(grad.shape) > len(x.data.shape):
+        while len(grad.shape) > len(x.shape):
             grad = grad.sum(dim=0)
-        for i, (s_orig, s_new) in enumerate(zip(x.data.shape, grad.shape)):
+        for i, (s_orig, s_new) in enumerate(zip(x.shape, grad.shape)):
             if s_orig == 1 and s_new > 1:
                 grad = grad.sum(dim=i, keepdim=True)
         return grad
@@ -197,14 +179,10 @@ def expand(x, shape):
 
 
 def repeat(x, repeats):
-    out = x.unary_op(lambda x: x.repeat(repeats))
+    out = x.repeat(repeats)
 
     def repeat_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        # sum over repeated blocks
-        orig_shape = x.data.shape
-        repeated_shape = out.data.shape
-        # reshape grad to split repeated blocks
+        orig_shape = x.shape
         new_shape = []
         for s_orig, r in zip(orig_shape, repeats):
             new_shape.extend([r, s_orig])
@@ -220,11 +198,10 @@ def repeat(x, repeats):
 
 
 def cat(tensors, dim=0):
-    out = tensors[0].unary_op(lambda _: torch.cat([t.data for t in tensors], dim=dim))
+    out = torch.cat(tensors, dim=dim)
 
     def cat_backward(grad):
-        grad = torch.as_tensor(grad, dtype=tensors[0].data.dtype, device=tensors[0].data.device)
-        splits = [t.data.shape[dim] for t in tensors]
+        splits = [t.shape[dim] for t in tensors]
         return tuple(torch.split(grad, splits, dim=dim))
 
     with Tracelet() as t:
@@ -234,10 +211,9 @@ def cat(tensors, dim=0):
 
 
 def stack(tensors, dim=0):
-    out = tensors[0].unary_op(lambda _: torch.stack([t.data for t in tensors], dim=dim))
+    out = torch.stack(tensors, dim=dim)
 
     def stack_backward(grad):
-        grad = torch.as_tensor(grad, dtype=tensors[0].data.dtype, device=tensors[0].data.device)
         return tuple(grad.unbind(dim=dim))
 
     with Tracelet() as t:
@@ -247,11 +223,10 @@ def stack(tensors, dim=0):
 
 
 def argmax(x, dim=None, keepdim=False):
-    out = x.unary_op(lambda x: x.argmax(dim=dim, keepdim=keepdim))
+    out = x.argmax(dim=dim, keepdim=keepdim)
 
     def argmax_backward(grad):
-        # argmax is not differentiable; return zeros like PyTorch
-        return torch.zeros_like(x.data)
+        return torch.zeros_like(x)
 
     with Tracelet() as t:
         t.register(out, (x,), argmax_backward)
@@ -260,11 +235,10 @@ def argmax(x, dim=None, keepdim=False):
 
 
 def argmin(x, dim=None, keepdim=False):
-    out = x.unary_op(lambda x: x.argmin(dim=dim, keepdim=keepdim))
+    out = x.argmin(dim=dim, keepdim=keepdim)
 
     def argmin_backward(grad):
-        # argmin is not differentiable; return zeros like PyTorch
-        return torch.zeros_like(x.data)
+        return torch.zeros_like(x)
 
     with Tracelet() as t:
         t.register(out, (x,), argmin_backward)
@@ -272,16 +246,11 @@ def argmin(x, dim=None, keepdim=False):
     return out
 
 
-
-# USER FACING FUNCTIONS, CONTAINING FORWARD AND BACKWARD SUPPORT
-# THE POLICIES ARE WRITTEN ABOVE................................
-
 def reshape(x, shape):
-    out = x.unary_op(lambda x: x.reshape(shape))
+    out = x.reshape(shape)
 
     def reshape_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        return grad.reshape(x.data.shape)
+        return grad.reshape(x.shape)
 
     with Tracelet() as t:
         t.register(out, (x,), reshape_backward)
@@ -290,16 +259,13 @@ def reshape(x, shape):
 
 
 def maximum(x, y):
-    out = x.binary_op(y, lambda a, b: torch.maximum(a, b))
+    out = torch.maximum(x, y)
 
-    def maximum_backward(grad, x=x.data, y=y.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
+    def maximum_backward(grad):
         mask_x = (x >= y)
         mask_y = (x < y)
-
         grad_x = grad * mask_x.to(x.dtype)
         grad_y = grad * mask_y.to(y.dtype)
-
         return grad_x, grad_y
 
     with Tracelet() as t:
@@ -308,17 +274,15 @@ def maximum(x, y):
     return out
 
 
-
 def clamp(x, min=None, max=None):
-    out = x.unary_op(lambda x: x.clamp(min=min, max=max))
+    out = x.clamp(min=min, max=max)
 
     def clamp_backward(grad):
-        grad = torch.as_tensor(grad, dtype=x.data.dtype, device=x.data.device)
-        mask = torch.ones_like(x.data, dtype=x.data.dtype)
+        mask = torch.ones_like(x, dtype=x.dtype)
         if min is not None:
-            mask = mask * (x.data >= min)
+            mask = mask * (x >= min)
         if max is not None:
-            mask = mask * (x.data <= max)
+            mask = mask * (x <= max)
         return grad * mask
 
     with Tracelet() as t:

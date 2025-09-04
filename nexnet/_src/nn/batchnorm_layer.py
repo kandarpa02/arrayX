@@ -1,10 +1,11 @@
 from nexnet._src.nn.layers.base_module import Module
 from nexnet._src.nn.batchnorm_functional import (
-     batchnorm1d, 
-     batchnorm2d, 
-     batchnorm3d
+    batchnorm1d, 
+    batchnorm2d, 
+    batchnorm3d
 )
-from nexnet import LiteTensor, zeros, ones
+from nexnet import zeros, ones
+import torch
 
 
 class BatchNorm1D(Module):
@@ -14,11 +15,11 @@ class BatchNorm1D(Module):
         self.momentum = momentum
         self.eps = eps
 
-    def __call__(self, x: LiteTensor, rng, state=None, train: bool = True):
+    def __call__(self, x: torch.Tensor, rng=None, state=None, train: bool = True):
         with self.name_context():
             gamma = self.param("gamma", (self.num_features,), x.dtype, ones, None)
             beta = self.param("beta", (self.num_features,), x.dtype, zeros, None)
-            
+
         if state is None:
             state = {}
 
@@ -53,7 +54,7 @@ class BatchNorm2D(Module):
         self.momentum = momentum
         self.eps = eps
 
-    def __call__(self, x: LiteTensor, rng, state=None, train: bool = True):
+    def __call__(self, x: torch.Tensor, rng=None, state=None, train: bool = True):
         with self.name_context():
             gamma = self.param("gamma", (self.num_features,), x.dtype, ones, None)
             beta = self.param("beta", (self.num_features,), x.dtype, zeros, None)
@@ -92,7 +93,7 @@ class BatchNorm3D(Module):
         self.momentum = momentum
         self.eps = eps
 
-    def __call__(self, x: LiteTensor, rng, state=None, train: bool = True):
+    def __call__(self, x: torch.Tensor, rng=None, state=None, train: bool = True):
         with self.name_context():
             gamma = self.param("gamma", (self.num_features,), x.dtype, ones, None)
             beta = self.param("beta", (self.num_features,), x.dtype, zeros, None)

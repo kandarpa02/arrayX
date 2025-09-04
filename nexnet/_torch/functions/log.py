@@ -2,11 +2,10 @@ from nexnet._src.autograd.FUNCTION_REGISTER import Tracelet
 import torch
 
 def log(x):
-    out = x.unary_op(lambda x: x.log())
+    out = torch.log(x)
 
-    def log_backward(grad, x=x.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
-        return grad / x  
+    def log_backward(grad):
+        return grad / x
 
     with Tracelet() as t:
         t.register(out, (x,), log_backward)
@@ -15,11 +14,10 @@ def log(x):
 
 
 def log10(x):
-    out = x.unary_op(lambda x: x.log10())
+    out = torch.log10(x)
 
-    def log10_backward(grad, x=x.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
-        return grad / (x * torch.log(torch.tensor(10, dtype=x.dtype, device=x.device)))
+    def log10_backward(grad):
+        return grad / (x * torch.log(torch.tensor(10.0, dtype=x.dtype, device=x.device)))
 
     with Tracelet() as t:
         t.register(out, (x,), log10_backward)

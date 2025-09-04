@@ -1,17 +1,14 @@
-from nexnet.functions import function
 from nexnet._src.autograd.FUNCTION_REGISTER import Tracelet
 import torch
 
+
 def max(x, dim=None, keepdim=False):
-    out = x.unary_op(lambda x: x.amax(dim=dim, keepdim=keepdim))
+    out = x.amax(dim=dim, keepdim=keepdim)
 
-    def max_backward(grad, x=x.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
-
+    def max_backward(grad):
         # global max (no dim)
         if dim is None:
-            mask = (x == x.max())  # boolean mask where x equals max
-            # If multiple maxima exist, gradient is distributed equally
+            mask = (x == x.max())
             num_max = mask.sum()
             return grad * mask.to(x.dtype) / num_max
 
@@ -20,7 +17,6 @@ def max(x, dim=None, keepdim=False):
         nd = x.dim()
         dims = tuple(d if d >= 0 else d + nd for d in dims)
 
-        # Compute the max along the same dims
         max_vals = x.amax(dim=dims, keepdim=True)
         mask = (x == max_vals)
 
@@ -36,12 +32,11 @@ def max(x, dim=None, keepdim=False):
 
     return out
 
-       
-def mean(x, dim=None, keepdim=False):
-    out = x.unary_op(lambda x: x.mean(dim=dim, keepdim=keepdim))
-    def mean_backward(grad, x=x.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
 
+def mean(x, dim=None, keepdim=False):
+    out = x.mean(dim=dim, keepdim=keepdim)
+
+    def mean_backward(grad):
         if dim is None:
             denom = x.numel()
             return grad * torch.ones_like(x) / denom
@@ -59,20 +54,18 @@ def mean(x, dim=None, keepdim=False):
                 grad = grad.unsqueeze(d)
 
         return grad.expand_as(x) / float(count)
-    
+
     with Tracelet() as t:
         t.register(out, (x,), mean_backward)
-    
+
     return out
 
 
 def sum(x, dim=None, keepdim=False):
-    out = x.unary_op(lambda x: x.sum(dim=dim, keepdim=keepdim))
-    def sum_backward(grad, x=x.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
+    out = x.sum(dim=dim, keepdim=keepdim)
 
+    def sum_backward(grad):
         if dim is None:
-            # scalar output, so grad should be scalar
             return grad * torch.ones_like(x)
 
         dims = (dim,) if isinstance(dim, int) else tuple(dim)
@@ -84,8 +77,8 @@ def sum(x, dim=None, keepdim=False):
                 grad = grad.unsqueeze(d)
 
         return grad.expand_as(x)
-    
+
     with Tracelet() as t:
         t.register(out, (x,), sum_backward)
-    
+
     return out

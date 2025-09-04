@@ -1,9 +1,9 @@
-from typing import Dict
+from typing import Dict, Any
 from contextlib import contextmanager
-from nexnet._torch.lite_tensor import LiteTensor
 from nexnet._torch.random import RNGKey
+import torch
 
-ParamType = Dict[str, LiteTensor]
+ParamType = Dict[str, torch.Tensor]
 
 
 class Module:
@@ -21,7 +21,6 @@ class Module:
                 name = f"{cls_name}_{count}"
                 Module._name_counters[cls_name] = count + 1
         self.name = name
-
 
     @contextmanager
     def param_context(self, params: ParamType):
@@ -41,7 +40,7 @@ class Module:
             Module._name_stack.pop()
 
     @staticmethod
-    def param(name: str, shape, dtype, init_fn, rng=None) -> LiteTensor:
+    def param(name: str, shape, dtype, init_fn, rng: RNGKey|Any = None) -> torch.Tensor:
         if Module._current_params is None:
             raise RuntimeError("No param context active.")
         prefix = "/".join(Module._name_stack) if Module._name_stack else ""
@@ -54,10 +53,10 @@ class Module:
             )
         return Module._current_params[full_name]
 
-    def __call__(self, x: LiteTensor, rng: RNGKey) -> LiteTensor:
+    def __call__(self, x: torch.Tensor, rng: RNGKey) -> torch.Tensor:
         raise NotImplementedError
 
-    def init(self, x: LiteTensor, rng: RNGKey) -> ParamType:
+    def init(self, x: torch.Tensor, rng: RNGKey) -> ParamType:
         # Save current state
         old_stack = Module._name_stack.copy()
         old_counters = Module._name_counters.copy()
@@ -77,7 +76,7 @@ class Module:
         
         return params
 
-    def apply(self, params: ParamType, x: LiteTensor, rng: RNGKey, *args, **kwargs) -> LiteTensor:
+    def apply(self, params: ParamType, x: torch.Tensor, rng: RNGKey, *args, **kwargs) -> torch.Tensor:
         # Save current state
         old_stack = Module._name_stack.copy()
         old_counters = Module._name_counters.copy()

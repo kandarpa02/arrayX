@@ -1,13 +1,13 @@
 import torch
 
-def _device(arg):
+def _device(arg)-> torch.device|None:
     """Ensure argument is a torch.device"""
     if arg is None: return None
     if isinstance(arg, torch.device): return arg
     if isinstance(arg, str): return torch.device(arg)
     raise TypeError(f"Invalid device: {arg}")
 
-def _auto_device():
+def _auto_device()-> torch.device:
     """Pick CUDA if available, else CPU. Only called on tensor creation."""
     try:
         if torch.cuda.is_available():
@@ -16,7 +16,7 @@ def _auto_device():
         pass
     return torch.device("cpu")
 
-def _dtype(arg):
+def _dtype(arg)-> torch.dtype|None:
     """Ensure argument is torch.dtype"""
     if arg is None: return None
     if isinstance(arg, torch.dtype): return arg

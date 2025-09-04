@@ -1,6 +1,5 @@
 import time
-from .user_functions import lite
-from nexnet._torch import neolib
+import torch
 from ._helper import _device, _dtype, _auto_device
 from typing import Any
 import torch
@@ -33,51 +32,54 @@ def _resolve_generator(key=None):
 
 
 def rand(shape, dtype: Any = '', key=None):
-    return lite(neolib.rand(
+    out = torch.rand(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         generator=_resolve_generator(key)
-    ).numpy())
+    ).numpy()
+    return torch.as_tensor(out, device=_auto_device())
 
 
 def randn(shape, dtype: Any = '', key=None):
-    return lite(neolib.randn(
+    out = torch.randn(
         shape,
         dtype=_dtype(dtype) if dtype else None,
         generator=_resolve_generator(key)
-    ).numpy())
+    ).numpy()
+    return torch.as_tensor(out, device=_auto_device())
 
 
 def randint(low, high, size, dtype: Any = '', key=None):
-    return lite(neolib.randint(
+    out = torch.randint(
         low, high, size,
         dtype=_dtype(dtype) if dtype else None,
         generator=_resolve_generator(key)
-    ).numpy())
+    ).numpy()
+    return torch.as_tensor(out, device=_auto_device())
 
 
 def randperm(n, dtype: Any = '', key=None):
-    return lite(neolib.randperm(
+    out = torch.randperm(
         n,
         dtype=_dtype(dtype) if dtype else None,
         generator=_resolve_generator(key)
-    ).numpy())
+    ).numpy()
+    return torch.as_tensor(out, device=_auto_device())
 
 
 def normal(mean=0.0, std=1.0, size=(), dtype: Any = '', key=None):
-    return lite(neolib.normal(
+    out = torch.normal(
         mean, std, size=size,
         dtype=_dtype(dtype) if dtype else None,
         generator=_resolve_generator(key)
-    ).numpy())
+    ).numpy()
+    return torch.as_tensor(out, device=_auto_device())
 
 
 def uniform(low=0.0, high=1.0, size=(), dtype: Any = '', key=None):
-    gen = _resolve_generator(key)
-    return lite(
-        (high - low) * neolib.rand(
-            size,
-            dtype=_dtype(dtype) if dtype else None,
-            generator=gen
-        ).numpy() + low
-    )
+    out = (high - low) * torch.rand(
+        size,
+        dtype=_dtype(dtype) if dtype else None,
+        generator=_resolve_generator(key)
+    ).numpy() + low
+    return torch.as_tensor(out, device=_auto_device())

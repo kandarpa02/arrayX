@@ -7,10 +7,14 @@ from nexnet._torch.random import *
 from nexnet._torch import neolib
 from nexnet._src._extras import save, load
 
+from nexnet import experimental as _exp
+experimental = _exp
+
 from nexnet._src import nn
 from nexnet._src.nn import (
     dense_layer, 
     conv_layer,
+    attention_layer,
 
     avg_pool1d,
     avg_pool2d,
@@ -28,9 +32,12 @@ from nexnet._src.nn import (
 
 # Layers
 Dense = dense_layer.Dense
+
 Conv1D = conv_layer.Conv1D
 Conv2D = conv_layer.Conv2D
 Conv3D = conv_layer.Conv3D
+
+MultiHeadAttention = attention_layer.MultiHeadAttention
 
 # Activations
 from nexnet._src.nn._activations import *
@@ -49,8 +56,6 @@ from nexnet._src.autograd.backward_utility import (
             GraphContext as _gctx
         )
 
-from nexnet._src.autograd._backward_utility_static import StaticGraphBuilder as _sgb
-from nexnet._src.autograd.define_then_run import Variable as var, Constant as cnst, Symbol as sym, run_graph as r_g, eval_graph as e_g
 from nexnet._src.autograd.FUNCTION_REGISTER import Policy as _policy, Tracelet as _tracelet, custom_grad as _cstm_grad
 
 
@@ -60,11 +65,6 @@ grad = _g
 GraphContext = _gctx
 # StaticGraphBuilder = _sgb
 
-Variable = var
-Constant = cnst
-Symbol = sym
-run_graph = r_g
-eval_graph = e_g
 
 Policy = _policy
 Tracelet = _tracelet
@@ -92,3 +92,15 @@ class record_tape:
             yield
         finally:
             record_tape.enabled = old
+
+def tape_enabled():
+    return record_tape.is_enabled()
+
+@contextmanager
+def no_grad():
+    old = record_tape.enabled
+    record_tape.enabled = False
+    try:
+        yield
+    finally:
+        record_tape.enabled = old

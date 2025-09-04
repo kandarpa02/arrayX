@@ -1,11 +1,11 @@
 from nexnet._src.autograd.FUNCTION_REGISTER import Tracelet
 import torch
 
-def abs(x):
-    out = x.unary_op(lambda x: x.abs())
 
-    def abs_backward(grad, x=x.data):
-        grad = torch.as_tensor(grad, dtype=x.dtype, device=x.device)
+def abs(x):
+    out = x.abs()
+
+    def abs_backward(grad):
         return grad * x.sign()
 
     with Tracelet() as t:
@@ -15,9 +15,9 @@ def abs(x):
 
 
 def sign(x):
-    out = x.unary_op(lambda x: x.sign())
+    out = x.sign()
 
-    def sign_backward(grad, x=x.data):
+    def sign_backward(grad):
         # sign has zero derivative almost everywhere
         return torch.zeros_like(x)
 
@@ -28,11 +28,10 @@ def sign(x):
 
 
 def exp(x):
-    out = x.unary_op(lambda x: x.exp())
+    out = x.exp()
 
-    def exp_backward(grad, out=out.data):
-        grad = torch.as_tensor(grad, dtype=out.dtype, device=out.device)
-        return grad * out   # derivative of exp is exp(x), already computed in out
+    def exp_backward(grad):
+        return grad * out  # derivative of exp is exp(x), already computed in out
 
     with Tracelet() as t:
         t.register(out, (x,), exp_backward)
@@ -41,10 +40,9 @@ def exp(x):
 
 
 def sqrt(x):
-    out = x.unary_op(lambda x: x.sqrt())
+    out = x.sqrt()
 
-    def sqrt_backward(grad, x=x.data, out=out.data):
-        grad = torch.as_tensor(grad, dtype=out.dtype, device=out.device)
+    def sqrt_backward(grad):
         return grad * 0.5 / out  # d/dx sqrt(x) = 1 / (2 * sqrt(x))
 
     with Tracelet() as t:
