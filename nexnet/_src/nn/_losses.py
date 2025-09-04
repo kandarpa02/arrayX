@@ -14,16 +14,16 @@ def _cce(x: torch.Tensor, target: torch.Tensor, reduction="mean", label_smoothin
             x, target, None, reduction_enum, -100, label_smoothing
         )
 
-        def backward(grad_out, x=x, target=target):
+        def backward(grad, x=x, target=target):
             probs = torch.ops.aten.softmax(x, dim=-1)
             target_onehot = torch.nn.functional.one_hot(target, num_classes=x.size(-1)).to(x.dtype)
             grad_input = probs - target_onehot
             if reduction == "mean":
-                grad_input = grad_input * (grad_out / x.size(0))
+                grad_input = grad_input * (grad / x.size(0))
             elif reduction == "sum":
-                grad_input = grad_input * grad_out
+                grad_input = grad_input * grad
             else:
-                grad_input = grad_input * grad_out.unsqueeze(-1)
+                grad_input = grad_input * grad.unsqueeze(-1)
             return grad_input, None
 
     else:
@@ -35,14 +35,14 @@ def _cce(x: torch.Tensor, target: torch.Tensor, reduction="mean", label_smoothin
         elif reduction == "sum":
             loss = loss.sum()
 
-        def backward(grad_out, x=x, target=target):
+        def backward(grad, x=x, target=target):
             grad_input = torch.ops.aten.softmax(x, dim=-1) - target
             if reduction == "mean":
-                grad_input = grad_input * (grad_out / x.size(0))
+                grad_input = grad_input * (grad / x.size(0))
             elif reduction == "sum":
-                grad_input = grad_input * grad_out
+                grad_input = grad_input * grad
             else:
-                grad_input = grad_input * grad_out.unsqueeze(-1)
+                grad_input = grad_input * grad.unsqueeze(-1)
             return grad_input, None
 
     return loss, (x, target), backward
@@ -60,16 +60,16 @@ def _softmax_cce(x: torch.Tensor, target: torch.Tensor, reduction="mean", sparse
     if sparse:
         loss = torch.ops.aten.cross_entropy_loss(x, target, None, reduction_enum, -100, 0.0)
 
-        def backward(grad_out, x=x, target=target):
+        def backward(grad, x=x, target=target):
             probs = torch.ops.aten.softmax(x, dim=-1)
             target_onehot = torch.nn.functional.one_hot(target, num_classes=x.size(-1)).to(x.dtype)
             grad_input = probs - target_onehot
             if reduction == "mean":
-                grad_input = grad_input * (grad_out / x.size(0))
+                grad_input = grad_input * (grad / x.size(0))
             elif reduction == "sum":
-                grad_input = grad_input * grad_out
+                grad_input = grad_input * grad
             else:
-                grad_input = grad_input * grad_out.unsqueeze(-1)
+                grad_input = grad_input * grad.unsqueeze(-1)
             return grad_input, None
 
     else:
@@ -80,14 +80,14 @@ def _softmax_cce(x: torch.Tensor, target: torch.Tensor, reduction="mean", sparse
         elif reduction == "sum":
             loss = loss.sum()
 
-        def backward(grad_out, probs=probs, target=target):
+        def backward(grad, probs=probs, target=target):
             grad_input = probs - target
             if reduction == "mean":
-                grad_input = grad_input * (grad_out / probs.size(0))
+                grad_input = grad_input * (grad / probs.size(0))
             elif reduction == "sum":
-                grad_input = grad_input * grad_out
+                grad_input = grad_input * grad
             else:
-                grad_input = grad_input * grad_out.unsqueeze(-1)
+                grad_input = grad_input * grad.unsqueeze(-1)
             return grad_input, None
 
     return loss, (x, target), backward
