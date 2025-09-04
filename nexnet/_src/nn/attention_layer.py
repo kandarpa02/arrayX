@@ -18,12 +18,13 @@ class MultiHeadAttention(Module):
         q_vector: torch.Tensor,
         k_vector: torch.Tensor,
         v_vector: torch.Tensor,
-        rng: Callable,
+        rng: nx.RNGKey,
         mask: bool = False,
         deterministic: bool = False
     ) -> torch.Tensor:
+        rng = iter(rng.split(4))
 
-        shape = [q_vector.shape[-2], q_vector.shape[-1]]
+        shape = [q_vector.shape[-1], q_vector.shape[-1]]
         dtype = q_vector.dtype
 
         with self.name_context():
@@ -33,7 +34,7 @@ class MultiHeadAttention(Module):
                 shape=shape,
                 dtype=dtype,
                 init_fn=self.init_fn,
-                rng=rng
+                rng=next(rng)
             )
 
             kw = self.param(
@@ -41,7 +42,7 @@ class MultiHeadAttention(Module):
                 shape=shape,
                 dtype=dtype,
                 init_fn=self.init_fn,
-                rng=rng
+                rng=next(rng)
             )
 
             vw = self.param(
@@ -49,7 +50,7 @@ class MultiHeadAttention(Module):
                 shape=shape,
                 dtype=dtype,
                 init_fn=self.init_fn,
-                rng=rng
+                rng=next(rng)
             )
 
             ow = self.param(
@@ -57,7 +58,7 @@ class MultiHeadAttention(Module):
                 shape=shape,
                 dtype=dtype,
                 init_fn=self.init_fn,
-                rng=rng
+                rng=next(rng)
             )
 
         return multi_head_attention(

@@ -5,7 +5,7 @@ from torch import Tensor
 from nexnet._src.autograd.GRAPH_MANAGER import Node, TapeContext
 import nexnet as nx
 
-@torch.jit.script
+# @torch.jit.script
 def attn_func_fwd(
     q_vector: Tensor, 
     k_vector: Tensor, 
@@ -55,7 +55,7 @@ def attn_func_fwd(
     return (out, query, key, value, weights, attended_heads_merged, dropout_mask)
 
 
-@torch.jit.script
+# @torch.jit.script
 def attn_func_bwd(
     grad: Tensor, 
     q_vector: Tensor, 

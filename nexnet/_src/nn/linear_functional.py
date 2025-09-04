@@ -110,5 +110,5 @@ def linear(x: torch.Tensor, w: torch.Tensor, b: torch.Tensor, nonlin: Any | str 
 
     if _fn is None:
         raise NotImplementedError(f"[{nonlin}] has not been implemented yet")
-
+    
     return _fn(x, w, b)

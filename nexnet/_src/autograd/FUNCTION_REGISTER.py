@@ -81,8 +81,10 @@ class Tracelet:
         self.parents = None
         self.backward = None
 
+
+from torch import Tensor
 def custom_grad(fn:Callable):
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Tensor:
         from nexnet._src.autograd import Node, TapeContext
         from nexnet import record_tape as rt
         out, parents, grad_fn = fn(*args, **kwargs)
