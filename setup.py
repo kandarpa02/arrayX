@@ -26,14 +26,14 @@ ext_modules = cythonize([
 
 # Setup configuration
 setup(
-    name="nexnet",
+    name="xtorch",
     version="0.0.1a1",
     author="Kandarpa Sarkar",
     author_email="kandarpaexe@gmail.com",
     description="An autodiff library for personal use",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/kandarpa02/NEONet.git",
+    url="https://github.com/kandarpa02/xtorch.git",
     packages=find_packages(),
     ext_modules=ext_modules,
     python_requires=">=3.8",
