@@ -1,7 +1,7 @@
-from .core.tensor import DeviceBuffer, NumericObject
+from .core.Array import ArrayImpl, NumericObject
 from typing import Protocol, runtime_checkable
 
-class Tensor(Protocol):
+class Array(Protocol):
     def __init__(self, data: NumericObject) -> None:
         ...
 
@@ -9,5 +9,5 @@ class Tensor(Protocol):
     def _rawbuffer(self) -> NumericObject:
         ...
 
-    def __add__(self, other) -> DeviceBuffer:
+    def __add__(self, other) -> ArrayImpl:
         ...

@@ -1,1 +1,1 @@
-from .typing import Tensor
+from .typing import Array
