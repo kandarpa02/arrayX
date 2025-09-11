@@ -21,11 +21,14 @@ class ArrayStorage:
         self._rawbuffer = data._rawbuffer if isinstance(data, ArrayStorage) else data
 
     def __repr__(self):
-        out = np.array2string(self._rawbuffer)
+        out = np.array2string(self._rawbuffer, prefix='array(')
         return f'array({out})'
 
     def __str__(self):
         return str(self._rawbuffer)
+    
+    def __getitem__(self, i):
+        return ArrayStorage(self._rawbuffer[i])
 
     def numpy(self):
         return self._rawbuffer
