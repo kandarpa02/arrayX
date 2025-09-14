@@ -1,4 +1,7 @@
-## ArrayX: for lightning fast numerical computing
+## *#ArrayX*
+***for lightning fast numerical computing***
+
+---
 
 Neural Networks are fun right? Like you just write some fancy stuff and it can tell what digit is written on the image, not only that, it can classify audio, video, text and many more!
 
@@ -23,3 +26,4 @@ d3x:  6.0
 
 ```
 
+---
