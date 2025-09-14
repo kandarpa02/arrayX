@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Set
 import numpy as np
 from arrx.core.Array import ArrayImpl, shift
 
@@ -39,7 +39,7 @@ def backward(out, initial_grad=None):
     return grads
 
 
-def grad(fn, order=1):
+def grad(fn, order=1, last_node=-1):
     def wrapper(*args):
         for x in args:
             buf = x._rawbuffer
@@ -52,7 +52,10 @@ def grad(fn, order=1):
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
         args = [shift(arg) for arg in args]
-        out = fn(*args)
+
+        _out = fn(*args)
+        out = _out[last_node] if isinstance(_out, tuple) else _out
+
         grads = backward(out)
         # Return gradients for each input argument
         out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
@@ -63,3 +66,28 @@ def grad(fn, order=1):
         for _ in range(order-1):
             wrapper = grad(wrapper)
         return wrapper
+
+
+def value_and_grad(fn, last_node=-1):
+    def wrapper(*args):
+        for x in args:
+            buf = x._rawbuffer
+            if isinstance(buf, float):
+                continue
+            if isinstance(buf, np.ndarray) and np.issubdtype(buf.dtype, np.floating):
+                continue
+            if isinstance(buf, np.generic) and np.issubdtype(buf.dtype, np.floating):
+                continue
+            raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
+
+        args = [shift(arg) for arg in args]
+
+        _out = fn(*args)
+        out = _out[last_node] if isinstance(_out, tuple) else _out
+
+        grads = backward(out)
+        # Return gradients for each input argument
+        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
+        return _out, out_grads[0] if len(out_grads) == 1 else out_grads
+    
+    return wrapper

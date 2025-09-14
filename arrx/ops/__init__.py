@@ -1,4 +1,5 @@
 from ..core.Array import ArrayImpl
+from .basic_math import log, log10
 
 def sum(array: 'ArrayImpl', axis=None, keepdims=False):
     """

@@ -154,29 +154,36 @@ class ArrayImpl(ArrayStorage):
         return out
 
     def __pow__(self, other):
+        from ..ops import log
         other = shift(other)
         out = ArrayImpl(self._rawbuffer ** other._rawbuffer, parents=(self, other))
 
         def _grad_pow(grad):
-            g1 = _unbroadcast(grad * other * self._rawbuffer ** (other._rawbuffer - 1), self._rawbuffer.shape)
-            g2 = _unbroadcast(grad * self._rawbuffer ** other._rawbuffer * np.log(self._rawbuffer + 1e-12), other._rawbuffer.shape)
+            g1 = _unbroadcast(grad * other * self ** (other - 1), self._rawbuffer.shape)
+            g2 = _unbroadcast(grad * self ** other * log(self + 1e-12), other._rawbuffer.shape)
             return g1, g2
 
         out.bwd_fn = _grad_pow
         return out
 
     def __rpow__(self, other):
+        from ..ops import log
         other = shift(other)
         out = ArrayImpl(other._rawbuffer ** self._rawbuffer, parents=(other, self))
 
         def _grad_rpow(grad):
-            g1 = _unbroadcast(grad * self._rawbuffer * other._rawbuffer ** (self._rawbuffer - 1), other._rawbuffer.shape)
-            g2 = _unbroadcast(grad * np.log(other._rawbuffer + 1e-12) * other._rawbuffer ** self._rawbuffer, self._rawbuffer.shape)
+            g1 = _unbroadcast(grad * self * other ** (self - 1), other._rawbuffer.shape)
+            g2 = _unbroadcast(grad * log(other + 1e-12) * other ** self, self._rawbuffer.shape)
             return g1, g2
 
         out.bwd_fn = _grad_rpow
         return out
-
+    
+    def __neg__(self):
+        _x = self._rawbuffer
+        self._rawbuffer = -_x
+        return self
+    
     # Reduction operations
     def sum(self, axis=None, keepdims=False):
         out = ArrayImpl(self._rawbuffer.sum(axis=axis, keepdims=keepdims), parents=(self,))
