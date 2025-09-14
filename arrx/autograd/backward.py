@@ -38,28 +38,30 @@ def backward(out, initial_grad=None):
 
     return grads
 
-
+def is_float_buffer(buf):
+    if isinstance(buf, float):
+        return True
+    try:
+        return buf.dtype.kind == 'f'
+    except AttributeError:
+        return False
+    
 def grad(fn, order=1, last_node=-1):
     def wrapper(*args):
         for x in args:
             buf = x._rawbuffer
-            if isinstance(buf, float):
+            if is_float_buffer(buf):
                 continue
-            if isinstance(buf, lib.ndarray) and lib.issubdtype(buf.dtype, lib.floating):
-                continue
-            if isinstance(buf, lib.generic) and lib.issubdtype(buf.dtype, lib.floating):
-                continue
-            raise TypeError(f"grad requires only float ilibuts, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
+            raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
         args = [shift(arg) for arg in args]
-
         _out = fn(*args)
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
         grads = backward(out)
-        # Return gradients for each ilibut argument
         out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
         return out_grads[0] if len(out_grads) == 1 else out_grads
+
     if order == 1:
         return wrapper
     else:
@@ -68,17 +70,14 @@ def grad(fn, order=1, last_node=-1):
         return wrapper
 
 
+
 def value_and_grad(fn, last_node=-1):
     def wrapper(*args):
         for x in args:
             buf = x._rawbuffer
-            if isinstance(buf, float):
+            if is_float_buffer(buf):
                 continue
-            if isinstance(buf, lib.ndarray) and lib.issubdtype(buf.dtype, lib.floating):
-                continue
-            if isinstance(buf, lib.generic) and lib.issubdtype(buf.dtype, lib.floating):
-                continue
-            raise TypeError(f"grad requires only float ilibuts, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
+            raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
         args = [shift(arg) for arg in args]
 
