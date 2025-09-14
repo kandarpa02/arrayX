@@ -1,1 +1,1 @@
-# ArrX
+# ArrayX
