@@ -1,5 +1,5 @@
-## *#ArrayX*
-***for lightning fast numerical computing***
+## ArrayX - for lightning fast numerical computing
+
 
 ---
 
