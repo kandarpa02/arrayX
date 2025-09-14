@@ -186,7 +186,7 @@ class ArrayImpl(ArrayStorage):
     def __matmul__(self, other):
         out = ArrayImpl(self._rawbuffer @ other._rawbuffer, parents=(self, other))
 
-        def grad_matmul(grad):
+        def _grad_matmul(grad):
             a = self
             b = other
 
@@ -209,7 +209,7 @@ class ArrayImpl(ArrayStorage):
             return ArrayImpl(grad_a), ArrayImpl(grad_b)
 
     
-        out.bwd_fn = grad_matmul
+        out.bwd_fn = _grad_matmul
         return out
 
     
