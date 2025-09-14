@@ -1,39 +1,15 @@
 from setuptools import setup, find_packages, Extension
-from Cython.Build import cythonize
-
-# Load dependencies from requirements.txt
-# with open("requirements.txt") as f:
-#     requirements = f.read().splitlines()
-
-# Load long description from README.md
-with open("README.md", encoding="utf-8") as f:
-    long_description = f.read()
-
-# Define Cython extension
-ext_modules = cythonize([
-    Extension(
-        name="nexnet._src.autograd.GRAPH_MANAGER",
-        sources=["nexnet/_src/autograd/GRAPH_MANAGER.pyx"],
-        language="c++",
-    ),
-    Extension(
-        name="nexnet._src.autograd.backward_loop",
-        sources=["nexnet/_src/autograd/backward_loop.pyx"],
-        language="c++",
-    ),
-])
-
 
 # Setup configuration
 setup(
-    name="xtorch",
+    name="ArrayX",
     version="0.0.1a1",
     author="Kandarpa Sarkar",
     author_email="kandarpaexe@gmail.com",
     description="An autodiff library for personal use",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/kandarpa02/xtorch.git",
+    url="https://github.com/kandarpa02/ArrayX.git",
     packages=find_packages(),
     ext_modules=ext_modules,
     python_requires=">=3.8",
