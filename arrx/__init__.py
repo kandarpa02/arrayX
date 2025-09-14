@@ -1,3 +1,7 @@
+# Device init
+from .backend import Backend
+lib = Backend.initate()
+
 from typing import Union
 from .autograd.backward import grad as _grad, value_and_grad as _vag
 
@@ -11,7 +15,7 @@ NumericObject = Union[np.ndarray, int, float]
 def array(_x:NumericObject):
     from .core.Array import ArrayImpl
     import numpy
-    return ArrayImpl(numpy.array(_x))
+    return ArrayImpl(lib.array(_x))
 
 from .autograd.utils import custom_grad
 from .ops import *

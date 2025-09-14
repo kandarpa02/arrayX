@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional, Callable
 from numpy.typing import NDArray
 from dataclasses import dataclass
-import numpy as np
+from arrx import lib
 
 NumericObject = NDArray
 
@@ -11,7 +11,7 @@ def shift(data):
     if isinstance(data, ArrayStorage):
         return ArrayImpl(data)
     # If scalar or array, wrap as ArrayStorage then as ArrayImpl
-    return ArrayImpl(ArrayStorage(np.array(data)), parents=(), bwd_fn=None)
+    return ArrayImpl(ArrayStorage(lib.array(data)), parents=(), bwd_fn=None)
 
 
 def _unbroadcast(grad, shape: Tuple[int, ...]):
@@ -39,7 +39,7 @@ class ArrayStorage:
         self._rawbuffer = data._rawbuffer if isinstance(data, ArrayStorage) else data
 
     def __repr__(self):
-        out = np.array2string(self._rawbuffer, prefix='array(')
+        out = lib.array2string(self._rawbuffer, prefix='array(')
         return f'array({out})'
 
     def __str__(self):
@@ -201,7 +201,7 @@ class ArrayImpl(ArrayStorage):
                         shape[ax] = 1
                 grad_expanded = grad._rawbuffer.reshape(shape)
             
-            grad_broadcasted = np.broadcast_to(grad_expanded, self._rawbuffer.shape)
+            grad_broadcasted = lib.broadcast_to(grad_expanded, self._rawbuffer.shape)
             return (ArrayImpl(grad_broadcasted),)
 
         out.bwd_fn = _grad_sum
@@ -216,12 +216,12 @@ class ArrayImpl(ArrayStorage):
                 shape = [1] * self._rawbuffer.ndim
             else:
                 axes = axis if isinstance(axis, tuple) else (axis,)
-                n = np.prod([self._rawbuffer.shape[ax] for ax in axes])
+                n = lib.prod([self._rawbuffer.shape[ax] for ax in axes])
                 shape = list(self._rawbuffer.shape)
                 for ax in axes:
                     shape[ax] = 1
             grad_expanded = grad._rawbuffer.reshape(shape if not keepdims else grad._rawbuffer.shape)
-            grad_broadcasted = np.broadcast_to(grad_expanded / n, self._rawbuffer.shape)
+            grad_broadcasted = lib.broadcast_to(grad_expanded / n, self._rawbuffer.shape)
             return (ArrayImpl(grad_broadcasted),)
 
         out.bwd_fn = _grad_mean
@@ -238,7 +238,7 @@ class ArrayImpl(ArrayStorage):
                 shape = [1] * self._rawbuffer.ndim
             else:
                 axes = axis if isinstance(axis, tuple) else (axis,)
-                n = np.prod([self._rawbuffer.shape[ax] for ax in axes])
+                n = lib.prod([self._rawbuffer.shape[ax] for ax in axes])
                 shape = list(self._rawbuffer.shape)
                 for ax in axes:
                     shape[ax] = 1
@@ -248,7 +248,7 @@ class ArrayImpl(ArrayStorage):
             
             # Reshape grad if keepdims is False
             grad_expanded = grad._rawbuffer.reshape(shape if not keepdims else grad._rawbuffer.shape)
-            grad_broadcasted = np.broadcast_to(grad_expanded, self._rawbuffer.shape)
+            grad_broadcasted = lib.broadcast_to(grad_expanded, self._rawbuffer.shape)
             
             # Gradient formula
             grad_final = (2 / n) * (self._rawbuffer - mean) * grad_broadcasted
@@ -275,7 +275,7 @@ class ArrayImpl(ArrayStorage):
         out = ArrayImpl(self._rawbuffer.transpose(axes), parents=(self,))
 
         def _grad_transpose(grad):
-            axes_rev = tuple(np.argsort(axes))
+            axes_rev = tuple(lib.argsort(axes))
             return (ArrayImpl(grad._rawbuffer.transpose(axes_rev)),)
 
         out.bwd_fn = _grad_transpose
@@ -286,7 +286,7 @@ class ArrayImpl(ArrayStorage):
         out = ArrayImpl(self._rawbuffer.max(axis=axis, keepdims=keepdims), parents=(self,))
 
         def _grad_max(grad):
-            # Expand grad to input shape if keepdims is False
+            # Expand grad to ilibut shape if keepdims is False
             if keepdims:
                 grad_expanded = grad._rawbuffer
             else:
@@ -299,7 +299,7 @@ class ArrayImpl(ArrayStorage):
                         shape[ax] = 1
                 grad_expanded = grad._rawbuffer.reshape(shape)
 
-            grad_broadcasted = np.broadcast_to(grad_expanded, self._rawbuffer.shape)
+            grad_broadcasted = lib.broadcast_to(grad_expanded, self._rawbuffer.shape)
             if axis is None:
                 mask = (self._rawbuffer == out._rawbuffer)
             else:
@@ -335,7 +335,7 @@ class ArrayImpl(ArrayStorage):
                         shape[ax] = 1
                 grad_expanded = grad._rawbuffer.reshape(shape)
 
-            grad_broadcasted = np.broadcast_to(grad_expanded, self._rawbuffer.shape)
+            grad_broadcasted = lib.broadcast_to(grad_expanded, self._rawbuffer.shape)
             if axis is None:
                 mask = (self._rawbuffer == out._rawbuffer)
             else:
@@ -355,10 +355,10 @@ class ArrayImpl(ArrayStorage):
         return out
 
     def ones_like(self):
-        return ArrayImpl(np.ones_like(self._rawbuffer))
+        return ArrayImpl(lib.ones_like(self._rawbuffer))
 
     def zero_like(self):
-        return ArrayImpl(np.zeros_like(self._rawbuffer))
+        return ArrayImpl(lib.zeros_like(self._rawbuffer))
 
     def numpy(self):
         return self._rawbuffer
