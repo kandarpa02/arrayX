@@ -1,6 +1,6 @@
 from typing import Callable
 import numpy as np
-from xtorch.core.Array import ArrayImpl, shift
+from arrx.core.Array import ArrayImpl, shift
 
 def backward(out, initial_grad=None):
     # Step 0: initialize gradient dict
