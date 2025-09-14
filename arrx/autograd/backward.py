@@ -38,6 +38,7 @@ def backward(out, initial_grad=None):
 
     return grads
 
+
 def is_float_buffer(buf):
     if isinstance(buf, float):
         return True
@@ -46,6 +47,7 @@ def is_float_buffer(buf):
     except AttributeError:
         return False
     
+
 def grad(fn, order=1, last_node=-1):
     def wrapper(*args):
         for x in args:
@@ -68,7 +70,6 @@ def grad(fn, order=1, last_node=-1):
         for _ in range(order-1):
             wrapper = grad(wrapper)
         return wrapper
-
 
 
 def value_and_grad(fn, last_node=-1):

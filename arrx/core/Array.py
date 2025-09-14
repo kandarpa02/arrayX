@@ -47,6 +47,10 @@ class ArrayStorage:
     
     def __getitem__(self, i):
         return ArrayStorage(self._rawbuffer[i])
+    
+    @property
+    def shape(self):
+        return self._rawbuffer.shape
 
     def numpy(self):
         return self._rawbuffer
@@ -179,6 +183,36 @@ class ArrayImpl(ArrayStorage):
         out.bwd_fn = _grad_rpow
         return out
     
+    def __matmul__(self, other):
+        out = ArrayImpl(self._rawbuffer @ other._rawbuffer, parents=(self, other))
+
+        def grad_matmul(grad):
+            a = self
+            b = other
+
+            a_val = a._rawbuffer
+            b_val = b._rawbuffer
+            grad_val = grad._rawbuffer
+
+            # ensure all inputs are at least 2D
+            a_exp = a_val if a_val.ndim > 1 else a_val.reshape(1, -1)
+            b_exp = b_val if b_val.ndim > 1 else b_val.reshape(-1, 1)
+            grad_exp = grad_val if grad_val.ndim > 1 else grad_val.reshape(1, -1)
+
+            grad_a = grad_exp @ b_exp.T
+            grad_b = a_exp.T @ grad_exp
+
+            # reshape outputs if inputs were originally 1D
+            grad_a = grad_a.flatten() if a_val.ndim == 1 else grad_a
+            grad_b = grad_b.flatten() if b_val.ndim == 1 else grad_b
+
+            return ArrayImpl(grad_a), ArrayImpl(grad_b)
+
+    
+        out.bwd_fn = grad_matmul
+        return out
+
+    
     def __neg__(self):
         _x = self._rawbuffer
         self._rawbuffer = -_x
@@ -259,8 +293,8 @@ class ArrayImpl(ArrayStorage):
 
 
     # Reshape operation
-    def reshape(self, newshape):
-        out = ArrayImpl(self._rawbuffer.reshape(newshape), parents=(self,))
+    def reshape(self, *shape):
+        out = ArrayImpl(self._rawbuffer.reshape(shape), parents=(self,))
 
         def _grad_reshape(grad):
             return (ArrayImpl(grad._rawbuffer.reshape(self._rawbuffer.shape)),)
