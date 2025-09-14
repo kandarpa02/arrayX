@@ -1,5 +1,5 @@
 from typing import Callable, Set
-import numpy as np
+from arrx import lib
 from arrx.core.Array import ArrayImpl, shift
 
 def backward(out, initial_grad=None):
@@ -45,11 +45,11 @@ def grad(fn, order=1, last_node=-1):
             buf = x._rawbuffer
             if isinstance(buf, float):
                 continue
-            if isinstance(buf, np.ndarray) and np.issubdtype(buf.dtype, np.floating):
+            if isinstance(buf, lib.ndarray) and lib.issubdtype(buf.dtype, lib.floating):
                 continue
-            if isinstance(buf, np.generic) and np.issubdtype(buf.dtype, np.floating):
+            if isinstance(buf, lib.generic) and lib.issubdtype(buf.dtype, lib.floating):
                 continue
-            raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
+            raise TypeError(f"grad requires only float ilibuts, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
         args = [shift(arg) for arg in args]
 
@@ -57,7 +57,7 @@ def grad(fn, order=1, last_node=-1):
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
         grads = backward(out)
-        # Return gradients for each input argument
+        # Return gradients for each ilibut argument
         out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
         return out_grads[0] if len(out_grads) == 1 else out_grads
     if order == 1:
@@ -74,11 +74,11 @@ def value_and_grad(fn, last_node=-1):
             buf = x._rawbuffer
             if isinstance(buf, float):
                 continue
-            if isinstance(buf, np.ndarray) and np.issubdtype(buf.dtype, np.floating):
+            if isinstance(buf, lib.ndarray) and lib.issubdtype(buf.dtype, lib.floating):
                 continue
-            if isinstance(buf, np.generic) and np.issubdtype(buf.dtype, np.floating):
+            if isinstance(buf, lib.generic) and lib.issubdtype(buf.dtype, lib.floating):
                 continue
-            raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
+            raise TypeError(f"grad requires only float ilibuts, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
         args = [shift(arg) for arg in args]
 
@@ -86,7 +86,7 @@ def value_and_grad(fn, last_node=-1):
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
         grads = backward(out)
-        # Return gradients for each input argument
+        # Return gradients for each ilibut argument
         out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
         return _out, out_grads[0] if len(out_grads) == 1 else out_grads
     
