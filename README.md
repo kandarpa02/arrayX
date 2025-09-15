@@ -1,6 +1,6 @@
 # ArrayX
 
-for lightning fast numerical computing in python.
+**For lightning fast array operations with native autograd support**
 
 ---
 
