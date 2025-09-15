@@ -48,10 +48,16 @@ def is_float_buffer(buf):
         return False
     
 
+def check_raw_tensor(a):
+    if isinstance(a, lib.ndarray|int|float):
+        return a
+    return a._rawbuffer
+    
+
 def grad(fn, order=1, last_node=-1):
     def wrapper(*args):
         for x in args:
-            buf = x._rawbuffer
+            buf = check_raw_tensor(x)
             if is_float_buffer(buf):
                 continue
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
@@ -75,7 +81,7 @@ def grad(fn, order=1, last_node=-1):
 def value_and_grad(fn, last_node=-1):
     def wrapper(*args):
         for x in args:
-            buf = x._rawbuffer
+            buf = check_raw_tensor(x)
             if is_float_buffer(buf):
                 continue
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")

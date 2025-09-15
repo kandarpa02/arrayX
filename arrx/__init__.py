@@ -1,6 +1,6 @@
 # Device init
 from .backend import Backend
-lib = Backend.initate()
+lib = Backend.initiate()
 
 from typing import Union
 from .autograd.backward import grad as _grad, value_and_grad as _vag

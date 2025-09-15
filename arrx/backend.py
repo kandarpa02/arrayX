@@ -3,7 +3,7 @@ import warnings
 
 class Backend:
     @staticmethod
-    def initate():
+    def initiate():
         import numpy as np
         lib = np
 
