@@ -46,9 +46,6 @@ class ArrayStorage:
     def __str__(self):
         return str(self._rawbuffer)
     
-    def __getitem__(self, i):
-        return ArrayStorage(self._rawbuffer[i])
-    
     @property
     def shape(self):
         return self._rawbuffer.shape
@@ -63,6 +60,21 @@ class ArrayImpl(ArrayStorage):
         self.parents: Tuple['ArrayImpl', ...] = parents
         self.bwd_fn: Optional[Callable] = bwd_fn
 
+    # Get items
+    def __setitem__(self, k, v):
+        self._rawbuffer[k]=v._rawbuffer
+
+    def __getitem__(self, i):
+        out = ArrayImpl(self._rawbuffer[i])
+        out.parents = (self,)
+        def _get_backward(grad):
+            _grad = self.zero_like()
+            _grad[i] += grad
+            return _grad
+        out.bwd_fn = _get_backward
+
+        return out
+    
     # Comparison operations
     def __eq__(self, other):
         other = shift(other)
@@ -408,6 +420,48 @@ class ArrayImpl(ArrayStorage):
 
         out.bwd_fn = _grad_min
         return out
+    
+    def argmax(self, axis=None, keepdims=False):
+        indices = self._rawbuffer.argmax(axis=axis)
+        if keepdims:
+            if axis is None:
+                shape = [1] * self._rawbuffer.ndim
+            else:
+                axes = axis if isinstance(axis, tuple) else (axis,)
+                shape = list(self._rawbuffer.shape)
+                for ax in axes:
+                    shape[ax] = 1
+            indices = np.reshape(indices, shape)
+        
+        out = ArrayImpl(indices, parents=(self,))
+        
+        def _grad_argmax(grad):
+            return (self.zero_like(),)
+        
+        out.bwd_fn = _grad_argmax
+        return out
+
+    def argmin(self, axis=None, keepdims=False):
+        indices = self._rawbuffer.argmin(axis=axis)
+        
+        if keepdims:
+            if axis is None:
+                shape = [1] * self._rawbuffer.ndim
+            else:
+                axes = axis if isinstance(axis, tuple) else (axis,)
+                shape = list(self._rawbuffer.shape)
+                for ax in axes:
+                    shape[ax] = 1
+            indices = np.reshape(indices, shape)
+        
+        out = ArrayImpl(indices, parents=(self,))
+        
+        def _grad_argmin(grad):
+            return (self.zero_like(),)
+        
+        out.bwd_fn = _grad_argmin
+        return out
+
 
     def ones_like(self):
         return ArrayImpl(lib.ones_like(self._rawbuffer))

@@ -51,7 +51,10 @@ def is_float_buffer(buf):
 def check_raw_tensor(a):
     if isinstance(a, lib.ndarray|int|float):
         return a
-    return a._rawbuffer
+    elif isinstance(a, ArrayImpl):
+        return a._rawbuffer
+    else:
+        raise ValueError(f"given {a} of type {type(a)} is not supported")
     
 
 def grad(fn, order=1, last_node=-1):

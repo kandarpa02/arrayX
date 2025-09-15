@@ -1,5 +1,6 @@
-from ..core.Array import ArrayImpl
+from ..core.Array import ArrayImpl, _unbroadcast
 from .basic_math import *
+from arrx import lib
 
 def sum(array: 'ArrayImpl', axis=None, keepdims=False):
     """
@@ -195,3 +196,25 @@ def zero_like(array: 'ArrayImpl'):
         - Similar to numpy.zeros_like and jax.numpy.zeros_like.
     """
     return array.zero_like()
+
+def argmax(array: 'ArrayImpl', axis=None, keepdims=False):
+    return array.argmax(axis, keepdims)
+
+def argmin(array: 'ArrayImpl', axis=None, keepdims=False):
+    return array.argmin(axis, keepdims) 
+
+def where(condition, x, y):
+    condition = shift(condition)
+    x = shift(x)
+    y = shift(y)
+    out = ArrayImpl(lib.where(condition._rawbuffer, x._rawbuffer, y._rawbuffer), parents=(condition, x, y))
+
+    def _grad_where(grad):
+        grad = shift(grad)
+        grad_condition = None  # where gradient typically ignored for condition
+        grad_x = _unbroadcast(grad * condition, x._rawbuffer.shape)
+        grad_y = _unbroadcast(grad * (1 - condition), y._rawbuffer.shape)
+        return grad_condition, grad_x, grad_y
+
+    out.bwd_fn = _grad_where
+    return out
