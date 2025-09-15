@@ -1,5 +1,5 @@
 # Device init
-from .backend import Backend
+from .backend import Backend, device
 lib = Backend.initiate()
 
 from typing import Union
