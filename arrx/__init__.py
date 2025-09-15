@@ -11,7 +11,7 @@ value_and_grad = _vag
 
 import numpy as np
 
-NumericObject = Union[np.ndarray, int, float] 
+NumericObject = Union[np.ndarray, int, float, list] 
 def array(_x:NumericObject):
     from .core.Array import ArrayImpl
     import numpy

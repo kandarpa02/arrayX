@@ -39,7 +39,6 @@ class custom_grad:
                 else:
                     parent_inputs = tuple([i for i in [*args, *kwargs.values()] if isinstance(i, ArrayImpl)])
 
-                print(f"parents:\n {parent_inputs}")
                 out.parents = parent_inputs
                 out.bwd_fn = bwd
                 return out
@@ -53,7 +52,6 @@ class custom_grad:
                             "objects: (output, parents, backward_function), but got {fn_out}"
                         )
                 parents = _parents if isinstance(_parents, (tuple, list)) else (_parents,)
-                print(f"parents:\n {parents}")
                 out.parents = parents
                 out.bwd_fn = bwd
                 return out

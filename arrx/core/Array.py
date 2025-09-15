@@ -2,6 +2,7 @@ from typing import List, Tuple, Optional, Callable
 from numpy.typing import NDArray
 from dataclasses import dataclass
 from arrx import lib
+import numpy as np
 
 NumericObject = NDArray
 
@@ -53,14 +54,14 @@ class ArrayStorage:
         return self._rawbuffer.shape
 
     def numpy(self):
-        return self._rawbuffer
+        return np.asarray(self._rawbuffer)
 
 
 class ArrayImpl(ArrayStorage):
     def __init__(self, data, parents=(), bwd_fn=None):
         super().__init__(data._rawbuffer if isinstance(data, ArrayStorage) else data)
         self.parents: Tuple['ArrayImpl', ...] = parents
-        self.bwd_fn: Optional[Callable[[ 'ArrayImpl'], Tuple['ArrayImpl', ...]]] = bwd_fn
+        self.bwd_fn: Optional[Callable] = bwd_fn
 
     # Comparison operations
     def __eq__(self, other):
@@ -115,8 +116,18 @@ class ArrayImpl(ArrayStorage):
         out.bwd_fn = _grad_sub
         return out
 
+
     def __rsub__(self, other):
-        return shift(other) - self
+        other = shift(other)
+        out = ArrayImpl(other._rawbuffer - self._rawbuffer, parents=(other, self))
+
+        def _grad_rsub(grad):
+            g1 = _unbroadcast(grad, other._rawbuffer.shape)   # wrt other (left)
+            g2 = _unbroadcast(-grad, self._rawbuffer.shape)   # wrt self (right)
+            return g1, g2
+
+        out.bwd_fn = _grad_rsub
+        return out
 
     def __mul__(self, other):
         other = shift(other)
@@ -138,6 +149,9 @@ class ArrayImpl(ArrayStorage):
         out = ArrayImpl(self._rawbuffer / other._rawbuffer, parents=(self, other))
 
         def _grad_div(grad):
+            # ensure grad is an ArrayImpl so ops create new nodes
+            grad = shift(grad)
+            # now these are ArrayImpl operations (traceable)
             g1 = _unbroadcast(grad / other, self._rawbuffer.shape)
             g2 = _unbroadcast(-grad * self / (other * other), other._rawbuffer.shape)
             return g1, g2
@@ -150,12 +164,14 @@ class ArrayImpl(ArrayStorage):
         out = ArrayImpl(other._rawbuffer / self._rawbuffer, parents=(other, self))
 
         def _grad_rdiv(grad):
+            grad = shift(grad)
             g1 = _unbroadcast(grad / self, other._rawbuffer.shape)
             g2 = _unbroadcast(-grad * other / (self * self), self._rawbuffer.shape)
             return g1, g2
 
         out.bwd_fn = _grad_rdiv
         return out
+
 
     def __pow__(self, other):
         from ..ops import log
@@ -214,9 +230,14 @@ class ArrayImpl(ArrayStorage):
 
     
     def __neg__(self):
-        _x = self._rawbuffer
-        self._rawbuffer = -_x
-        return self
+        out = ArrayImpl(-self._rawbuffer, parents=(self,))
+
+        def _grad_neg(grad):
+            g = _unbroadcast(-grad, self._rawbuffer.shape)
+            return (g,)
+
+        out.bwd_fn = _grad_neg
+        return out
     
     # Reduction operations
     def sum(self, axis=None, keepdims=False):
@@ -394,8 +415,6 @@ class ArrayImpl(ArrayStorage):
     def zero_like(self):
         return ArrayImpl(lib.zeros_like(self._rawbuffer))
 
-    def numpy(self):
-        return self._rawbuffer
 
 # Helper function for expanding shapes during mean/var etc.
 def shape_expand(shape, axis):
