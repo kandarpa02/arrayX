@@ -146,8 +146,8 @@ def grad(fn, order=1, last_node=-1):
             else:
                 out_grads.append(shift(g))
 
-        # Always return a flattened list of grads
-        return out_grads
+        out_g = out_grads[0] if len(out_grads)<2 else out_grads
+        return out_g
 
     # Support higher-order grads by wrapping repeatedly (keeps prior pattern)
     if order == 1:
@@ -201,7 +201,8 @@ def value_and_grad(fn, last_node=-1):
             else:
                 out_grads.append(shift(g))
 
-        # always return a list of grads (flattened), per your request. 
-        return _out, out_grads
+
+        out_g = out_grads[0] if len(out_grads)<2 else out_grads
+        return _out, out_g
 
     return wrapper

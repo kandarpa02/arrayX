@@ -14,17 +14,30 @@ Inspired by this, I explored the underlying principles of autograd systems and b
 
 ## Example usage
 
+**Here is a simple example of differentiation 🤓**
 ```python
 >>> import arrx as rx
 >>> x = rx.array(5.0)
 >>> f = lambda x: x ** 3
->>> dx = rx.grad(f)     # 1st derivative
->>> d2x = rx.grad(dx)   # 2nd derivative
->>> d3x = rx.grad(d2x)  # 3rd derivative
+>>> dx = rx.grad(f)
 >>> print('dx:', dx(x))
 dx: 75.0
->>> print('d2x:', d2x(x))
-d2x: 30.0
->>> print('d3x:', d3x(x))
-d3x: 6.0
 ```
+**Now let's plot the higher order derivatives of a beautiful function**
+
+```python
+>>> import arrx as rx 
+>>> from arrx import grad     # Only tool you'll be needed to calculate precise gradients
+>>> import numpy as np
+>>> import matplotlib.pyplot as plt
+>>> x = np.linspace(-7, 7, 700)
+>>> f = lambda x: rx.tanh(x)     # Just define a function
+>>> plt.plot(
+...     x, f(x).numpy(),                         # f(x),
+...     x, grad(f)(x).numpy(),                   # dx
+...     x, grad(grad(f))(x).numpy(),             # d2x
+...     x, grad(grad(grad(f)))(x).numpy(),       # d3x
+...     x, grad(grad(grad(grad(f))))(x).numpy()) # d4x
+>>> plt.show()
+```
+![Plot of tanh and its derivatives](plots/tanh_plots.png)
