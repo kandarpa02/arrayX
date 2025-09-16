@@ -40,4 +40,4 @@ dx: 75.0
 ...     x, grad(grad(grad(grad(f))))(x).numpy()) # d4x
 >>> plt.show()
 ```
-![Plot of tanh and its derivatives](plots/tanh_plots.png)
+<img src="plots/tanh_plots.png" alt="Plot of tanh and its derivatives" width="50%">
