@@ -34,16 +34,18 @@ def _unbroadcast(grad, shape: Tuple[int, ...]):
     return ArrayImpl(grad_reduced)
 
 
-def dtype_init(data) -> Dtype:
+def dtype_init(data) -> Dtype: 
     from arrx import lib
     if isinstance(data, int):
         return int32()
     elif isinstance(data, float):
         return float32()
     elif isinstance(data, lib.ndarray):
-        return dmap(data.dtype.type)
+        return dmap(data.dtype.type) #type:ignore
+    elif isinstance(data, np.ndarray):
+        return dmap(data.dtype.type) #type:ignore
     else:
-        return dmap(data._rawbuffer.data.dtype)
+        return dmap(data._rawbuffer.data.dtype) #type:ignore
     
 
 class ArrayStorage:

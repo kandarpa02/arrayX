@@ -248,7 +248,7 @@ class boolean(Dtype):
         super().__init__('bool')
 
     def set(self):
-        return _lib().bool()
+        return bool
 
 
 def dmap(data_type):
