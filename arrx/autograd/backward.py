@@ -57,22 +57,30 @@ def check_raw_tensor(a):
         raise ValueError(f"given {a} of type {type(a)} is not supported")
     
 
+def shift_vals(inp):
+    if isinstance(inp, dict):
+        for i, j in inp.items():
+            inp[i] = shift(j)
+        return inp
+    else:
+        return [shift(_in) for _in in inp]
+
+
 def grad(fn, order=1, last_node=-1):
-    def wrapper(*args):
-        args = args if isinstance(args, list|tuple) else list(args.values())
-        for x in args:
+    def wrapper(args: list|tuple|dict):
+        _args = args if isinstance(args, list|tuple) else list(args.values())
+        for x in _args:
             buf = check_raw_tensor(x)
             if is_float_buffer(buf):
                 continue
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
-        args = [shift(arg) for arg in args]
+        args = shift_vals(args)
 
         _out = fn(args)
         out = _out[last_node] if isinstance(_out, tuple) else _out
-
         grads = backward(out)
-        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
+        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in _args]
         return out_grads[0] if len(out_grads) == 1 else out_grads
 
     if order == 1:
@@ -85,21 +93,21 @@ def grad(fn, order=1, last_node=-1):
 
 def value_and_grad(fn, last_node=-1):
     def wrapper(args: list|tuple|dict):
-        args = args if isinstance(args, list|tuple) else list(args.values())
-        for x in args:
+        _args = args if isinstance(args, list|tuple) else list(args.values())
+        for x in _args:
             buf = check_raw_tensor(x)
             if is_float_buffer(buf):
                 continue
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
-        args = [shift(arg) for arg in args]
+        args = shift_vals(args)
 
         _out = fn(args)
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
         grads = backward(out)
         # Return gradients for each ilibut argument
-        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in args]
+        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in _args]
         return _out, out_grads[0] if len(out_grads) == 1 else out_grads
     
     return wrapper
