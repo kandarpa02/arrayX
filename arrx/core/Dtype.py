@@ -267,7 +267,6 @@ def dmap(data_type):
         lib.uint16 : uint16(),
         lib.uint32 : uint32(),
         lib.uint64 : uint64(),
-        lib.bool : boolean(),
 
         np.int8  : int8(),
         np.int16 : int16(),
@@ -281,7 +280,8 @@ def dmap(data_type):
         np.uint16 : uint16(),
         np.uint32 : uint32(),
         np.uint64 : uint64(),
-        np.bool : boolean()
+
+        bool : boolean()
     }
 
     return Dtype_MAP.get(data_type, None)
