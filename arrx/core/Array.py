@@ -40,14 +40,12 @@ def dtype_init(data) -> Dtype:
         return int32()
     elif isinstance(data, float):
         return float32()
-    elif isinstance(data, lib.ndarray):
-        return dmap(data.dtype.type) #type:ignore
-    elif isinstance(data, np.ndarray):
-        return dmap(data.dtype.type) #type:ignore
-    else:
+    elif isinstance(data, ArrayImpl):
         return dmap(data._rawbuffer.data.dtype) #type:ignore
+    else:
+        return dmap(data.dtype.type) #type:ignore
     
-
+    
 class ArrayStorage:
     __slots__ = ('_rawbuffer', '_dtype')
 

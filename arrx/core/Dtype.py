@@ -252,6 +252,7 @@ class boolean(Dtype):
 
 
 def dmap(data_type):
+    import numpy as np
     lib = _lib()
     Dtype_MAP = {
         lib.int8  : int8(),
@@ -266,7 +267,21 @@ def dmap(data_type):
         lib.uint16 : uint16(),
         lib.uint32 : uint32(),
         lib.uint64 : uint64(),
-        lib.bool : boolean()
+        lib.bool : boolean(),
+
+        np.int8  : int8(),
+        np.int16 : int16(),
+        np.int32 : int32(),
+        np.int64 : int64(),
+
+        np.float16 : float16(), 
+        np.float32 : float32(),
+        np.float64 : float64(),
+
+        np.uint16 : uint16(),
+        np.uint32 : uint32(),
+        np.uint64 : uint64(),
+        np.bool : boolean()
     }
 
     return Dtype_MAP.get(data_type, None)
