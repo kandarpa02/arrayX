@@ -120,7 +120,7 @@ def min(array: 'ArrayImpl', axis=None, keepdims=False):
     return array.min(axis=axis, keepdims=keepdims)
 
 
-def reshape(array: 'ArrayImpl', newshape):
+def reshape(array: 'ArrayImpl', *newshape):
     """
     Returns a new array with the same data but reshaped to the specified dimensions.
 
@@ -137,7 +137,7 @@ def reshape(array: 'ArrayImpl', newshape):
         - Supports higher-order gradients.
         - Similar in functionality to numpy.reshape and jax.numpy.reshape.
     """
-    return array.reshape(newshape)
+    return array.reshape(*newshape)
 
 
 def transpose(array: 'ArrayImpl', axes=None):

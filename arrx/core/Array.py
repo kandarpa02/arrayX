@@ -1,8 +1,9 @@
-from typing import List, Tuple, Optional, Callable
+from typing import List, Tuple, Optional, Callable, Union, Any
 from numpy.typing import NDArray
 from dataclasses import dataclass
 from arrx import lib
 import numpy as np
+from .Dtype import Dtype
 
 NumericObject = NDArray
 
@@ -34,10 +35,11 @@ def _unbroadcast(grad, shape: Tuple[int, ...]):
 
 
 class ArrayStorage:
-    __slots__ = ('_rawbuffer',)
+    __slots__ = ('_rawbuffer', 'dtype')
 
-    def __init__(self, data: NumericObject):
-        self._rawbuffer = data._rawbuffer if isinstance(data, ArrayStorage) else data
+    def __init__(self, data: NumericObject, dtype:Dtype|type = None): #type:ignore
+        self.dtype = dtype() if dtype is not None else None
+        self._rawbuffer = data._rawbuffer if isinstance(data, ArrayStorage) else lib.array(data, dtype=self.dtype)
 
     def __repr__(self):
         out = lib.array2string(self._rawbuffer, prefix='array(')
@@ -45,6 +47,15 @@ class ArrayStorage:
 
     def __str__(self):
         return str(self._rawbuffer)
+    
+    def astype(self, dtype:Dtype):
+        return ArrayImpl(self._rawbuffer.astype(dtype()), dtype=dtype)
+    
+    def all(self, axis=None, keepdims=False):
+        _all = ArrayImpl(self._rawbuffer.all(axis=axis, keepdims=keepdims))
+        _all.dtype = self.dtype
+        return _all
+
     
     @property
     def shape(self):
@@ -55,8 +66,8 @@ class ArrayStorage:
 
 
 class ArrayImpl(ArrayStorage):
-    def __init__(self, data, parents=(), bwd_fn=None):
-        super().__init__(data._rawbuffer if isinstance(data, ArrayStorage) else data)
+    def __init__(self, data, dtype:Dtype=None, parents=(), bwd_fn=None): #type:ignore
+        super().__init__(data._rawbuffer if isinstance(data, ArrayStorage) else data, dtype=dtype)
         self.parents: Tuple['ArrayImpl', ...] = parents
         self.bwd_fn: Optional[Callable] = bwd_fn
 
@@ -78,27 +89,27 @@ class ArrayImpl(ArrayStorage):
     # Comparison operations
     def __eq__(self, other):
         other = shift(other)
-        return ArrayImpl((self._rawbuffer == other._rawbuffer).astype(float))
+        return ArrayImpl((self._rawbuffer == other._rawbuffer))
 
     def __ne__(self, other):
         other = shift(other)
-        return ArrayImpl((self._rawbuffer != other._rawbuffer).astype(float))
+        return ArrayImpl((self._rawbuffer != other._rawbuffer))
 
     def __gt__(self, other):
         other = shift(other)
-        return ArrayImpl((self._rawbuffer > other._rawbuffer).astype(float))
+        return ArrayImpl((self._rawbuffer > other._rawbuffer))
 
     def __lt__(self, other):
         other = shift(other)
-        return ArrayImpl((self._rawbuffer < other._rawbuffer).astype(float))
+        return ArrayImpl((self._rawbuffer < other._rawbuffer))
 
     def __ge__(self, other):
         other = shift(other)
-        return ArrayImpl((self._rawbuffer >= other._rawbuffer).astype(float))
+        return ArrayImpl((self._rawbuffer >= other._rawbuffer))
 
     def __le__(self, other):
         other = shift(other)
-        return ArrayImpl((self._rawbuffer <= other._rawbuffer).astype(float))
+        return ArrayImpl((self._rawbuffer <= other._rawbuffer))
 
     # Arithmetic operations
     def __add__(self, other):
@@ -431,7 +442,7 @@ class ArrayImpl(ArrayStorage):
                 shape = list(self._rawbuffer.shape)
                 for ax in axes:
                     shape[ax] = 1
-            indices = np.reshape(indices, shape)
+            indices = lib.reshape(indices, shape)
         
         out = ArrayImpl(indices, parents=(self,))
         
@@ -452,7 +463,7 @@ class ArrayImpl(ArrayStorage):
                 shape = list(self._rawbuffer.shape)
                 for ax in axes:
                     shape[ax] = 1
-            indices = np.reshape(indices, shape)
+            indices = lib.reshape(indices, shape)
         
         out = ArrayImpl(indices, parents=(self,))
         

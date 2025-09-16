@@ -82,7 +82,8 @@ def grad(fn, order=1, last_node=-1):
 
 
 def value_and_grad(fn, last_node=-1):
-    def wrapper(*args):
+    def wrapper(args: list|tuple|dict):
+        args = args if isinstance(args, list|tuple) else list(args.values())
         for x in args:
             buf = check_raw_tensor(x)
             if is_float_buffer(buf):
