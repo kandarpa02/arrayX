@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 from dataclasses import dataclass
 from arrx import lib
 import numpy as np
-from .Dtype import Dtype
+from .Dtype import Dtype, dmap, int32, float32
 
 NumericObject = NDArray
 
@@ -34,12 +34,24 @@ def _unbroadcast(grad, shape: Tuple[int, ...]):
     return ArrayImpl(grad_reduced)
 
 
-class ArrayStorage:
-    __slots__ = ('_rawbuffer', 'dtype')
+def dtype_init(data) -> Dtype:
+    from arrx import lib
+    if isinstance(data, int):
+        return int32()
+    elif isinstance(data, float):
+        return float32()
+    elif isinstance(data, lib.ndarray):
+        return dmap(data.dtype.type)
+    else:
+        return dmap(data._rawbuffer.data.dtype)
+    
 
-    def __init__(self, data: NumericObject, dtype:Dtype|type = None): #type:ignore
-        self.dtype = dtype() if dtype is not None else None
-        self._rawbuffer = data._rawbuffer if isinstance(data, ArrayStorage) else lib.array(data, dtype=self.dtype)
+class ArrayStorage:
+    __slots__ = ('_rawbuffer', '_dtype')
+
+    def __init__(self, data: NumericObject, _dtype:Dtype|type = None): #type:ignore
+        self._dtype = _dtype() if _dtype is not None else dtype_init(data)()
+        self._rawbuffer = data._rawbuffer if isinstance(data, ArrayStorage) else lib.array(data, dtype=self._dtype)
 
     def __repr__(self):
         out = lib.array2string(self._rawbuffer, prefix='array(')
@@ -53,21 +65,24 @@ class ArrayStorage:
     
     def all(self, axis=None, keepdims=False):
         _all = ArrayImpl(self._rawbuffer.all(axis=axis, keepdims=keepdims))
-        _all.dtype = self.dtype
+        _all._dtype = self._dtype
         return _all
-
     
     @property
     def shape(self):
         return self._rawbuffer.shape
+
+    @property
+    def dtype(self):
+        return dmap(self._rawbuffer.dtype.type)
 
     def numpy(self):
         return np.asarray(self._rawbuffer)
 
 
 class ArrayImpl(ArrayStorage):
-    def __init__(self, data, dtype:Dtype=None, parents=(), bwd_fn=None): #type:ignore
-        super().__init__(data._rawbuffer if isinstance(data, ArrayStorage) else data, dtype=dtype)
+    def __init__(self, data, parents=(), bwd_fn=None, dtype:Dtype=None): #type:ignore
+        super().__init__(data._rawbuffer if isinstance(data, ArrayStorage) else data, _dtype=dtype)
         self.parents: Tuple['ArrayImpl', ...] = parents
         self.bwd_fn: Optional[Callable] = bwd_fn
 

@@ -1,4 +1,5 @@
 from typing import Callable, Set
+from collections.abc import Mapping, Iterable
 from arrx import lib
 from arrx.core.Array import ArrayImpl, shift
 
@@ -55,59 +56,152 @@ def check_raw_tensor(a):
         return a._rawbuffer
     else:
         raise ValueError(f"given {a} of type {type(a)} is not supported")
+
+
+def flatten_args(args):
+    flat = []
+    if isinstance(args, Mapping):  # dict-like
+        for v in args.values():
+            flat.extend(flatten_args(v))
+    elif isinstance(args, (list, tuple)):
+        for item in args:
+            flat.extend(flatten_args(item))
+    else:
+        flat.append(args)
+    return flat
+
+def _is_mapping(obj):
+    return isinstance(obj, Mapping)
+
+def _is_sequence(obj):
+    # treat tuples/lists as sequences; don't treat str/bytes as sequence
+    return isinstance(obj, (list, tuple))
+
+def shift_structure(obj):
+    """Recursively apply shift to leaves and preserve structure."""
+    if _is_mapping(obj):
+        return {k: shift_structure(v) for k, v in obj.items()}
+    if _is_sequence(obj):
+        seq = [shift_structure(v) for v in obj]
+        return tuple(seq) if isinstance(obj, tuple) else seq
+    # leaf: apply shift (wrap raw arrays / scalars / ArrayImpl -> ArrayImpl)
+    return shift(obj)
+
+def grad_structure_from_shifted(obj, grads_dict):
+    """
+    Build parallel structure of gradients for the *shifted* obj.
+    `obj` here should be the shifted structure (so leaves are ArrayImpl).
+    `grads_dict` is the dict returned by backward(): keys are ids of nodes.
+    """
+    if _is_mapping(obj):
+        return {k: grad_structure_from_shifted(v, grads_dict) for k, v in obj.items()}
+    if _is_sequence(obj):
+        seq = [grad_structure_from_shifted(v, grads_dict) for v in obj]
+        return tuple(seq) if isinstance(obj, tuple) else seq
+
+    # leaf: expected to be ArrayImpl (shift returned ArrayImpl)
+    try:
+        # get gradient ArrayImpl from grads_dict using id; fallback to zero-like
+        g = grads_dict.get(id(obj))
+    except Exception:
+        g = None
+
+    if g is None:
+        # if no gradient found, return a zero-like wrapped ArrayImpl
+        return shift(obj.zero_like())
+    else:
+        # ensure returned object is an ArrayImpl (shift is safe if g already ArrayImpl)
+        return shift(g)
     
 
-def shift_vals(inp):
-    if isinstance(inp, dict):
-        for i, j in inp.items():
-            inp[i] = shift(j)
-        return inp
-    else:
-        return [shift(_in) for _in in inp]
-
-
 def grad(fn, order=1, last_node=-1):
-    def wrapper(args: list|tuple|dict):
-        _args = args if isinstance(args, list|tuple) else list(args.values())
-        for x in _args:
+    def wrapper(*args):
+        # Validate all leaf args (flatten without changing structure)
+        flat_args = flatten_args(args)
+        for x in flat_args:
             buf = check_raw_tensor(x)
             if is_float_buffer(buf):
                 continue
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
-        args = shift_vals(args)
+        # Shift only leaves, preserve top-level structure
+        shifted_args_list = [shift_structure(arg) for arg in args]
 
-        _out = fn(args)
+        # Call function with shifted structures
+        _out = fn(*shifted_args_list)
         out = _out[last_node] if isinstance(_out, tuple) else _out
-        grads = backward(out)
-        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in _args]
-        return out_grads[0] if len(out_grads) == 1 else out_grads
 
+        # Backprop
+        grads = backward(out)
+
+        # Flatten the shifted args into leaves (these are ArrayImpl nodes)
+        shifted_leaves = flatten_args(shifted_args_list)
+
+        # Collect gradients for each leaf in order (fallback to zero-like)
+        out_grads = []
+        for leaf in shifted_leaves:
+            g = grads.get(id(leaf))
+            if g is None:
+                out_grads.append(shift(leaf.zero_like()))
+            else:
+                out_grads.append(shift(g))
+
+        # Always return a flattened list of grads
+        return out_grads
+
+    # Support higher-order grads by wrapping repeatedly (keeps prior pattern)
     if order == 1:
         return wrapper
     else:
-        for _ in range(order-1):
-            wrapper = grad(wrapper)
-        return wrapper
+        w = wrapper
+        for _ in range(order - 1):
+            w = grad(w)  # repeated wrapping (same convention as before)
+        return w
+
 
 
 def value_and_grad(fn, last_node=-1):
-    def wrapper(args: list|tuple|dict):
-        _args = args if isinstance(args, list|tuple) else list(args.values())
-        for x in _args:
+    def wrapper(args, *more_args):
+        # Combine args and more_args into a single structure for validation
+        all_args = (args,) + more_args if more_args else args
+
+        # Flatten args only for validation (keep original structure for calling)
+        flat_args = flatten_args(all_args)
+        for x in flat_args:
             buf = check_raw_tensor(x)
             if is_float_buffer(buf):
                 continue
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
-        args = shift_vals(args)
+        # Prepare the argument list preserving structure, but with leaves shifted
+        if more_args:
+            orig_args_list = [args] + list(more_args)
+        else:
+            orig_args_list = [args]
 
-        _out = fn(args)
+        shifted_args_list = [shift_structure(arg) for arg in orig_args_list]
+
+        # Call the function with shifted structures (so arrays are ArrayImpl leaves)
+        _out = fn(*shifted_args_list)
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
+        # Run backward and collect grads as a single flattened list
         grads = backward(out)
-        # Return gradients for each ilibut argument
-        out_grads = [shift(grads.get(id(arg), shift(arg.zero_like()))) for arg in _args]
-        return _out, out_grads[0] if len(out_grads) == 1 else out_grads
-    
+
+        # Flatten the shifted args into leaves (these are the ArrayImpl nodes used in the graph)
+        shifted_leaves = flatten_args(shifted_args_list)
+
+        # For each leaf, fetch gradient by id; fallback to zero-like if not found.
+        # Use shift(...) to ensure return values are ArrayImpl (or consistent wrapper).
+        out_grads = []
+        for leaf in shifted_leaves:
+            g = grads.get(id(leaf))
+            if g is None:
+                out_grads.append(shift(leaf.zero_like()))
+            else:
+                out_grads.append(shift(g))
+
+        # always return a list of grads (flattened), per your request. 
+        return _out, out_grads
+
     return wrapper
