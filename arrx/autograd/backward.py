@@ -59,6 +59,7 @@ def check_raw_tensor(a):
 
 def grad(fn, order=1, last_node=-1):
     def wrapper(*args):
+        args = args if isinstance(args, list|tuple) else list(args.values())
         for x in args:
             buf = check_raw_tensor(x)
             if is_float_buffer(buf):
@@ -66,7 +67,8 @@ def grad(fn, order=1, last_node=-1):
             raise TypeError(f"grad requires only float inputs, found {buf.dtype if hasattr(buf, 'dtype') else type(buf)}")
 
         args = [shift(arg) for arg in args]
-        _out = fn(*args)
+
+        _out = fn(args)
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
         grads = backward(out)
@@ -92,7 +94,7 @@ def value_and_grad(fn, last_node=-1):
 
         args = [shift(arg) for arg in args]
 
-        _out = fn(*args)
+        _out = fn(args)
         out = _out[last_node] if isinstance(_out, tuple) else _out
 
         grads = backward(out)
