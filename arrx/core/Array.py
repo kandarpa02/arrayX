@@ -128,6 +128,13 @@ class ArrayImpl(ArrayStorage):
         out.bwd_fn = _get_backward
         return out
     
+    def __len__(self):
+        try:
+            return len(self._rawbuffer)
+        except TypeError:
+            raise TypeError("len() of unsized object")
+
+    
     # Comparison operations
     def __eq__(self, other):
         other = shift(other)
