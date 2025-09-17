@@ -40,12 +40,28 @@ def dtype_init(data) -> Dtype:
         return int32()
     elif isinstance(data, float):
         return float32()
+    
+    elif isinstance(data, list):
+        def check_data(data):
+            flag = False
+            for i in data:
+                if isinstance(i, float):
+                    flag = True
+                elif isinstance(i, list):
+                    flag = check_data(i)
+            return flag
+        if check_data(data) == False:
+            return int32()
+        else:
+            return float32()
+        
     elif isinstance(data, ArrayImpl):
         return dmap(data._rawbuffer.data.dtype) #type:ignore
+    
     else:
         return dmap(data.dtype.type) #type:ignore
     
-    
+
 class ArrayStorage:
     __slots__ = ('_rawbuffer', '_dtype')
 
@@ -91,14 +107,25 @@ class ArrayImpl(ArrayStorage):
         self._rawbuffer[k]=v._rawbuffer
 
     def __getitem__(self, i):
-        out = ArrayImpl(self._rawbuffer[i])
-        out.parents = (self,)
-        def _get_backward(grad):
-            _grad = self.zero_like()
-            _grad[i] += grad
-            return _grad
-        out.bwd_fn = _get_backward
+        idx = i._rawbuffer if isinstance(i, ArrayImpl) else i
+        out = ArrayImpl(self._rawbuffer[idx], parents=(self,))
 
+        def _get_backward(grad):
+            grad_buf = grad._rawbuffer
+            # create zero buffer with same shape/dtype as the original array
+            zero_buf = lib.zeros_like(self._rawbuffer)
+
+            try:
+                zero_buf[idx] = zero_buf[idx] + grad_buf
+            except Exception:
+                if hasattr(lib, "add") and hasattr(lib.add, "at"):
+                    lib.add.at(zero_buf, idx, grad_buf)
+                else:
+                    zero_buf[idx] += grad_buf
+
+            return (ArrayImpl(zero_buf),) 
+
+        out.bwd_fn = _get_backward
         return out
     
     # Comparison operations
