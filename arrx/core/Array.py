@@ -35,7 +35,7 @@ def _unbroadcast(grad, shape: Tuple[int, ...]):
 
 
 def dtype_init(data) -> Dtype: 
-    from arrx import lib
+    # from arrx import lib
     if isinstance(data, int):
         return int32()
     elif isinstance(data, float):
@@ -71,7 +71,7 @@ class ArrayStorage:
 
     def __repr__(self):
         out = lib.array2string(self._rawbuffer, prefix='array(')
-        return f'array({out})'
+        return f'array({out}, dtype={self.dtype})'
 
     def __str__(self):
         return str(self._rawbuffer)
@@ -83,7 +83,7 @@ class ArrayStorage:
         _all = ArrayImpl(self._rawbuffer.all(axis=axis, keepdims=keepdims))
         _all._dtype = self._dtype
         return _all
-    
+
     @property
     def shape(self):
         return self._rawbuffer.shape

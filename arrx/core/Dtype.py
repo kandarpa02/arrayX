@@ -21,7 +21,7 @@ class Dtype:
         return f"arrx.{self.name}"
 
     def __str__(self):
-        return self.__repr__()
+        return f"{self.name}"
 
     def set(self):
         """
