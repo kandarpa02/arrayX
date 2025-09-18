@@ -1,4 +1,4 @@
-from ..core.Array import ArrayImpl, _unbroadcast
+from ..Core.Array import ArrayImpl, _unbroadcast
 from .basic_math import *
 from .array_builders import *
 from arrx import lib

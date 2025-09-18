@@ -1,5 +1,10 @@
 from typing import NamedTuple, Callable, Tuple
-from ..core.Array import ArrayImpl
+from itertools import chain
+from ..Core.Array import ArrayImpl
+
+AI = ArrayImpl
+_is = isinstance
+
 
 class custom_grad:
     __slots__ = ['fn', 'patch']
@@ -29,19 +34,18 @@ class custom_grad:
                     if len(fn_out) != 2:
                         raise ValueError(
                             f"input function {fn} is expected to return a tuple of two "
-                            "objects: (output, backward_function) when patch_node==False, "
-                            f"but got {fn_out}"
+                            "objects: \n(output, backward_function) when patch_node==False,\n "
+                            f"but got \n{fn_out}"
                         )
                     
-                parent_inputs = None
-                if not out.parents == ():
-                    parent_inputs = out.parents
-                else:
-                    parent_inputs = tuple([i for i in [*args, *kwargs.values()] if isinstance(i, ArrayImpl)])
+                parent_inputs = tuple(
+                    i for i in chain(args, kwargs.values()) if _is(i, AI)
+                )
 
                 out.parents = parent_inputs
                 out.bwd_fn = bwd
                 return out
+            
             else:
                 try:
                     out, _parents, bwd = fn_out
@@ -49,9 +53,9 @@ class custom_grad:
                     if len(fn_out) != 3:
                         raise ValueError(
                             f"input function {fn} is expected to return a tuple of three "
-                            "objects: (output, parents, backward_function), but got {fn_out}"
+                            "objects: \n(output, parents, backward_function),\n but got \n{fn_out}"
                         )
-                parents = _parents if isinstance(_parents, (tuple, list)) else (_parents,)
+                parents = _parents if _is(_parents, (tuple, list)) else (_parents,)
                 out.parents = parents
                 out.bwd_fn = bwd
                 return out

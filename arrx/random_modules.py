@@ -1,12 +1,12 @@
-from .Array import ArrayImpl
-from .Dtype import uint32, float32
+from .Core.Array import ArrayImpl
+from .Core.Dtype import uint32, float32
 import random
 import math, time
 from typing import Optional
 
 def RNGKey(seed: int):
     """
-    Create a 2x uint32 key, JAX-style.
+    Create a uint32 key.
     """
     from arrx import lib
     return ArrayImpl(
@@ -14,19 +14,18 @@ def RNGKey(seed: int):
         dtype=uint32()
     )
 
-def _mix(k0, k1, salt):
-    """
-    Simple mixing function to decorrelate key values.
-    """
-    k0 = (k0 ^ (k1 >> 16)) * 0x85ebca6b
-    k0 = ((k0 << 13) | (k0 >> 19)) & 0xFFFFFFFF
-    k1 = (k1 ^ (k0 >> 16)) * 0xc2b2ae35
-    return (k0 ^ salt) & 0xFFFFFFFF, (k1 + salt) & 0xFFFFFFFF
 
 def split(key: ArrayImpl, n=2):
     """
     Split a key into n new statistically decorrelated keys.
     """
+
+    def _mix(k0, k1, salt):
+        k0 = (k0 ^ (k1 >> 16)) * 0x85ebca6b
+        k0 = ((k0 << 13) | (k0 >> 19)) & 0xFFFFFFFF
+        k1 = (k1 ^ (k0 >> 16)) * 0xc2b2ae35
+        return (k0 ^ salt) & 0xFFFFFFFF, (k1 + salt) & 0xFFFFFFFF
+
     k0 = int(key._rawbuffer[0].item())
     k1 = int(key._rawbuffer[1].item())
     out = []
@@ -36,12 +35,20 @@ def split(key: ArrayImpl, n=2):
     return tuple(out)
 
 
-def random_engine(shape, fill_fn):
+def fill_engine(shape, fill_fn):
+    """
+    For using custom random methods
+    
+    Arguments: 
+    shape: takes the shape
+    fill_fn: the algorithm for generating distributions
+    """
     if not shape:
         return fill_fn()
-    return [random_engine(shape[1:], fill_fn) for _ in range(shape[0])]
+    return [fill_engine(shape[1:], fill_fn) for _ in range(shape[0])]
 
 
+# Uniform dist
 def uniform(*shape, key: Optional[ArrayImpl] = None, a=0.0, b=1.0):
     """
     Generates random numbers uniformly distributed in [a, b).
@@ -59,9 +66,11 @@ def uniform(*shape, key: Optional[ArrayImpl] = None, a=0.0, b=1.0):
         new_k1 = (k1 + 1) % 2**32
         key = ArrayImpl([new_k0, new_k1], dtype=uint32())
         return a + (b - a) * result
-    raw = random_engine(shape, fill_fn=fill_fn)
+    raw = fill_engine(shape, fill_fn=fill_fn)
     return ArrayImpl(raw, dtype=float32())
 
+
+# # Normal dist
 def normal(*shape, key: Optional[ArrayImpl] = None, mu=0.0, sigma=1.0):
     """
     Generates random numbers normally distributed with mean `mu` and std deviation `sigma`.
@@ -83,5 +92,5 @@ def normal(*shape, key: Optional[ArrayImpl] = None, mu=0.0, sigma=1.0):
         u2 = ((new_k0 * 1664525 + new_k1 * 1013904223) % 2**32) / 2**32
         z0 = (-2 * math.log(u1)) ** 0.5 * math.cos(2 * math.pi * u2)
         return mu + sigma * z0
-    raw = random_engine(shape, fill_fn=fill_fn)
+    raw = fill_engine(shape, fill_fn=fill_fn)
     return ArrayImpl(raw, dtype=float32())

@@ -246,7 +246,7 @@ class ArrayImpl(ArrayStorage):
 
 
     def __pow__(self, other):
-        from ..ops import log
+        from ..Ops import log
         other = shift(other)
         out = ArrayImpl(self._rawbuffer ** other._rawbuffer, parents=(self, other))
 
@@ -259,7 +259,7 @@ class ArrayImpl(ArrayStorage):
         return out
 
     def __rpow__(self, other):
-        from ..ops import log
+        from ..Ops import log
         other = shift(other)
         out = ArrayImpl(other._rawbuffer ** self._rawbuffer, parents=(other, self))
 

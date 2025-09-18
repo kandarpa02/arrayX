@@ -1,4 +1,4 @@
-from .core.Array import ArrayImpl, NumericObject
+from .Core.Array import ArrayImpl, NumericObject
 from typing import Protocol, runtime_checkable, Union
 
 

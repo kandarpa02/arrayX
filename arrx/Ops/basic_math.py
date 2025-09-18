@@ -1,5 +1,5 @@
 from ..typing import Array
-from ..core.Array import ArrayImpl, ArrayStorage
+from ..Core.Array import ArrayImpl, ArrayStorage
 from arrx import lib
 
 # helper to wrap scalars/arrays into ArrayImpl
