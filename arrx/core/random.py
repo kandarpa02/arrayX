@@ -4,29 +4,43 @@ import random
 import math, time
 from typing import Optional
 
-def RNGKey(seed: int) -> ArrayImpl:
+def RNGKey(seed: int):
     """
-    Creates a random number generator key from an integer seed.
+    Create a 2x uint32 key, JAX-style.
     """
-    return ArrayImpl([0, seed], dtype=uint32())
+    from arrx import lib
+    return ArrayImpl(
+        [lib.uint32(seed), lib.uint32(seed ^ 0x9E3779B9)],  # golden ratio constant
+        dtype=uint32()
+    )
+
+def _mix(k0, k1, salt):
+    """
+    Simple mixing function to decorrelate key values.
+    """
+    k0 = (k0 ^ (k1 >> 16)) * 0x85ebca6b
+    k0 = ((k0 << 13) | (k0 >> 19)) & 0xFFFFFFFF
+    k1 = (k1 ^ (k0 >> 16)) * 0xc2b2ae35
+    return (k0 ^ salt) & 0xFFFFFFFF, (k1 + salt) & 0xFFFFFFFF
 
 def split(key: ArrayImpl, n=2):
     """
-    Splits a RNG key into 'n' new keys using deterministic mixing.
+    Split a key into n new statistically decorrelated keys.
     """
-    stack = []
-    k0 = key._rawbuffer[0].item()
-    k1 = key._rawbuffer[1].item()
-    for i in range(1, n+1):
-        new_k0 = (k0 ^ (k1 << 5) ^ i) % 2**32
-        new_k1 = (k1 ^ (k0 >> 3) ^ i) % 2**32
-        stack.append(ArrayImpl([new_k0, new_k1], dtype=uint32()))
-    return tuple(stack)
+    k0 = int(key._rawbuffer[0].item())
+    k1 = int(key._rawbuffer[1].item())
+    out = []
+    for i in range(n):
+        nk0, nk1 = _mix(k0, k1, i + 1)
+        out.append(ArrayImpl([nk0, nk1], dtype=uint32()))
+    return tuple(out)
+
 
 def random_engine(shape, fill_fn):
     if not shape:
         return fill_fn()
     return [random_engine(shape[1:], fill_fn) for _ in range(shape[0])]
+
 
 def uniform(*shape, key: Optional[ArrayImpl] = None, a=0.0, b=1.0):
     """
