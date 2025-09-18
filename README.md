@@ -17,9 +17,10 @@ Inspired by this, I explored the underlying principles of autograd systems and b
 **Here is a simple example of differentiation 🤓**
 ```python
 >>> import arrx as rx
+>>> from arrx.autometa import grad
 >>> x = rx.array(5.0)
 >>> f = lambda x: x ** 3
->>> dx = rx.grad(f)
+>>> dx = grad(f)
 >>> print('dx:', dx(x))
 dx: 75.0
 ```
@@ -27,7 +28,7 @@ dx: 75.0
 
 ```python
 >>> import arrx as rx 
->>> from arrx import grad     # Only tool you'll be needed to calculate precise gradients
+>>> from arrx.autometa import grad     # Only tool you'll be needed to calculate precise gradients
 >>> import numpy as np
 >>> import matplotlib.pyplot as plt
 >>> x = np.linspace(-7, 7, 700)
