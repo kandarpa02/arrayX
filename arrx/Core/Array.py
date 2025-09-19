@@ -35,8 +35,9 @@ def _unbroadcast(grad, shape: Tuple[int, ...]):
 
 
 def dtype_init(data) -> Dtype: 
-    # from arrx import lib
-    if isinstance(data, int):
+    if isinstance(data, bool):       # check this first
+        return boolean()
+    elif isinstance(data, int):
         return int32()
     elif isinstance(data, float):
         return float32()
@@ -50,19 +51,17 @@ def dtype_init(data) -> Dtype:
                 elif isinstance(i, list):
                     flag = check_data(i)
             return flag
-        if check_data(data) == False:
+        if not check_data(data):
             return int32()
         else:
             return float32()
         
     elif isinstance(data, ArrayImpl):
-        return dmap(data._rawbuffer.dtype.type) #type:ignore
-    
-    elif isinstance(data, lib.bool|bool):
-        return boolean()
+        return dmap(data._rawbuffer.dtype.type)  # type:ignore
     
     else:
-        return dmap(data.dtype.type) #type:ignore
+        return dmap(data.dtype.type)  # type:ignore
+
     
 class ArrayStorage:
     __slots__ = ('_rawbuffer', '_dtype')

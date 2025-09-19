@@ -255,32 +255,21 @@ def dmap(data_type):
     import numpy as np
     lib = _lib()
     Dtype_MAP = {
-        lib.int8  : int8(),
-        lib.int16 : int16(),
-        lib.int32 : int32(),
-        lib.int64 : int64(),
+        # signed ints
+        lib.int8  : int8(),  lib.int16 : int16(),  lib.int32 : int32(),  lib.int64 : int64(),
+        np.int8   : int8(),  np.int16  : int16(),  np.int32  : int32(),  np.int64  : int64(),
 
-        lib.float16 : float16(), 
-        lib.float32 : float32(),
-        lib.float64 : float64(),
+        # floats
+        lib.float16 : float16(), lib.float32 : float32(), lib.float64 : float64(),
+        np.float16  : float16(), np.float32  : float32(), np.float64  : float64(),
 
-        lib.uint16 : uint16(),
-        lib.uint32 : uint32(),
-        lib.uint64 : uint64(),
+        # unsigned
+        lib.uint16 : uint16(), lib.uint32 : uint32(), lib.uint64 : uint64(),
+        np.uint16  : uint16(), np.uint32  : uint32(), np.uint64  : uint64(),
 
-        np.int8  : int8(),
-        np.int16 : int16(),
-        np.int32 : int32(),
-        np.int64 : int64(),
-
-        np.float16 : float16(), 
-        np.float32 : float32(),
-        np.float64 : float64(),
-
-        np.uint16 : uint16(),
-        np.uint32 : uint32(),
-        np.uint64 : uint64(),
-
+        # booleans
+        np.bool_   : boolean(),
+        getattr(lib, "bool_", None): boolean() if hasattr(lib, "bool_") else None,
     }
 
     return Dtype_MAP.get(data_type, None)
