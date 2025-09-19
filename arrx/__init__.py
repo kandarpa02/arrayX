@@ -39,3 +39,4 @@ def array(_x:NumericObject, dtype:Dtype = None): # type:ignore
     return ArrayImpl(_x, dtype=dtype)
 # Core ops
 from .Ops import *
+from .Ops.util_fns import where, arange
