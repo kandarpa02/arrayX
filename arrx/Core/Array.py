@@ -107,7 +107,12 @@ class ArrayImpl(ArrayStorage):
         self._rawbuffer[k]=v._rawbuffer
 
     def __getitem__(self, i):
-        idx = i._rawbuffer if isinstance(i, ArrayImpl) else i
+        # Handle multiple indices (tuple indexing)
+        if isinstance(i, tuple):
+            idx = tuple(j._rawbuffer if isinstance(j, ArrayImpl) else j for j in i)
+        else:
+            idx = i._rawbuffer if isinstance(i, ArrayImpl) else i
+
         out = ArrayImpl(self._rawbuffer[idx], parents=(self,))
 
         def _get_backward(grad):
@@ -123,7 +128,7 @@ class ArrayImpl(ArrayStorage):
                 else:
                     zero_buf[idx] += grad_buf
 
-            return (ArrayImpl(zero_buf),) 
+            return (ArrayImpl(zero_buf),)
 
         out.bwd_fn = _get_backward
         return out
