@@ -13,7 +13,7 @@ def shift(data):
     if isinstance(data, ArrayStorage):
         return ArrayImpl(data)
     # If scalar or array, wrap as ArrayStorage then as ArrayImpl
-    return ArrayImpl(ArrayStorage(lib.array(data)), parents=(), bwd_fn=None)
+    return ArrayImpl(data, parents=(), bwd_fn=None)
 
 
 def _unbroadcast(grad, shape: Tuple[int, ...]):
