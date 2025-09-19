@@ -281,7 +281,6 @@ def dmap(data_type):
         np.uint32 : uint32(),
         np.uint64 : uint64(),
 
-        bool : boolean()
     }
 
     return Dtype_MAP.get(data_type, None)

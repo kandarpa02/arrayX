@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 from dataclasses import dataclass
 from arrx import lib
 import numpy as np
-from .Dtype import Dtype, dmap, int32, float32
+from .Dtype import Dtype, dmap, int32, float32, boolean
 
 NumericObject = NDArray
 
@@ -56,12 +56,14 @@ def dtype_init(data) -> Dtype:
             return float32()
         
     elif isinstance(data, ArrayImpl):
-        return dmap(data._rawbuffer.data.dtype) #type:ignore
+        return dmap(data._rawbuffer.dtype.type) #type:ignore
+    
+    elif isinstance(data, lib.bool|bool):
+        return boolean()
     
     else:
         return dmap(data.dtype.type) #type:ignore
     
-
 class ArrayStorage:
     __slots__ = ('_rawbuffer', '_dtype')
 
