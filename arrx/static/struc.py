@@ -1,20 +1,69 @@
 from typing import Any, Sequence
-from .utils import _unbroadcast
+from .utils import (
+    _unbroadcast,
+    broadcast_shape,
+    filler_name,
+    data_by_dim,
+    reduced_shape,
+)
+
 from arrx import lib
 from .errors import ShapeError
 
 class placeholder:
-    def __init__(self, name=None, shape:Sequence[Any]=[]): #type:ignore
-        self.name = name
+    def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
+        self.name_given = False if name is None else True
+        self.name = name if name is not None else filler_name()
         self.shape = tuple(shape)
         self.parents = ()
         self.grad_fn = None
         self.grad = None
 
+    @staticmethod
+    def _TYPE_MAP(name):
+        tmap = {
+            'matrix':matrix,
+            'vector':vector,
+            'scalar':scalar
+        }
+        return tmap.get(name, placeholder)
+    
+    @staticmethod
+    def as_place(data, name=None):
+        shape = data.shape
+        _name = data_by_dim(*shape)
+        tmap = {
+            'matrix':matrix,
+            'vector':vector,
+            'scalar':scalar
+        }
+        return tmap.get(_name, placeholder)(list(shape), name) #type:ignore
+    
+    @staticmethod
+    def place(*shape, name=None):
+        _name = data_by_dim(*shape)
+        tmap = {
+            'matrix':matrix,
+            'vector':vector,
+            'scalar':scalar
+        }
+        return tmap.get(_name, placeholder)(list(shape), name) #type:ignore
+    
+    @staticmethod
+    def object(*shape):
+        name = data_by_dim(*shape)
+        tmap = {
+            'matrix':matrix,
+            'vector':vector,
+            'scalar':scalar
+        }
+        return tmap.get(name, placeholder) #type:ignore
+    
     def __repr__(self):
         if hasattr(self, 'repr'):
             return self.repr() #type:ignore
-        return f"placeholder({self.name}, shape={self.shape})"
+        ret = f"Placeholder(shape={self.shape})"
+        return ret
     
     @property
     def ndim(self):
@@ -22,7 +71,9 @@ class placeholder:
 
 
     def __add__(self, other):
-        out = placeholder(f"({self.name} + {other.name})", shape=[])
+        _shape = broadcast_shape(self.shape, other.shape)
+        obj = placeholder.object(*_shape)
+        out = obj(f"({self.name} + {other.name})", shape=_shape)
         out.parents = (self, other)
         def _grad_add(grad):
             g1 = _unbroadcast(grad, self.shape)
@@ -34,7 +85,9 @@ class placeholder:
     
 
     def __mul__(self, other):
-        out = placeholder(f"({self.name} * {other.name})", shape=[])
+        _shape = broadcast_shape(self.shape, other.shape)
+        obj = placeholder.object(*_shape)
+        out = obj(f"({self.name} * {other.name})", shape=_shape)
         out.parents = (self, other)
         # note: grad_fn returns placeholders (symbolic expressions using names)
         def _grad_mul(grad):
@@ -46,8 +99,6 @@ class placeholder:
 
         return out
 
-    def repr(self):
-        return f"scalar({self.name}, shape={self.shape})"
     
     def reshape(self, *shape):
         out = placeholder(f"{self.name}.reshape(shape)") #type:ignore
@@ -62,19 +113,22 @@ class placeholder:
 
 
 class scalar(placeholder):
-    def __init__(self, name=None, shape: Sequence = []): #type:ignore
-        super().__init__(name, shape)
+    def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
+        super().__init__(shape, name)
 
     def repr(self):
-        return f"scalar({self.name}, shape={self.shape})"
+        res = f"Scalar(shape={self.shape})" 
+        return res
     
 class vector(placeholder):
-    def __init__(self, name=None, shape: Sequence = []):
-        super().__init__(name, shape)
+    def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
+        super().__init__(shape, name)
 
 
     def sum(self, axis=None, keepdims=False):
-        out = vector(f"{self.name}.sum()")
+        shape = reduced_shape(self.shape, axis=axis, keepdims=keepdims)
+        obj = placeholder.object(*shape)
+        out = obj(shape, f"{self.name}.sum(axis={axis}, keepdims={keepdims})")
         out.parents = (self,)
 
         def _grad_sum(grad):
@@ -90,18 +144,19 @@ class vector(placeholder):
                         shape[ax] = 1
                 grad_expanded = grad.reshape(shape)
             
-            # grad_broadcasted = lib.broadcast_to(grad_expanded, self.shape)
-            return (grad_expanded,)
+            grad_broadcasted = lib.broadcast_to(grad_expanded, self.shape)
+            return (grad_broadcasted,)
 
         out.grad_fn = _grad_sum
         return out
 
     def repr(self):
-        return f"vector({self.name}, shape={self.shape})"
+        res = f"Vector(shape={self.shape})" 
+        return res
     
 class matrix(vector):
-    def __init__(self, name=None, shape: Sequence = []): 
-        super().__init__(name, shape)
+    def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
+        super().__init__(shape, name)
         self._check_dim()
     
     def _check_dim(self):
@@ -110,4 +165,5 @@ class matrix(vector):
 
     
     def repr(self):
-        return f"matrix({self.name}, shape={self.shape})"
+        res = f"Matrix(shape={self.shape})" 
+        return res

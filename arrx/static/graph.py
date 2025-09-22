@@ -39,7 +39,7 @@ class compile_graph:
             for n in topological_sort(out):
                 n.grad = None
 
-            out.grad = placeholder('init_grad')
+            out.grad = placeholder.as_place(self.out, 'init_grad')
             for node in reversed(topological_sort(out)):
                 if node.grad_fn:
                     grads = node.grad_fn(node.grad)
