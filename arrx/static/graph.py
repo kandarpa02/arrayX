@@ -52,7 +52,7 @@ class compile_graph:
         _backward(self.out)
 
         # arg list for the back function: (init_grad, x, y, z, ...)
-        arg_names = ['init_grad'] + [v.name for v in self.var]
+        arg_names = [v.name for v in self.var]
         arg_str = ', '.join(arg_names) #type:ignore
 
         # collect the grad placeholders for each variable (these are placeholders)
@@ -78,7 +78,10 @@ class compile_graph:
             body_lines.append(f"    g{i} = {g.name}") #type:ignore
 
         body_lines.append(f"    return ({', '.join('g'+str(i) for i in range(len(grad_placeholders)))})")
-        fun_code = f"def back_fn({arg_str}):\n" + "\n".join(body_lines)
+        fun_code = f"def back_fn({arg_str}):\n" 
+        fun_code += f"    from arrx import lib\n"
+        fun_code += f"    init_grad = lib.ones({self.out.shape})\n"
+        fun_code += "\n".join(body_lines)
 
         namespace = {}
         # exec in a fresh namespace so symbols x,y,z,init_grad will be function args
