@@ -27,6 +27,10 @@ def broadcast_shape(shape1, shape2):
             raise ShapeError(f"Shapes {shape1} and {shape2} are not broadcastable.")
     return tuple(result)
 
+def broadcast_to(data, shape):
+    from .Tensor.struc import placeholder
+    expr = f"lib.broadcast_to({data}, {shape})"
+    return placeholder.place(*shape, name=expr)
 
 def _unbroadcast(grad, shape: Sequence):
     """Reduce grad to match shape by summing over broadcasted dimensions."""

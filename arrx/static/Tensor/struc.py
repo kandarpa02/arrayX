@@ -1,14 +1,16 @@
 from typing import Any, Sequence
-from .utils import (
+from ..utils import (
     _unbroadcast,
     broadcast_shape,
     filler_name,
     data_by_dim,
     reduced_shape,
+    broadcast_to,
 )
 
 from arrx import lib
-from .errors import ShapeError
+from ..errors import ShapeError
+
 
 class placeholder:
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
@@ -18,6 +20,16 @@ class placeholder:
         self.parents = ()
         self.grad_fn = None
         self.grad = None
+
+    @staticmethod
+    def _make_place(a): 
+        if isinstance(a, int|float|lib.ndarray):
+            shape = ()
+            if isinstance(a, lib.ndarray):
+                shape = a.shape
+            return placeholder.place(*shape, name=f"{a}")
+        elif isinstance(a, placeholder):
+            return a
 
     @staticmethod
     def _TYPE_MAP(name):
@@ -71,13 +83,14 @@ class placeholder:
 
 
     def __add__(self, other):
-        _shape = broadcast_shape(self.shape, other.shape)
+        other = placeholder._make_place(other) 
+        _shape = broadcast_shape(self.shape, other.shape)#type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(f"({self.name} + {other.name})", shape=_shape)
+        out = obj(name=f"({self.name} + {other.name})", shape=_shape) #type:ignore
         out.parents = (self, other)
         def _grad_add(grad):
             g1 = _unbroadcast(grad, self.shape)
-            g2 = _unbroadcast(grad, other.shape)
+            g2 = _unbroadcast(grad, other.shape) #type:ignore
             return g1, g2
         
         out.grad_fn = _grad_add
@@ -85,14 +98,15 @@ class placeholder:
     
 
     def __mul__(self, other):
-        _shape = broadcast_shape(self.shape, other.shape)
+        other = placeholder._make_place(other)
+        _shape = broadcast_shape(self.shape, other.shape) #type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(f"({self.name} * {other.name})", shape=_shape)
+        out = obj(name=f"({self.name} * {other.name})", shape=_shape) #type:ignore
         out.parents = (self, other)
         # note: grad_fn returns placeholders (symbolic expressions using names)
         def _grad_mul(grad):
             g1 = _unbroadcast(grad * other, self.shape)
-            g2 = _unbroadcast(grad * self, other.shape)
+            g2 = _unbroadcast(grad * self, other.shape) #type:ignore
             return g1, g2
         
         out.grad_fn = _grad_mul
@@ -101,17 +115,19 @@ class placeholder:
 
     
     def reshape(self, *shape):
-        out = placeholder(f"{self.name}.reshape(shape)") #type:ignore
+        # create a placeholder of the correct type and give it the explicit name
+        obj = placeholder.object(*shape)           # get class (vector/matrix/...)
+        out = obj(list(shape), f"{self.name}.reshape{shape}")
         out.parents = (self, )
 
         def _grad_reshape(grad):
+            # return a placeholder representing grad reshaped back to original
             return grad.reshape(self.shape),
 
         out.grad_fn = _grad_reshape
         return out
+
     
-
-
 class scalar(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         super().__init__(shape, name)
@@ -119,7 +135,9 @@ class scalar(placeholder):
     def repr(self):
         res = f"Scalar(shape={self.shape})" 
         return res
-    
+
+
+
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         super().__init__(shape, name)
@@ -133,7 +151,7 @@ class vector(placeholder):
 
         def _grad_sum(grad):
             if keepdims:
-                grad_expanded = grad._rawbuffer
+                grad_expanded = grad
             else:
                 shape = list(self.shape)
                 if axis is None:
@@ -142,9 +160,9 @@ class vector(placeholder):
                     axes = axis if isinstance(axis, tuple) else (axis,)
                     for ax in axes:
                         shape[ax] = 1
-                grad_expanded = grad.reshape(shape)
+                grad_expanded = grad.reshape(tuple(shape))
             
-            grad_broadcasted = lib.broadcast_to(grad_expanded, self.shape)
+            grad_broadcasted = broadcast_to(grad_expanded.name, self.shape)
             return (grad_broadcasted,)
 
         out.grad_fn = _grad_sum
@@ -166,4 +184,4 @@ class matrix(vector):
     
     def repr(self):
         res = f"Matrix(shape={self.shape})" 
-        return res
+        return res 

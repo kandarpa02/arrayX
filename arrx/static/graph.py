@@ -1,5 +1,6 @@
 from typing import Sequence, List
-from .struc import placeholder
+from .Tensor.struc import placeholder
+from .errors import CompilationError
 
 class compile_graph:
     def __init__(self, out:placeholder, var:List[placeholder]):
@@ -17,7 +18,28 @@ class compile_graph:
             if self.code is None:
                 self.code = {}
             self.code['forward'] = fun_code
-        exec(fun_code, namespace)
+        try:
+            exec(fun_code, namespace)
+        except:
+            raise CompilationError(
+         """compiler has found some abnormal anomalies while codegen. It may caused by some forbidden rules\n
+            such as: \n
+            It is forbidden to reassign the same variable \n
+            i.e., 
+            Don't
+            x = matrix((5, 3), 'x')
+            x = x * 2         # Reassigning the same variable will cause error
+
+            y = x.sum(axis=1)
+            
+            Do
+            x = matrix((5, 3), 'x')
+            x2 = x * 2        # New assignment
+
+            y = x2.sum(axis=1)
+                    
+            """
+            )
         return namespace["func"]
 
 

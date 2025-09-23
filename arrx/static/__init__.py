@@ -1,2 +1,2 @@
 from .graph import compile_graph
-from .struc import scalar, vector, matrix, placeholder
+from .Tensor.struc import scalar, placeholder, vector, matrix
