@@ -2,13 +2,27 @@ from typing import Sequence, List
 from .Tensor.struc import placeholder
 from .errors import CompilationError
 
-class compile_graph:
-    def __init__(self, out:placeholder, var:List[placeholder]):
+_CACHE = {"shape": {}}
+
+class Function:
+    def __init__(self, out: placeholder, var: List[placeholder], debug=False):
         self.out = out
         self.var = var
         self.code = None
+        self.debug = debug
 
-    def forward(self, debug=False):
+        key = (self.out.shape, tuple(v.name for v in var))
+        if key not in _CACHE["shape"]:
+            print("fresh compile...")
+            _CACHE["shape"][key] = {
+                "fwd": self._fwd_fn(debug),
+                "bwd": self._grad_fn_stack(debug),
+            }
+        self.forward = _CACHE["shape"][key]["fwd"]
+        self.backward = _CACHE["shape"][key]["bwd"]
+
+        
+    def _fwd_fn(self, debug=False):
         var_list = self.var
         arg_list = ', '.join(v.name for v in var_list) if var_list else '' #type:ignore
         out_expr = self.out.name.replace('init_grad', '1') #type:ignore
@@ -43,7 +57,7 @@ class compile_graph:
         return namespace["func"]
 
 
-    def backward(self, debug=False):
+    def _grad_fn_stack(self, debug=False):
         # build symbolic grads
         def topological_sort(node):
             visited, order = set(), []
