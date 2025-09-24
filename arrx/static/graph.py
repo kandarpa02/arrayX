@@ -2,15 +2,15 @@ from typing import Sequence, List
 from .Tensor.base import placeholder
 from .errors import CompilationError
 
-class Function:
+class _compiler:
     def __init__(self, out: placeholder, var: List[placeholder], debug=False):
         self.out = out
         self.var = var
         self.code = None
         self.debug = debug
 
-        # self.forward = self._fwd_fn(debug)
-        # self.backward = self._grad_fn_stack(debug)
+        self._forward = self._fwd_fn(debug)
+        self._backward = self._grad_fn_stack(debug)
 
         
     def _fwd_fn(self, debug=False):
@@ -119,3 +119,13 @@ class Function:
         exec(fun_code, namespace)
         return namespace["back_fn"]
 
+
+class Function:
+    def __init__(self, out: placeholder, var: List[placeholder], debug=False):
+        self._compiler = _compiler(out, var, debug)
+
+    def forward(self):
+        return self._compiler._forward
+
+    def backward(self):
+        return self._compiler._backward
