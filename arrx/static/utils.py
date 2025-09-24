@@ -2,6 +2,7 @@ from typing import Sequence
 from .errors import ShapeError
 from typing import Tuple, Union, Sequence
 import uuid
+from arrx import lib
 
 def filler_name():
     return f"anon_{uuid.uuid4().hex[:8]}"
@@ -27,8 +28,81 @@ def broadcast_shape(shape1, shape2):
             raise ShapeError(f"Shapes {shape1} and {shape2} are not broadcastable.")
     return tuple(result)
 
+def matmul_shape(shape1, shape2):
+    """
+    Infer the result shape of a matmul operation given two input shapes.
+    """
+    # Handle 1D special cases
+    if len(shape1) == 1 and len(shape2) == 1:
+        # (n,) @ (n,) -> ()
+        if shape1[0] != shape2[0]:
+            raise ShapeError(f"Incompatible dimensions for dot: {shape1}, {shape2}")
+        return ()
+
+    if len(shape1) == 1 and len(shape2) == 2:
+        # (n,) @ (n, m) -> (m,)
+        if shape1[0] != shape2[0]:
+            raise ShapeError(f"Incompatible dimensions: {shape1}, {shape2}")
+        return (shape2[1],)
+
+    if len(shape1) == 2 and len(shape2) == 1:
+        # (m, n) @ (n,) -> (m,)
+        if shape1[1] != shape2[0]:
+            raise ShapeError(f"Incompatible dimensions: {shape1}, {shape2}")
+        return (shape1[0],)
+
+    # General case (>=2D each)
+    if shape1[-1] != shape2[-2]:
+        raise ShapeError(f"Incompatible core dims: {shape1[-1]} vs {shape2[-2]}")
+
+    batch1 = shape1[:-2]
+    batch2 = shape2[:-2]
+    batch = broadcast_shape(batch1, batch2)
+
+    return batch + (shape1[-2], shape2[-1])
+
+def reshape_shape(input_shape, new_shape):
+    def prod(a):
+        x = 1 
+        for i in a:
+            x*= i
+        return x
+    input_size = prod(input_shape)
+    new_shape = list(new_shape)
+
+    # Count -1s
+    neg_count = new_shape.count(-1)
+    if neg_count > 1:
+        raise ValueError("Only one dimension can be -1")
+
+    # Compute product of specified dims (ignoring -1)
+    known_product = 1
+    for dim in new_shape:
+        if dim != -1:
+            known_product *= dim
+
+    if neg_count == 1:
+        if input_size % known_product != 0:
+            raise ValueError("Cannot infer dimension: sizes don't match")
+        # Replace -1 with inferred dimension
+        for i, dim in enumerate(new_shape):
+            if dim == -1:
+                new_shape[i] = input_size // known_product
+                break
+
+    # Final check
+    if prod(new_shape) != input_size:
+        raise ValueError(f"Shape mismatch: cannot reshape {input_shape} to {tuple(new_shape)}")
+
+    return tuple(new_shape)
+
+def transpose_shape(shape, axes):
+    import numpy as np
+    dummy = np.empty(shape, dtype=np.ubyte)
+    return dummy.transpose(axes).shape
+
 def broadcast_to(data, shape):
-    from .Tensor.struc import placeholder
+    from .Tensor.base import placeholder
     expr = f"lib.broadcast_to({data}, {shape})"
     return placeholder.place(*shape, name=expr)
 

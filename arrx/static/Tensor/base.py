@@ -6,6 +6,9 @@ from ..utils import (
     data_by_dim,
     reduced_shape,
     broadcast_to,
+    matmul_shape,
+    reshape_shape,
+    transpose_shape,
 )
 
 from arrx import lib
@@ -115,9 +118,20 @@ class placeholder:
 
     
     def reshape(self, *shape):
-        # create a placeholder of the correct type and give it the explicit name
-        obj = placeholder.object(*shape)           # get class (vector/matrix/...)
-        out = obj(list(shape), f"{self.name}.reshape{shape}")
+        def tup_norm(s):
+            res = []
+            for i in s:
+                if isinstance(i, tuple):
+                    res.extend(tup_norm(i))
+                else: 
+                    res.extend([i])
+
+            return tuple(res)
+        
+        shape = tup_norm(shape)
+        new_shape = reshape_shape(self.shape, shape)
+        obj = placeholder.object(*new_shape)           # get class (vector/matrix/...)
+        out = obj(new_shape, f"{self.name}.reshape{shape}")
         out.parents = (self, )
 
         def _grad_reshape(grad):
@@ -131,6 +145,11 @@ class placeholder:
 class scalar(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         super().__init__(shape, name)
+        self._check_dim()
+    
+    def _check_dim(self):
+        if self.ndim > 0:
+            raise ShapeError(f"wrong shape {self.shape}(dim={self.ndim}) for class Scalar, required shape () (dim=0)")
 
     def repr(self):
         res = f"Scalar(shape={self.shape})" 
@@ -141,6 +160,15 @@ class scalar(placeholder):
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         super().__init__(shape, name)
+        self._check_dim()
+    
+    def _check_dim(self):
+        if self.ndim > 1 or self.ndim == 0:
+            raise ShapeError(f"wrong shape {self.shape}(dim={self.ndim}) for class vector, required shape = (?, ) (dim=1)")
+        
+    def repr(self):
+        res = f"Vector(shape={self.shape})" 
+        return res
 
 
     def sum(self, axis=None, keepdims=False):
@@ -167,10 +195,52 @@ class vector(placeholder):
 
         out.grad_fn = _grad_sum
         return out
+    
+    def transpose(self, axes=None):
+        if axes is None:
+            axes = tuple(reversed(range(self.ndim)))
+        shape = transpose_shape(self.shape, axes)
+        out = placeholder.place(*shape, name=f"{self.name}.transpose({axes})")
+        out.parents = (self,)
 
-    def repr(self):
-        res = f"Vector(shape={self.shape})" 
-        return res
+        def _grad_transpose(grad):
+            def inverse_permutation(axes):
+                inv = [0] * len(axes)
+                for i, a in enumerate(axes):
+                    inv[a] = i
+                return tuple(inv)
+
+            inv_axes = inverse_permutation(axes)
+            return grad.transpose(inv_axes),
+
+        out.bwd_fn = _grad_transpose
+        return out
+
+
+    def flatten(self):
+        return self.reshape(-1)
+    
+    def __matmul__(self, other):
+        shape = matmul_shape(self.shape, other.shape)
+        out = placeholder.place(*shape, name=f"({self.name} @ {other.name})")
+        out.parents = (self, other)
+
+        def _grad_matmul(grad):
+
+            a_exp = self if self.ndim > 1 else self.reshape(1, -1)
+            b_exp = other if other.ndim > 1 else other.reshape(-1, 1)
+            grad_exp = grad if grad.ndim > 1 else grad.reshape(1, -1)
+
+            grad_a = grad_exp @ b_exp.T
+            grad_b = a_exp.transpose() @ grad_exp
+
+            # reshape outputs if inputs were originally 1D
+            grad_a = grad_a.flatten() if self.ndim == 1 else grad_a
+            grad_b = grad_b.flatten() if other.ndim == 1 else grad_b
+
+            return grad_a, grad_b
+        
+        return out
     
 class matrix(vector):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
@@ -179,7 +249,7 @@ class matrix(vector):
     
     def _check_dim(self):
         if self.ndim < 2:
-            raise ShapeError(self.ndim, 'matrix')
+            raise ShapeError(f"wrong shape {self.shape}(dim={self.ndim}) for class matrix, required shape > (?, ) (dim>1)")
 
     
     def repr(self):

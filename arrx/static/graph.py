@@ -1,8 +1,6 @@
 from typing import Sequence, List
-from .Tensor.struc import placeholder
+from .Tensor.base import placeholder
 from .errors import CompilationError
-
-_CACHE = {"shape": {}}
 
 class Function:
     def __init__(self, out: placeholder, var: List[placeholder], debug=False):
@@ -11,15 +9,8 @@ class Function:
         self.code = None
         self.debug = debug
 
-        key = (self.out.shape, tuple(v.name for v in var))
-        if key not in _CACHE["shape"]:
-            print("fresh compile...")
-            _CACHE["shape"][key] = {
-                "fwd": self._fwd_fn(debug),
-                "bwd": self._grad_fn_stack(debug),
-            }
-        self.forward = _CACHE["shape"][key]["fwd"]
-        self.backward = _CACHE["shape"][key]["bwd"]
+        # self.forward = self._fwd_fn(debug)
+        # self.backward = self._grad_fn_stack(debug)
 
         
     def _fwd_fn(self, debug=False):
