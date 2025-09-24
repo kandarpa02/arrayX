@@ -143,18 +143,19 @@ class placeholder:
 
     
 class scalar(placeholder):
-    def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
+    def __init__(self, shape: Sequence[Any] = [], name=None):  # type: ignore
         super().__init__(shape, name)
         self._check_dim()
     
     def _check_dim(self):
-        if self.ndim > 0:
-            raise ShapeError(f"wrong shape {self.shape}(dim={self.ndim}) for class Scalar, required shape () (dim=0)")
+        if self.ndim != 0:
+            raise ShapeError(
+                f"Invalid shape for 'scalar': {self.shape} (ndim={self.ndim}). "
+                f"A scalar must have no dimensions (shape=())."
+            )
 
     def repr(self):
-        res = f"Scalar(shape={self.shape})" 
-        return res
-
+        return f"Scalar(shape={self.shape})"
 
 
 class vector(placeholder):
@@ -163,9 +164,12 @@ class vector(placeholder):
         self._check_dim()
     
     def _check_dim(self):
-        if self.ndim > 1 or self.ndim == 0:
-            raise ShapeError(f"wrong shape {self.shape}(dim={self.ndim}) for class vector, required shape = (?, ) (dim=1)")
-        
+        if self.ndim != 1:
+            raise ShapeError(
+                f"Invalid shape for 'vector': {self.shape} (ndim={self.ndim}). "
+                f"A vector must be one-dimensional."
+            )
+
     def repr(self):
         res = f"Vector(shape={self.shape})" 
         return res
@@ -213,8 +217,12 @@ class vector(placeholder):
             inv_axes = inverse_permutation(axes)
             return grad.transpose(inv_axes),
 
-        out.bwd_fn = _grad_transpose
+        out.grad_fn = _grad_transpose
         return out
+    
+    @property
+    def T(self):
+        return self.transpose()
 
 
     def flatten(self):
@@ -232,7 +240,7 @@ class vector(placeholder):
             grad_exp = grad if grad.ndim > 1 else grad.reshape(1, -1)
 
             grad_a = grad_exp @ b_exp.T
-            grad_b = a_exp.transpose() @ grad_exp
+            grad_b = a_exp.T @ grad_exp
 
             # reshape outputs if inputs were originally 1D
             grad_a = grad_a.flatten() if self.ndim == 1 else grad_a
@@ -240,18 +248,21 @@ class vector(placeholder):
 
             return grad_a, grad_b
         
+        out.grad_fn = _grad_matmul
+        
         return out
     
 class matrix(vector):
-    def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
+    def __init__(self, shape: Sequence[Any] = [], name=None):  # type: ignore
         super().__init__(shape, name)
         self._check_dim()
     
     def _check_dim(self):
         if self.ndim < 2:
-            raise ShapeError(f"wrong shape {self.shape}(dim={self.ndim}) for class matrix, required shape > (?, ) (dim>1)")
+            raise ShapeError(
+                f"Invalid shape for 'matrix': {self.shape} (ndim={self.ndim}). "
+                f"A matrix must have at least 2 dimensions."
+            )
 
-    
     def repr(self):
-        res = f"Matrix(shape={self.shape})" 
-        return res 
+        return f"Matrix(shape={self.shape})"
