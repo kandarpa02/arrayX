@@ -1,5 +1,6 @@
 from .base import placeholder, vector, matrix
 
+
 def matmul(a: vector | matrix, b: vector | matrix):
     """
     Perform matrix multiplication between two placeholder objects.

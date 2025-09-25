@@ -1,4 +1,4 @@
-# ArrayX
+# arrayX
 
 **For lightning fast array operations with native autograd support**
 
@@ -24,7 +24,7 @@ Inspired by this, I explored the underlying principles of autograd systems and b
 >>> print('dx:', dx(x))
 dx: 75.0
 ```
-**Now let's plot the higher order derivatives of a beautiful function**
+**Now let's plot the higher order derivatives of tanh function**
 
 ```python
 >>> import arrx as rx 

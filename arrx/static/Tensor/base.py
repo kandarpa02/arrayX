@@ -99,6 +99,20 @@ class placeholder:
         out.grad_fn = _grad_add
         return out
     
+    def __sub__(self, other):
+        other = placeholder._make_place(other) 
+        _shape = broadcast_shape(self.shape, other.shape)#type:ignore
+        obj = placeholder.object(*_shape)
+        out = obj(name=f"({self.name} - {other.name})", shape=_shape) #type:ignore
+        out.parents = (self, other)
+        def _grad_sub(grad):
+            g1 = _unbroadcast(grad, self.shape)
+            g2 = _unbroadcast(-grad, other.shape) #type:ignore
+            return g1, g2
+        
+        out.grad_fn = _grad_sub
+        return out
+    
 
     def __mul__(self, other):
         other = placeholder._make_place(other)
@@ -113,9 +127,46 @@ class placeholder:
             return g1, g2
         
         out.grad_fn = _grad_mul
-
         return out
-
+    
+    def __truediv__(self, other):
+        other = placeholder._make_place(other)
+        _shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        obj = placeholder.object(*_shape)
+        out = obj(name=f"({self.name} / {other.name})", shape=_shape) #type:ignore
+        out.parents = (self, other)
+        # note: grad_fn returns placeholders (symbolic expressions using names)
+        def _grad_div(grad):
+            g1 = _unbroadcast(grad / other, self.shape)
+            g2 = _unbroadcast(-grad * self / (other * other), other.shape) #type:ignore
+            return g1, g2
+        
+        out.grad_fn = _grad_div
+        return out
+    
+    def __pow__(self, other):
+        from .logarithmic import log
+        other = placeholder._make_place(other)
+        _shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        obj = placeholder.object(*_shape)
+        out = obj(name=f"({self.name} ** {other.name})", shape=_shape) #type:ignore
+        out.parents = (self, other)
+        # note: grad_fn returns placeholders (symbolic expressions using names)
+        def _grad_mul(grad):
+            g1 = _unbroadcast(grad * other * self ** (other - 1), self.shape) #type:ignore
+            g2 = _unbroadcast(grad * self ** other * log(self + 1e-12), other.shape) #type:ignore
+            return g1, g2
+        
+        out.grad_fn = _grad_mul
+        return out
+    
+    def __neg__(self):
+        out = placeholder.place(*self.shape, name=f"-{self.name}")
+        out.parents = (self,)
+        def _grad_neg(grad):
+            g = _unbroadcast(-grad, self.shape)
+            return (g,)
+        return out
     
     def reshape(self, *shape):
         def tup_norm(s):
