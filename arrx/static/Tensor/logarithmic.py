@@ -10,3 +10,4 @@ def log(x:placeholder):
     
     out.grad_fn = _bwd_log
     return out
+

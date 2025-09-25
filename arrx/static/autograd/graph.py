@@ -1,6 +1,6 @@
 from typing import Sequence, List
-from .Tensor.base import placeholder
-from .errors import CompilationError
+from ..Tensor.base import placeholder
+from ..errors import CompilationError
 
 class _compiler:
     def __init__(self, out: placeholder, var: List[placeholder], debug=False):

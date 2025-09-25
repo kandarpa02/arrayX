@@ -1,5 +1,16 @@
 from .base import placeholder, vector, matrix
 
+def add(a: vector | matrix, b: vector | matrix):
+    return a + b
+def sub(a: vector | matrix, b: vector | matrix):
+    return a - b
+def mul(a: vector | matrix, b: vector | matrix):
+    return a * b
+def div(a: vector | matrix, b: vector | matrix):
+    return a / b
+def pow(a: vector | matrix, b: vector | matrix):
+    return a ** b
+
 
 def matmul(a: vector | matrix, b: vector | matrix):
     """
