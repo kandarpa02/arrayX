@@ -2,13 +2,13 @@ from setuptools import setup, find_packages, Extension
 
 # Setup configuration
 setup(
-    name="ArrayX",
+    name="arrayX",
     version="0.0.1a1",
     author="Kandarpa Sarkar",
     author_email="kandarpaexe@gmail.com",
     description="An autodiff library for personal use",
     long_description_content_type="text/markdown",
-    url="https://github.com/kandarpa02/ArrayX.git",
+    url="https://github.com/kandarpa02/arrayX.git",
     packages=find_packages(),
     python_requires=">=3.8",
     classifiers=[
