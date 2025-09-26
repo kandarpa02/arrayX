@@ -17,7 +17,9 @@ class _compiler:
         var_list = self.var
         arg_list = ', '.join(v.name for v in var_list) if var_list else '' #type:ignore
         out_expr = self.out.name.replace('init_grad', '1') #type:ignore
-        fun_code = f"def func({arg_list}, **kwargs):\n    return {out_expr}"
+        fun_code = f"def func({arg_list}, **kwargs):\n"   
+        fun_code += f"    from arrx import lib\n"
+        fun_code += f"    return {out_expr}"
         namespace = {}
         if debug:
             if self.code is None:
