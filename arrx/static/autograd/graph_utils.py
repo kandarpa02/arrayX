@@ -25,12 +25,21 @@ class EmptyNodeError(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
+INSTANCE_COUNTER = None
 
 class FlashGraph:
-    ___nodes: dict = None #type:ignore
-    ___history: dict = None #type:ignore
-    ___end_node: TensorLike = None #type:ignore
+    _instance_counter = 0  # class-level counter
 
+    def __init__(self, name=None) -> None:
+        self.name = name
+        # assign unique instance ID at creation
+        cls = self.__class__
+        self._instance_id = cls._instance_counter
+        cls._instance_counter += 1
+
+        self.___nodes: dict = None  # type: ignore
+        self.___history: dict = None  # type: ignore
+        self.___end_node: "TensorLike" = None  # type: ignore
     """
     FlashGraph
     ----------
@@ -48,7 +57,31 @@ class FlashGraph:
     history : dict
         A dictionary mapping placeholder names to their original placeholder objects.
     """
-    
+
+    def __repr__(self):
+        name_str = self.name if self.name else "?"
+        out_node_str = getattr(self.___end_node, 'name', 'Unknown') if self.___end_node else "?"
+
+        lines = [f"FlashGraph_Instance_{self._instance_id}(name={name_str})",
+                 f"  out_node: {out_node_str}",
+                 f"  variables:"]
+
+        if self.___history:
+            # column width = max length of node IDs or header "node_id"
+            max_id_len = max(max(len(str(k)) for k in self.___history.keys()), len("node_id"))
+            header = f"{'node_id':<{max_id_len}} | placeholder"
+            lines.append(f"    {header}")
+            lines.append(f"    {'='*max_id_len} | {'='*10}")
+
+            for k, v in self.___history.items():
+                lines.append(f"    {str(k):<{max_id_len}} | {v}")
+        else:
+            lines.append(f"    node_id | placeholder")
+            lines.append(f"    ======= | ===========")
+            lines.append(f"    Null    | Null")
+
+        return "\n".join(lines)
+
     @property
     def nodes(self):
         return self.___nodes

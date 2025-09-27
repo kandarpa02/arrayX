@@ -4,6 +4,10 @@ from typing import Tuple, Union, Sequence
 import uuid
 from arrx import lib
 
+def variable(shape=[], name=None):
+    from .Tensor.base import placeholder
+    return placeholder.place(*shape, name=name)
+
 def filler_name():
     return f"anon_{uuid.uuid4().hex[:8]}"
 
