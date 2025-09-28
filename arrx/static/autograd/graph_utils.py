@@ -1,7 +1,7 @@
 from ..Tensor.base import scalar, vector, matrix, placeholder
 from ..Tensor import arithmetic, logarithmic
 from .graph import Function
-from typing import Union, Any, List
+from typing import Union, Any, List, Callable
 from dataclasses import dataclass
 import inspect
 
@@ -90,7 +90,8 @@ class FlashGraph:
     def history(self):
         return self.___history
     
-    def out_node(self):
+    @property
+    def Out(self):
         return self.___end_node
 
     def Init(self, prev=None, *, shape:list|tuple=[], node:Any|str=None): #type:ignore 
@@ -133,7 +134,20 @@ class FlashGraph:
             self.___nodes = {'init':place}
             self.___history = {place.name:place}
 
-    def Synapse(self, operation:str='', out_node:placeholder=None, variables:list=[placeholder]): #type:ignore
+    # def GradChain(self, prev=None): #type:ignore 
+    #     node = prev
+
+    #     if isinstance(node, FlashGraph):
+    #         grad_place = placeholder.place(*node.___end_node.shape, name=node.___end_node.grad.name)
+    #         self.___end_node = grad_place
+    #         self.___nodes = node.___nodes
+    #         self.___history = node.___history
+        
+    #     else:
+    #         raise ValueError(f"prev must be a {FlashGraph} object. But found {type(prev)}")
+
+
+    def Synapse(self, out_node:placeholder=None, variables:List[placeholder]=None): #type:ignore
 
         """
         synapse(operation='', out_node=None, variables=[])
@@ -159,27 +173,15 @@ class FlashGraph:
         - If operation only takes one input, it automatically falls back to unary mode.
         """
 
-        try:
-            _OP_MAP.get(operation, None)
-        
-        except KeyError:
-            raise KeyError(f'{operation} is not a valid operation')
-        
-        finally:
-            op = _OP_MAP.get(operation, None)
+        if variables is not None:
+            for var in variables:
+                if var.name not in self.___nodes:
+                    self.___nodes[var.name] = self.___end_node
 
-
-        try:
-            self.___end_node = op(self.___end_node, out_node) #type:ignore
-        except TypeError:
-            self.___end_node = op(self.___end_node) #type:ignore
-
-        for var in variables:
-            if var.name not in self.___nodes:
-                self.___nodes[var.name] = self.___end_node
-
-            if var.name not in self.___history:
-                self.___history[var.name] = var
+                if var.name not in self.___history:
+                    self.___history[var.name] = var
+        else:
+            self.___end_node = out_node
 
 
     def Add(self, operation:str='', shape:list=[], node:str=None): #type:ignore
@@ -351,8 +353,6 @@ class FlashGraph:
                         self.___end_node = op(self.___end_node, res_node) #type:ignore
                     except TypeError:
                         self.___end_node = op(self.___end_node)
-                    # finally:
-                    #     self.___end_node = op(self.___end_node, res_node) #type:ignore
 
                     self.___nodes[place.name] = self.___end_node
                     
