@@ -17,7 +17,8 @@ class _compiler:
         var_list = self.var
         arg_list = ', '.join(v.name for v in var_list) if var_list else '' #type:ignore
         out_expr = self.out.name.replace('init_grad', '1') #type:ignore
-        fun_code = f"def func({arg_list}, **kwargs):\n"   
+        fun_code = f"def func({arg_list}, **kwargs):\n"
+        fun_code += f"    from arrx.static.internal_ops import OPS\n"
         fun_code += f"    from arrx import lib\n"
         fun_code += f"    return {out_expr}"
         namespace = {}
@@ -29,23 +30,7 @@ class _compiler:
             exec(fun_code, namespace)
         except:
             raise CompilationError(
-         """compiler has found some abnormal anomalies while codegen. It may caused by some forbidden rules\n
-            such as: \n
-            It is forbidden to reassign the same variable \n
-            i.e., 
-            Don't
-            x = matrix((5, 3), 'x')
-            x = x * 2         # Reassigning the same variable will cause error
-
-            y = x.sum(axis=1)
-            
-            Do
-            x = matrix((5, 3), 'x')
-            x2 = x * 2        # New assignment
-
-            y = x2.sum(axis=1)
-                    
-            """
+                f"Some fatal issue is occured that the compiler could not figure out. Better exception handling will be added in future."
             )
         return namespace["func"]
 
@@ -109,6 +94,7 @@ class _compiler:
         body_lines.append(f"    return ({', '.join('g'+str(i) for i in range(len(grad_placeholders)))})")
         fun_code = f"def back_fn({arg_str}):\n" 
         fun_code += f"    from arrx import lib\n"
+        fun_code += f"    from arrx.static.internal_ops import OPS\n"
         fun_code += f"    init_grad = lib.ones({self.out.shape})\n"
         fun_code += "\n".join(body_lines)
 

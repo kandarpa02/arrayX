@@ -1,4 +1,4 @@
-from ..Tensor.base import placeholder
+from ..Tensor.base import placeholder, scalar, matrix, vector
 from typing import Any, Sequence
 from ..utils import (
     _unbroadcast,
@@ -16,7 +16,9 @@ from arrx import lib
 from ..errors import ShapeError
 
 
-def where(condition:placeholder, x:placeholder, y:placeholder, name=None):
+Tensorlike = placeholder|scalar|vector|matrix|int|float
+
+def where(condition:Tensorlike, x:Tensorlike, y:Tensorlike, name=None):
     """
     Elementwise conditional selection.
     
@@ -37,14 +39,14 @@ def where(condition:placeholder, x:placeholder, y:placeholder, name=None):
 
     _shape = broadcast_shape(condition.shape, broadcast_shape(x.shape, y.shape))
     obj = placeholder.object(*_shape)
-    out = obj(_shape, name or f"where({condition.name}, {x.name}, {y.name})")
+    out = obj(_shape, f"OPS.where({condition.name}, {x.name}, {y.name})")
     out.parents = (condition, x, y)
 
     def _grad_where(grad):
         # grad flows only through selected branch
         g_cond = None  # condition not differentiable
         g_x = _unbroadcast(grad * condition, x.shape)
-        g_y = _unbroadcast(grad * (1 - condition), y.shape) #type:ignore
+        g_y = _unbroadcast(grad * (placeholder.ones(*condition.shape) - condition), y.shape) #type:ignore
         return g_cond, g_x, g_y
 
     out.grad_fn = _grad_where
@@ -73,7 +75,7 @@ def cond(pred, true_fn, false_fn, name=None):
         f_out = false_fn()
         _shape = broadcast_shape(t_out.shape, f_out.shape)
         obj = placeholder.object(*_shape)
-        branch_out = obj(_shape, name or f"cond({pred.name}, true, false)")
+        branch_out = obj(_shape, f"where({pred.name}, true, false)")
         branch_out.parents = (pred, t_out, f_out)
 
         def _grad_cond(grad):

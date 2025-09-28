@@ -65,6 +65,13 @@ class placeholder:
         return tmap.get(_name, placeholder)(list(shape), name) #type:ignore
     
     @staticmethod
+    def zeors(*shape):
+        return placeholder.place(*shape, name=f"lib.zeros({shape})")
+    @staticmethod
+    def ones(*shape):
+        return placeholder.place(*shape, name=f"lib.ones({shape})")
+    
+    @staticmethod
     def object(*shape):
         name = data_by_dim(*shape)
         tmap = {
@@ -83,11 +90,118 @@ class placeholder:
     @property
     def ndim(self):
         return len(self.shape) if self.shape != () else 0
+    
+    def __hash__(self):
+        return id(self)
+
+    def __eq__(self, other):
+        other = placeholder._make_place(other)
+        shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        out = placeholder.place(*shape, name=f'({self.name}=={other.name})') #type:ignore
+
+        out.parents = (self, other)
+
+        def grad_fn(grad):
+            def _zero_like_place(x):
+                return placeholder.place(*x.shape, name=f"lib.zeros({x.shape})")
+            g_self = _zero_like_place(self)
+            g_other = _zero_like_place(other)
+            return g_self, g_other
+
+        out.grad_fn = grad_fn
+        return out
+
+    def __ne__(self, other):
+        other = placeholder._make_place(other)
+        shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        out = placeholder.place(*shape, name=f'({self.name}!={other.name})') #type:ignore
+
+        out.parents = (self, other)
+
+        def grad_fn(grad):
+            def _zero_like_place(x):
+                return placeholder.place(*x.shape, name=f"lib.zeros({x.shape})")
+            g_self = _zero_like_place(self)
+            g_other = _zero_like_place(other)
+            return g_self, g_other
+
+        out.grad_fn = grad_fn
+        return out
+
+
+    def __gt__(self, other):
+        other = placeholder._make_place(other)
+        shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        out = placeholder.place(*shape, name=f'({self.name}>{other.name})') #type:ignore
+
+        out.parents = (self, other)
+
+        def grad_fn(grad):
+            def _zero_like_place(x):
+                return placeholder.place(*x.shape, name=f"lib.zeros({x.shape})")
+            g_self = _zero_like_place(self)
+            g_other = _zero_like_place(other)
+            return g_self, g_other
+
+        out.grad_fn = grad_fn
+        return out
+
+
+    def __lt__(self, other):
+        other = placeholder._make_place(other)
+        shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        out = placeholder.place(*shape, name=f'({self.name}<{other.name})') #type:ignore
+
+        out.parents = (self, other)
+
+        def grad_fn(grad):
+            def _zero_like_place(x):
+                return placeholder.place(*x.shape, name=f"lib.zeros({x.shape})")
+            g_self = _zero_like_place(self)
+            g_other = _zero_like_place(other)
+            return g_self, g_other
+
+        out.grad_fn = grad_fn
+        return out
+
+    def __ge__(self, other):
+        other = placeholder._make_place(other)
+        shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        out = placeholder.place(*shape, name=f'({self.name}>={other.name})') #type:ignore
+
+        out.parents = (self, other)
+
+        def grad_fn(grad):
+            def _zero_like_place(x):
+                return placeholder.place(*x.shape, name=f"lib.zeros({x.shape})")
+            g_self = _zero_like_place(self)
+            g_other = _zero_like_place(other)
+            return g_self, g_other
+
+        out.grad_fn = grad_fn
+        return out
+
+    def __le__(self, other):
+        other = placeholder._make_place(other)
+        shape = broadcast_shape(self.shape, other.shape) #type:ignore
+        out = placeholder.place(*shape, name=f'({self.name}<={other.name})') #type:ignore
+
+        out.parents = (self, other)
+
+        def grad_fn(grad):
+            def _zero_like_place(x):
+                return placeholder.place(*x.shape, name=f"lib.zeros({x.shape})")
+            g_self = _zero_like_place(self)
+            g_other = _zero_like_place(other)
+            return g_self, g_other
+
+        out.grad_fn = grad_fn
+        return out
 
 
     def __add__(self, other):
         other = placeholder._make_place(other) 
-        _shape = broadcast_shape(self.shape, other.shape)#type:ignore
+        _shape = broadcast_shape(self.shape, other.shape) #type:ignore
         obj = placeholder.object(*_shape)
         out = obj(name=f"({self.name} + {other.name})", shape=_shape) #type:ignore
         out.parents = (self, other)
