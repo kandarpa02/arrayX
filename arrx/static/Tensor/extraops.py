@@ -37,15 +37,15 @@ def where(condition:Tensorlike, x:Tensorlike, y:Tensorlike, name=None):
     x = placeholder._make_place(x)                 #type:ignore
     y = placeholder._make_place(y)                 #type:ignore
 
-    _shape = broadcast_shape(condition.shape, broadcast_shape(x.shape, y.shape))
+    _shape = broadcast_shape(condition.shape, broadcast_shape(x.shape, y.shape)) #type:ignore
     obj = placeholder.object(*_shape)
-    out = obj(_shape, f"OPS.where({condition.name}, {x.name}, {y.name})")
+    out = obj(_shape, f"OPS.where({condition.name}, {x.name}, {y.name})") #type:ignore
     out.parents = (condition, x, y)
 
     def _grad_where(grad):
         # grad flows only through selected branch
         g_cond = None  # condition not differentiable
-        g_x = _unbroadcast(grad * condition, x.shape)
+        g_x = _unbroadcast(grad * condition, x.shape) #type:ignore
         g_y = _unbroadcast(grad * (placeholder.ones(*condition.shape) - condition), y.shape) #type:ignore
         return g_cond, g_x, g_y
 
