@@ -134,18 +134,6 @@ class FlashGraph:
             self.___nodes = {'init':place}
             self.___history = {place.name:place}
 
-    # def GradChain(self, prev=None): #type:ignore 
-    #     node = prev
-
-    #     if isinstance(node, FlashGraph):
-    #         grad_place = placeholder.place(*node.___end_node.shape, name=node.___end_node.grad.name)
-    #         self.___end_node = grad_place
-    #         self.___nodes = node.___nodes
-    #         self.___history = node.___history
-        
-    #     else:
-    #         raise ValueError(f"prev must be a {FlashGraph} object. But found {type(prev)}")
-
 
     def Synapse(self, out_node:placeholder=None, variables:List[placeholder]=None): #type:ignore
 
@@ -364,7 +352,6 @@ class FlashGraph:
 
         
     def Compile(self):
-
         """
         Compile()
         ---------
@@ -380,7 +367,7 @@ class FlashGraph:
         """
 
         graph = Function(self.___end_node, list(self.___history.values()))
-        self.fw, self.bw = graph.forward(), graph.backward()
+        self.fw, self.bw = graph.apply, graph.grad
 
     
     def apply(self, *args):

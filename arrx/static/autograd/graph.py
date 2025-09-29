@@ -111,9 +111,13 @@ class _compiler:
 class Function:
     def __init__(self, out: placeholder, var: List[placeholder], debug=False):
         self._compiler = _compiler(out, var, debug)
+        self.fwd = self._compiler._forward
+        self.bwd = self._compiler._backward
 
-    def forward(self):
-        return self._compiler._forward
+    @property
+    def apply(self):
+        return self.fwd
 
-    def backward(self):
-        return self._compiler._backward
+    @property
+    def grad(self):
+        return self.bwd
