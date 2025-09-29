@@ -2,6 +2,7 @@ from .base import internal
 from ..Tensor.base import placeholder, vector, scalar, matrix
 from ..autograd.custom import Trace
 from typing import Any, Union
+from arrx import lib
 
 __all__ = ['where_', 'where_sig']
 
@@ -12,10 +13,7 @@ class whereObj(internal):
         super().__init__(name='where_', signature=('condition', 'x', 'y'))
 
     def call(self, condition, x, y):
-        if condition:
-            return x
-        else:
-            return y
+        return lib.where(condition, x, y)
     
 def where_(condition, x, y):
     return whereObj.apply(condition, x, y)
