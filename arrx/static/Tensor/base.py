@@ -305,8 +305,17 @@ class placeholder:
 
         out.grad_fn = _grad_reshape
         return out
-
     
+    def exp(self):
+        out = placeholder.place(*self.shape, name=f"lib.exp({self.name})")
+        out.parents = (self,)
+
+        def _exp_grad(grad):
+            return grad * out,
+        
+        out.grad_fn = _exp_grad
+        return out
+
 class scalar(placeholder):
     def __init__(self, shape: Sequence[Any] = [], name=None):  # type: ignore
         super().__init__(shape, name)
@@ -321,7 +330,6 @@ class scalar(placeholder):
 
     def repr(self):
         return f"Scalar(shape={self.shape})"
-
 
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore

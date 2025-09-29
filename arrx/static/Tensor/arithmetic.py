@@ -10,7 +10,8 @@ def div(a: vector | matrix, b: vector | matrix):
     return a / b
 def pow(a: vector | matrix, b: vector | matrix):
     return a ** b
-
+def exp(a: vector | matrix):
+    return a.exp()
 
 def matmul(a: vector | matrix, b: vector | matrix):
     """
