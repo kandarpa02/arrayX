@@ -92,6 +92,13 @@ class placeholder:
     def ndim(self):
         return len(self.shape) if self.shape != () else 0
     
+    @property
+    def size(self):
+        res = 1
+        for s in self.shape:
+            res *= s
+        return res
+    
     def __hash__(self):
         return id(self)
 
@@ -352,7 +359,7 @@ class vector(placeholder):
     def sum(self, axis=None, keepdims=False):
         shape = reduced_shape(self.shape, axis=axis, keepdims=keepdims)
         obj = placeholder.object(*shape)
-        out = obj(shape, f"{self.expr}.sum(axis={axis}, keepdims={keepdims})")
+        out = obj(shape, f"lib.sum({self.expr}, axis={axis}, keepdims={keepdims})")
         out.parents = (self,)
 
         def _grad_sum(grad):
@@ -372,6 +379,39 @@ class vector(placeholder):
             return (grad_broadcasted,)
 
         out.grad_fn = _grad_sum
+        return out
+    
+    def mean(self, axis=None, keepdims=False):
+        shape = reduced_shape(self.shape, axis=axis, keepdims=keepdims)
+        obj = placeholder.object(*shape)
+        out = obj(shape, f"lib.mean({self.expr}, axis={axis}, keepdims={keepdims})")
+        out.parents = (self,)
+        
+        def _grad_mean(grad):
+            if axis is None:
+                n = self.size
+                shape = [1] * self.ndim
+            else:
+                axes = axis if isinstance(axis, tuple) else (axis,)
+
+                import numpy as np
+                n = np.prod([self.shape[ax] for ax in axes]).item()
+                shape = list(self.shape)
+                for ax in axes:
+                    shape[ax] = 1
+
+            if not keepdims:
+                grad_shape = list(grad.shape)
+                for ax in sorted(axes):
+                    grad_shape.insert(ax, 1)
+                grad_expanded = grad.reshape(tuple(grad_shape))
+            else:
+                grad_expanded = grad
+
+            grad_broadcasted = broadcast_to((grad_expanded / n).expr, self.shape)
+            return (grad_broadcasted, )
+
+        out.grad_fn = _grad_mean
         return out
     
     def transpose(self, axes=None):

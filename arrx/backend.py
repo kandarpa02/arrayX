@@ -1,21 +1,11 @@
-# import warnings
+import warnings
 
 
-# class Backend:
-#     @staticmethod
-#     def initiate():
-#         import numpy as np
-#         lib = np
-
-#         try: 
-#             import cupynumeric as cp
-        
-#         except ImportError:
-#             pass
-#         else:
-#             lib = cp
-
-#         return lib
+class Backend:
+    @staticmethod
+    def initiate():
+        import jax
+        jax.config.update("jax_enable_x64", True)
 
 # class device:
 

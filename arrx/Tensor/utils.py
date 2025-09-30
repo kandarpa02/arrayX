@@ -188,3 +188,6 @@ def data_by_dim(*shape):
     elif dim >=2:
         return 'matrix'
     
+def dtype_manager(d1, d2):
+    import arrx as rx
+    

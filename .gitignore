@@ -3,12 +3,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# C extensions
-*.so
-*.cpp
-GRAPH_MANAGER.cpp
-neo/_src/autograd/backward_loop.cpp
-neo/neomizer/SGD/*.cpp
 
 sgd_c.cpp
 # Distribution / packaging
