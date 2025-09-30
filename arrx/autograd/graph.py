@@ -112,14 +112,33 @@ class Function:
     def _fwdjit_normalized(self, *args):
         import jax
         jit_fn = jax.jit(self._compiler._forward) #type:ignore
-        out =  jit_fn(*args)
+        try:
+            out =  jit_fn(*args)
+        except TypeError:
+            raise TypeError(
+            f"Error interpreting argument to {self._compiler._forward} as an abstract array."
+            f" The problematic value is of type {type(self._compiler._forward)} and was passed to"
+            f" the function.\n"
+            "This typically means that a compiled function was called with a non-array"
+            " argument, please check your inputs, make sure numpy/jax arrays or python dtypes are passed."
+            )
+        
         self.fwd = jit_fn
         return out
 
     def _bwdjit_normalized(self, *args):
         import jax
         jit_fn = jax.jit(self._compiler._backward) #type:ignore
-        out =  jit_fn(*args)
+        try:
+            out =  jit_fn(*args)
+        except TypeError:
+            raise TypeError(
+            f"Error interpreting argument to {self._compiler._backward} as an abstract array."
+            f" The problematic value is of type {type(self._compiler._backward)} and was passed to"
+            f" the function.\n"
+            "This typically means that a compiled function was called with a non-array"
+            " argument, please check your inputs, make sure numpy/jax arrays or python dtypes are passed."
+            )
         self.bwd = jit_fn
         return out
 

@@ -178,6 +178,43 @@ def reduced_shape(
         # Remove reduced axes
         return tuple(shape[i] for i in range(ndim) if i not in axes)
 
+def max_min_shape(shape, axis=None, keepdims = False):
+    max_axes = [i for i in range(len(shape))] 
+
+    if axis is None:
+        return () if keepdims == False else tuple([1 for i in shape])
+    
+    def kdims_manager(old, new):
+        shape = []
+        for o in old:
+            if o not in new:
+                shape.append(1)
+            else:
+                shape.append(o)
+        return tuple(shape)
+
+    if isinstance(axis, tuple):
+        for i in axis:
+            if not i in max_axes:
+                raise ValueError(f'axis {i} is out of bounds for array of dimension {len(shape)}')
+        
+        res_shape = []
+        for j in max_axes:
+            if j not in axis:
+                res_shape.append(shape[j])
+        return kdims_manager(shape, res_shape)
+        
+    
+    elif isinstance(axis, int):
+        if not axis in max_axes:
+            raise ValueError(f'axis {axis} is out of bounds for array of dimension {len(shape)}')
+        
+        res_shape = []
+        for j in max_axes:
+            if j != axis:
+                res_shape.append(shape[j])
+        return kdims_manager(shape, res_shape)
+
 
 def data_by_dim(*shape):
     dim = len(shape) if shape != () else 0

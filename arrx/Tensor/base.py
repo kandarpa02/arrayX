@@ -9,6 +9,7 @@ from .utils import (
     matmul_shape,
     reshape_shape,
     transpose_shape,
+    max_min_shape,
 )
 
 from ..errors import ShapeError
@@ -412,6 +413,43 @@ class vector(placeholder):
             return (grad_broadcasted, )
 
         out.grad_fn = _grad_mean
+        return out
+    
+    def max(self, axis=None, keepdims=False):
+        shape = max_min_shape(self.shape, axis, keepdims)
+        out = placeholder.place(*shape, name=f'lib.max({self.expr}, axis={axis}, keepdims={keepdims})') #type:ignore
+        out.parents = self,
+
+        def _grad_max(grad):
+            # Expand grad to ilibut shape if keepdims is False
+            if keepdims:
+                grad_expanded = grad
+            else:
+                shape = list(self.shape)
+                if axis is None:
+                    shape = [1] * self.ndim
+                else:
+                    axes = axis if isinstance(axis, tuple) else (axis,)
+                    for ax in axes:
+                        shape[ax] = 1
+                grad_expanded = grad.reshape(tuple(shape))
+
+            grad_broadcasted = broadcast_to(grad_expanded.expr, self.shape)
+            if axis is None:
+                mask = (self == out)
+            else:
+                max_expanded = out
+                if not keepdims:
+                    shape = list(self.shape)
+                    axes = axis if isinstance(axis, tuple) else (axis,)
+                    for ax in axes:
+                        shape[ax] = 1
+                    max_expanded = out.reshape(tuple(shape))
+                mask = (self == max_expanded)
+
+            grad_final = grad_broadcasted * mask #.astype(self.dtype)
+            return grad_final, 
+        out.grad_fn = _grad_max
         return out
     
     def transpose(self, axes=None):
