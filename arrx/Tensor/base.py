@@ -1,5 +1,5 @@
 from typing import Any, Sequence
-from ..utils import (
+from .utils import (
     _unbroadcast,
     broadcast_shape,
     filler_name,
@@ -11,7 +11,6 @@ from ..utils import (
     transpose_shape,
 )
 
-from arrx import lib
 from ..errors import ShapeError
 
 
@@ -26,9 +25,11 @@ class placeholder:
 
     @staticmethod
     def _make_place(a): 
-        if isinstance(a, int|float|lib.ndarray):
+        from .utils import lib
+        NDarray = lib.Array
+        if isinstance(a, int|float|NDarray):
             shape = ()
-            if isinstance(a, lib.ndarray):
+            if isinstance(a, NDarray):
                 shape = a.shape
             return placeholder.place(*shape, name=f"{a}")
         elif isinstance(a, placeholder):
@@ -66,10 +67,10 @@ class placeholder:
     
     @staticmethod
     def zeors(*shape):
-        return placeholder.place(*shape, name=f"lib.zeros({shape})")
+        return placeholder.place(*shape, name=f"lib.numpy.zeros({shape})")
     @staticmethod
     def ones(*shape):
-        return placeholder.place(*shape, name=f"lib.ones({shape})")
+        return placeholder.place(*shape, name=f"lib.numpy.ones({shape})")
     
     @staticmethod
     def object(*shape):

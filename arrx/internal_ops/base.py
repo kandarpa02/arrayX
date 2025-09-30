@@ -1,6 +1,6 @@
 from typing import Any
 from ..Tensor.base import placeholder, vector, matrix
-from ..utils import *
+from ..Tensor.utils import *
 
 class internal:
     def __init__(self, name='', signature=()) -> None:

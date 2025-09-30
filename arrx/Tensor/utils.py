@@ -1,12 +1,29 @@
 from typing import Sequence
-from .errors import ShapeError
+from ..errors import ShapeError
 from typing import Tuple, Union, Sequence
 import uuid
-from arrx import lib
+# from arrx import lib
 
 def variable(shape=[], name=None):
-    from .Tensor.base import placeholder
+    from .base import placeholder
     return placeholder.place(*shape, name=name)
+
+import jax
+import jax.numpy as jnp
+
+class UnifiedLib:
+    def __init__(self, primary, fallback):
+        self.primary = primary
+        self.fallback = fallback
+
+    def __getattr__(self, name):
+        if hasattr(self.primary, name):
+            return getattr(self.primary, name)
+        if hasattr(self.fallback, name):
+            return getattr(self.fallback, name)
+        raise AttributeError(f"Neither primary nor fallback has attribute '{name}'")
+
+lib = UnifiedLib(jax, jnp)
 
 def filler_name():
     return f"anon_{uuid.uuid4().hex[:8]}"
@@ -106,7 +123,7 @@ def transpose_shape(shape, axes):
     return dummy.transpose(axes).shape
 
 def broadcast_to(data, shape):
-    from .Tensor.base import placeholder
+    from .base import placeholder
     expr = f"lib.broadcast_to({data}, {shape})"
     return placeholder.place(*shape, name=expr)
 

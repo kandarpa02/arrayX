@@ -17,8 +17,8 @@ _OP_MAP = build_func_dict(arithmetic, logarithmic)
 
 # Typings
 TensorLike = Union[scalar, vector, matrix]
-from arrx import lib
-NDarray = lib.ndarray
+from arrx.Tensor.utils import lib
+NDarray = lib.Array
 
 
 class EmptyNodeError(Exception):

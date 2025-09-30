@@ -1,34 +1,34 @@
-import warnings
+# import warnings
 
 
-class Backend:
-    @staticmethod
-    def initiate():
-        import numpy as np
-        lib = np
+# class Backend:
+#     @staticmethod
+#     def initiate():
+#         import numpy as np
+#         lib = np
 
-        try: 
-            import cupynumeric as cp
+#         try: 
+#             import cupynumeric as cp
         
-        except ImportError:
-            pass
-        else:
-            lib = cp
+#         except ImportError:
+#             pass
+#         else:
+#             lib = cp
 
-        return lib
+#         return lib
 
-class device:
+# class device:
 
-    def __repr__(self) -> str:
-        from arrx import lib
-        import numpy as np
-        kind = 'cpu' if lib.ndarray == np.ndarray else 'cuda'
-        return f"arrx.device('{kind}')"
+#     def __repr__(self) -> str:
+#         from arrx import lib
+#         import numpy as np
+#         kind = 'cpu' if lib.ndarray == np.ndarray else 'cuda'
+#         return f"arrx.device('{kind}')"
 
-    @staticmethod
-    def put(data):
-        import arrx
-        rawdata = data._rawbuffer
-        rawdata = arrx.lib.array(rawdata)
-        return arrx.array(rawdata)
+#     @staticmethod
+#     def put(data):
+#         import arrx
+#         rawdata = data._rawbuffer
+#         rawdata = arrx.lib.array(rawdata)
+#         return arrx.array(rawdata)
     

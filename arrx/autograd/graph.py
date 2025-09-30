@@ -2,6 +2,7 @@ from typing import Sequence, List
 from ..Tensor.base import placeholder
 from ..errors import CompilationError
 
+
 class _compiler:
     def __init__(self, out: placeholder, var: List[placeholder], debug=False):
         self.out = out
@@ -18,8 +19,8 @@ class _compiler:
         arg_list = ', '.join(v.name for v in var_list) if var_list else '' #type:ignore
         out_expr = self.out.name.replace('init_grad', '1') #type:ignore
         fun_code = f"def func({arg_list}, **kwargs):\n"
-        fun_code += f"    from arrx.static.internal_ops import OPS\n"
-        fun_code += f"    from arrx import lib\n"
+        fun_code += f"    from arrx.internal_ops import OPS\n"
+        fun_code += f"    from arrx.Tensor.utils import lib\n"
         fun_code += f"    return {out_expr}"
         namespace = {}
         if debug:
@@ -32,6 +33,7 @@ class _compiler:
             raise CompilationError(
                 f"Some fatal issue is occured that the compiler could not figure out. Better exception handling will be added in future."
             )
+        
         return namespace["func"]
 
 
@@ -77,13 +79,6 @@ class _compiler:
             if g is None: 
                 raise RuntimeError(f"gradient for var {self.var[i].name} is None")
 
-        '''Build the source for a single function that computes all grads (no loops)
-        Example produced:
-        def back_fn(init_grad, x, y, z):
-            g0 = ((init_grad * (x * y)) * y) + ((init_grad * (x * y)) * y)  # etc.
-            g1 = ...
-            g2 = ...
-            return (g0, g1, g2)'''
         
         body_lines = []
         for i, g in enumerate(grad_placeholders):
@@ -93,9 +88,9 @@ class _compiler:
 
         body_lines.append(f"    return ({', '.join('g'+str(i) for i in range(len(grad_placeholders)))})")
         fun_code = f"def back_fn({arg_str}):\n" 
-        fun_code += f"    from arrx import lib\n"
-        fun_code += f"    from arrx.static.internal_ops import OPS\n"
-        fun_code += f"    init_grad = lib.ones({self.out.shape})\n"
+        fun_code += f"    from arrx.Tensor.utils import lib\n"
+        fun_code += f"    from arrx.internal_ops import OPS\n"
+        fun_code += f"    init_grad = lib.numpy.ones({self.out.shape})\n"
         fun_code += "\n".join(body_lines)
 
         namespace = {}
@@ -111,13 +106,31 @@ class _compiler:
 class Function:
     def __init__(self, out: placeholder, var: List[placeholder], debug=False):
         self._compiler = _compiler(out, var, debug)
-        self.fwd = self._compiler._forward
-        self.bwd = self._compiler._backward
+        self.fwd = None
+        self.bwd = None
 
-    @property
-    def apply(self):
-        return self.fwd
+    def _fwdjit_normalized(self, *args):
+        import jax
+        jit_fn = jax.jit(self._compiler._forward) #type:ignore
+        out =  jit_fn(*args)
+        self.fwd = jit_fn
+        return out
 
-    @property
-    def grad(self):
-        return self.bwd
+    def _bwdjit_normalized(self, *args):
+        import jax
+        jit_fn = jax.jit(self._compiler._backward) #type:ignore
+        out =  jit_fn(*args)
+        self.bwd = jit_fn
+        return out
+
+    def apply(self, *args):
+        if self.fwd is None:
+            return self._fwdjit_normalized(*args)
+        else:
+            return self.fwd(*args)
+
+    def grad(self, *args):
+        if self.bwd is None:
+            return self._bwdjit_normalized(*args)
+        else:
+            return self.bwd(*args)

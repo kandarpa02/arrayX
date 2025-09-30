@@ -1,6 +1,6 @@
 from ..Tensor.base import placeholder, scalar, matrix, vector
 from typing import Any, Sequence
-from ..utils import (
+from .utils import (
     _unbroadcast,
     broadcast_shape,
     filler_name,
@@ -12,7 +12,7 @@ from ..utils import (
     transpose_shape,
 )
 
-from arrx import lib
+from .utils import lib
 from ..errors import ShapeError
 
 
@@ -52,38 +52,3 @@ def where(condition:Tensorlike, x:Tensorlike, y:Tensorlike, name=None):
     out.grad_fn = _grad_where
     return out
 
-
-def cond(pred, true_fn, false_fn, name=None):
-    """
-    Graph-level conditional branching.
-
-    Arguments:
-        pred     : bool scalar placeholder (or Python bool)
-        true_fn  : callable returning a placeholder (executed if pred is True)
-        false_fn : callable returning a placeholder (executed if pred is False)
-        name     : optional node name
-
-    Returns:
-        placeholder from the chosen branch
-    """
-    if isinstance(pred, bool):
-        branch_out = true_fn() if pred else false_fn()
-    else:
-        # symbolic pred → we must still represent the conditional
-        # (both branches are attached, actual choice deferred to runtime)
-        t_out = true_fn()
-        f_out = false_fn()
-        _shape = broadcast_shape(t_out.shape, f_out.shape)
-        obj = placeholder.object(*_shape)
-        branch_out = obj(_shape, f"where({pred.name}, true, false)")
-        branch_out.parents = (pred, t_out, f_out)
-
-        def _grad_cond(grad):
-            g_pred = None  # not differentiable
-            g_true = _unbroadcast(grad * pred, t_out.shape)
-            g_false = _unbroadcast(grad * (1 - pred), f_out.shape)
-            return g_pred, g_true, g_false
-
-        branch_out.grad_fn = _grad_cond
-
-    return branch_out

@@ -1,5 +1,3 @@
-from .Core.Array import ArrayImpl, NumericObject
-from typing import Protocol, runtime_checkable, Union
+from .Tensor.base import placeholder, vector, scalar, matrix
 
-
-Array = Union[NumericObject, ArrayImpl]
+Tensorlike = placeholder|scalar|vector|matrix
