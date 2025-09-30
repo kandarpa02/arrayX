@@ -39,7 +39,7 @@ def where(condition:Tensorlike, x:Tensorlike, y:Tensorlike, name=None):
 
     _shape = broadcast_shape(condition.shape, broadcast_shape(x.shape, y.shape)) #type:ignore
     obj = placeholder.object(*_shape)
-    out = obj(_shape, f"OPS.where({condition.name}, {x.name}, {y.name})") #type:ignore
+    out = obj(_shape, f"OPS.where({condition.expr}, {x.expr}, {y.expr})") #type:ignore
     out.parents = (condition, x, y)
 
     def _grad_where(grad):

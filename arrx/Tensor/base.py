@@ -16,8 +16,8 @@ from ..errors import ShapeError
 
 class placeholder:
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
-        self.name_given = False if name is None else True
-        self.name = name if name is not None else filler_name()
+        self.expr_given = False if name is None else True
+        self.expr = name if name is not None else filler_name()
         self.shape = tuple(shape)
         self.parents = ()
         self.grad_fn = None
@@ -98,7 +98,7 @@ class placeholder:
     def __eq__(self, other):
         other = placeholder._make_place(other)
         shape = broadcast_shape(self.shape, other.shape) #type:ignore
-        out = placeholder.place(*shape, name=f'({self.name}=={other.name})') #type:ignore
+        out = placeholder.place(*shape, name=f'({self.expr}=={other.expr})') #type:ignore
 
         out.parents = (self, other)
 
@@ -115,7 +115,7 @@ class placeholder:
     def __ne__(self, other):
         other = placeholder._make_place(other)
         shape = broadcast_shape(self.shape, other.shape) #type:ignore
-        out = placeholder.place(*shape, name=f'({self.name}!={other.name})') #type:ignore
+        out = placeholder.place(*shape, name=f'({self.expr}!={other.expr})') #type:ignore
 
         out.parents = (self, other)
 
@@ -133,7 +133,7 @@ class placeholder:
     def __gt__(self, other):
         other = placeholder._make_place(other)
         shape = broadcast_shape(self.shape, other.shape) #type:ignore
-        out = placeholder.place(*shape, name=f'({self.name}>{other.name})') #type:ignore
+        out = placeholder.place(*shape, name=f'({self.expr}>{other.expr})') #type:ignore
 
         out.parents = (self, other)
 
@@ -151,7 +151,7 @@ class placeholder:
     def __lt__(self, other):
         other = placeholder._make_place(other)
         shape = broadcast_shape(self.shape, other.shape) #type:ignore
-        out = placeholder.place(*shape, name=f'({self.name}<{other.name})') #type:ignore
+        out = placeholder.place(*shape, name=f'({self.expr}<{other.expr})') #type:ignore
 
         out.parents = (self, other)
 
@@ -168,7 +168,7 @@ class placeholder:
     def __ge__(self, other):
         other = placeholder._make_place(other)
         shape = broadcast_shape(self.shape, other.shape) #type:ignore
-        out = placeholder.place(*shape, name=f'({self.name}>={other.name})') #type:ignore
+        out = placeholder.place(*shape, name=f'({self.expr}>={other.expr})') #type:ignore
 
         out.parents = (self, other)
 
@@ -185,7 +185,7 @@ class placeholder:
     def __le__(self, other):
         other = placeholder._make_place(other)
         shape = broadcast_shape(self.shape, other.shape) #type:ignore
-        out = placeholder.place(*shape, name=f'({self.name}<={other.name})') #type:ignore
+        out = placeholder.place(*shape, name=f'({self.expr}<={other.expr})') #type:ignore
 
         out.parents = (self, other)
 
@@ -204,7 +204,7 @@ class placeholder:
         other = placeholder._make_place(other) 
         _shape = broadcast_shape(self.shape, other.shape) #type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(name=f"({self.name} + {other.name})", shape=_shape) #type:ignore
+        out = obj(name=f"lib.add({self.expr}, {other.expr})", shape=_shape) #type:ignore
         out.parents = (self, other)
         def _grad_add(grad):
             g1 = _unbroadcast(grad, self.shape)
@@ -218,7 +218,7 @@ class placeholder:
         other = placeholder._make_place(other) 
         _shape = broadcast_shape(self.shape, other.shape)#type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(name=f"({self.name} - {other.name})", shape=_shape) #type:ignore
+        out = obj(name=f"(lib.subtract{self.expr}, {other.expr})", shape=_shape) #type:ignore
         out.parents = (self, other)
         def _grad_sub(grad):
             g1 = _unbroadcast(grad, self.shape)
@@ -233,7 +233,7 @@ class placeholder:
         other = placeholder._make_place(other)
         _shape = broadcast_shape(self.shape, other.shape) #type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(name=f"({self.name} * {other.name})", shape=_shape) #type:ignore
+        out = obj(name=f"lib.multiply({self.expr}, {other.expr})", shape=_shape) #type:ignore
         out.parents = (self, other)
         # note: grad_fn returns placeholders (symbolic expressions using names)
         def _grad_mul(grad):
@@ -248,7 +248,7 @@ class placeholder:
         other = placeholder._make_place(other)
         _shape = broadcast_shape(self.shape, other.shape) #type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(name=f"({self.name} / {other.name})", shape=_shape) #type:ignore
+        out = obj(name=f"lib.divide({self.expr}, {other.expr})", shape=_shape) #type:ignore
         out.parents = (self, other)
         # note: grad_fn returns placeholders (symbolic expressions using names)
         def _grad_div(grad):
@@ -264,7 +264,7 @@ class placeholder:
         other = placeholder._make_place(other)
         _shape = broadcast_shape(self.shape, other.shape) #type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(name=f"({self.name} ** {other.name})", shape=_shape) #type:ignore
+        out = obj(name=f"lib.power({self.expr}, {other.expr})", shape=_shape) #type:ignore
         out.parents = (self, other)
         # note: grad_fn returns placeholders (symbolic expressions using names)
         def _grad_mul(grad):
@@ -276,7 +276,7 @@ class placeholder:
         return out
     
     def __neg__(self):
-        out = placeholder.place(*self.shape, name=f"-{self.name}")
+        out = placeholder.place(*self.shape, name=f"-{self.expr}")
         out.parents = (self,)
         def _grad_neg(grad):
             g = _unbroadcast(-grad, self.shape)
@@ -297,7 +297,7 @@ class placeholder:
         shape = tup_norm(shape)
         new_shape = reshape_shape(self.shape, shape)
         obj = placeholder.object(*new_shape)           # get class (vector/matrix/...)
-        out = obj(new_shape, f"{self.name}.reshape{shape}")
+        out = obj(new_shape, f"{self.expr}.reshape{shape}")
         out.parents = (self, )
 
         def _grad_reshape(grad):
@@ -308,7 +308,7 @@ class placeholder:
         return out
     
     def exp(self):
-        out = placeholder.place(*self.shape, name=f"lib.exp({self.name})")
+        out = placeholder.place(*self.shape, name=f"lib.exp({self.expr})")
         out.parents = (self,)
 
         def _exp_grad(grad):
@@ -352,7 +352,7 @@ class vector(placeholder):
     def sum(self, axis=None, keepdims=False):
         shape = reduced_shape(self.shape, axis=axis, keepdims=keepdims)
         obj = placeholder.object(*shape)
-        out = obj(shape, f"{self.name}.sum(axis={axis}, keepdims={keepdims})")
+        out = obj(shape, f"{self.expr}.sum(axis={axis}, keepdims={keepdims})")
         out.parents = (self,)
 
         def _grad_sum(grad):
@@ -368,7 +368,7 @@ class vector(placeholder):
                         shape[ax] = 1
                 grad_expanded = grad.reshape(tuple(shape))
             
-            grad_broadcasted = broadcast_to(grad_expanded.name, self.shape)
+            grad_broadcasted = broadcast_to(grad_expanded.expr, self.shape)
             return (grad_broadcasted,)
 
         out.grad_fn = _grad_sum
@@ -378,7 +378,7 @@ class vector(placeholder):
         if axes is None:
             axes = tuple(reversed(range(self.ndim)))
         shape = transpose_shape(self.shape, axes)
-        out = placeholder.place(*shape, name=f"{self.name}.transpose({axes})")
+        out = placeholder.place(*shape, name=f"{self.expr}.transpose({axes})")
         out.parents = (self,)
 
         def _grad_transpose(grad):
@@ -404,7 +404,7 @@ class vector(placeholder):
     
     def __matmul__(self, other):
         shape = matmul_shape(self.shape, other.shape)
-        out = placeholder.place(*shape, name=f"({self.name} @ {other.name})")
+        out = placeholder.place(*shape, name=f"lib.matmul({self.expr}, {other.expr})")
         out.parents = (self, other)
 
         def _grad_matmul(grad):

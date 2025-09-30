@@ -16,8 +16,8 @@ class _compiler:
         
     def _fwd_fn(self, debug=False):
         var_list = self.var
-        arg_list = ', '.join(v.name for v in var_list) if var_list else '' #type:ignore
-        out_expr = self.out.name.replace('init_grad', '1') #type:ignore
+        arg_list = ', '.join(v.expr for v in var_list) if var_list else '' #type:ignore
+        out_expr = self.out.expr.replace('init_grad', '1') #type:ignore
         fun_code = f"def func({arg_list}, **kwargs):\n"
         fun_code += f"    from arrx.internal_ops import OPS\n"
         fun_code += f"    from arrx.Tensor.utils import lib\n"
@@ -68,7 +68,7 @@ class _compiler:
         _backward(self.out)
 
         # arg list for the back function: (init_grad, x, y, z, ...)
-        arg_names = [v.name for v in self.var]
+        arg_names = [v.expr for v in self.var]
         arg_str = ', '.join(arg_names) #type:ignore
 
         # collect the grad placeholders for each variable (these are placeholders)
@@ -77,14 +77,14 @@ class _compiler:
         # Defensive: ensure grads exist
         for i, g in enumerate(grad_placeholders):
             if g is None: 
-                raise RuntimeError(f"gradient for var {self.var[i].name} is None")
+                raise RuntimeError(f"gradient for var {self.var[i].expr} is None")
 
         
         body_lines = []
         for i, g in enumerate(grad_placeholders):
-            # g.name is a string representation of the symbolic expression
+            # g.expr is a string representation of the symbolic expression
             # we will directly place it into the function body
-            body_lines.append(f"    g{i} = {g.name}") #type:ignore
+            body_lines.append(f"    g{i} = {g.expr}") #type:ignore
 
         body_lines.append(f"    return ({', '.join('g'+str(i) for i in range(len(grad_placeholders)))})")
         fun_code = f"def back_fn({arg_str}):\n" 

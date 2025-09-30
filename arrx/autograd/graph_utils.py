@@ -31,7 +31,7 @@ class FlashGraph:
     _instance_counter = 0  # class-level counter
 
     def __init__(self, name=None) -> None:
-        self.name = name
+        self.expr = name
         # assign unique instance ID at creation
         cls = self.__class__
         self._instance_id = cls._instance_counter
@@ -59,7 +59,7 @@ class FlashGraph:
     """
 
     def __repr__(self):
-        name_str = self.name if self.name else "?"
+        name_str = self.expr if self.expr else "?"
         out_node_str = getattr(self.___end_node, 'name', 'Unknown') if self.___end_node else "?"
 
         lines = [f"FlashGraph_Instance_{self._instance_id}(name={name_str})",
@@ -132,7 +132,7 @@ class FlashGraph:
             place = placeholder.place(*shape, name=node)
             self.___end_node = place
             self.___nodes = {'init':place}
-            self.___history = {place.name:place}
+            self.___history = {place.expr:place}
 
 
     def Synapse(self, out_node:placeholder=None, variables:List[placeholder]=None): #type:ignore
@@ -163,11 +163,11 @@ class FlashGraph:
 
         if variables is not None:
             for var in variables:
-                if var.name not in self.___nodes:
-                    self.___nodes[var.name] = self.___end_node
+                if var.expr not in self.___nodes:
+                    self.___nodes[var.expr] = self.___end_node
 
-                if var.name not in self.___history:
-                    self.___history[var.name] = var
+                if var.expr not in self.___history:
+                    self.___history[var.expr] = var
         else:
             self.___end_node = out_node
 
@@ -221,8 +221,8 @@ class FlashGraph:
                         # finally:
                         #     self.___end_node = op(self.___end_node, place)
 
-                        self.___nodes[place.name] = self.___end_node
-                        self.___history[place.name] = place
+                        self.___nodes[place.expr] = self.___end_node
+                        self.___history[place.expr] = place
                     else:
                         raise EmptyNodeError(f'Graph is not initialized')
                 else:
@@ -271,8 +271,8 @@ class FlashGraph:
                         except TypeError:
                             self.___end_node = op(self.___end_node)
 
-                        self.___nodes[place.name] = self.___end_node
-                        # self.___history[place.name] = place
+                        self.___nodes[place.expr] = self.___end_node
+                        # self.___history[place.expr] = place
                     else:
                         raise EmptyNodeError(f'Graph is not initialized')
                 else:
@@ -342,7 +342,7 @@ class FlashGraph:
                     except TypeError:
                         self.___end_node = op(self.___end_node)
 
-                    self.___nodes[place.name] = self.___end_node
+                    self.___nodes[place.expr] = self.___end_node
                     
                 else:
                     raise KeyError(f'Invalid operation [{operation}] is given')

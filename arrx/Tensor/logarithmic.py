@@ -1,7 +1,7 @@
 from .base import placeholder, scalar
 
 def log(x:placeholder):
-    out = placeholder.place(*x.shape, name=f"lib.log({x.name})")
+    out = placeholder.place(*x.shape, name=f"lib.log({x.expr})")
     out.parents = (x, )
     def _bwd_log(grad):
         one = scalar(name='1')
