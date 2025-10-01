@@ -382,6 +382,7 @@ class vector(placeholder):
         out.grad_fn = _grad_sum
         return out
     
+
     def mean(self, axis=None, keepdims=False):
         shape = reduced_shape(self.shape, axis=axis, keepdims=keepdims)
         obj = placeholder.object(*shape)
@@ -392,6 +393,7 @@ class vector(placeholder):
             if axis is None:
                 n = self.size
                 shape = [1] * self.ndim
+                axes = []
             else:
                 axes = axis if isinstance(axis, tuple) else (axis,)
 
@@ -414,6 +416,49 @@ class vector(placeholder):
 
         out.grad_fn = _grad_mean
         return out
+    
+    def prod(self, axis=None, keepdims=False):
+        shape = reduced_shape(self.shape, axis=axis, keepdims=keepdims)
+        obj = placeholder.object(*shape)
+        out = obj(shape, f"lib.prod({self.expr}, axis={axis}, keepdims={keepdims})")
+        out.parents = (self,)
+
+        def _grad_prod(grad):
+            if axis is None:
+                n = self.size
+                shape = [1] * self.ndim
+                axes=[]
+            else:
+                axes = axis if isinstance(axis, tuple) else (axis,)
+
+                import numpy as np
+                n = np.prod([self.shape[ax] for ax in axes]).item()
+                shape = list(self.shape)
+                for ax in axes:
+                    shape[ax] = 1
+
+            if not keepdims:
+                grad_shape = list(grad.shape)
+                for ax in sorted(axes):
+                    grad_shape.insert(ax, 1)
+                grad_expanded = grad.reshape(tuple(grad_shape))
+            else:
+                grad_expanded = grad
+
+            if not keepdims:
+                out_shape = list(out.shape)
+                for ax in sorted(axes):
+                    out_shape.insert(ax, 1)
+                out_expanded = out.reshape(tuple(out_shape))
+            else:
+                out_expanded = out
+
+            grad_broadcasted = grad_expanded * broadcast_to((out_expanded / self).expr, self.shape)
+            return (grad_broadcasted,)
+
+        out.grad_fn = _grad_prod
+        return out
+
     
     def max(self, axis=None, keepdims=False):
         shape = max_min_shape(self.shape, axis, keepdims)

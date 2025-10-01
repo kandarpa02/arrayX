@@ -2,7 +2,7 @@ from .backend import Backend
 Backend.initiate()
 
 # # Dtypes
-from .Dtype import (
+from .src.Dtype import (
 Dtype, floating, integer, unsignedinteger,
 float16, float32, float64, float128,
 int8, int16, int32, int64, int128,
@@ -26,12 +26,12 @@ uint64 = uint64()
 uint128 = uint128()
 bool = boolean()
 
-from .autograd.graph import Function
-from .autograd.custom import Trace
-from .autograd.graph_utils import FlashGraph
-from .Tensor.base import scalar, placeholder, vector, matrix
-from .Tensor.arithmetic import *
-from .Tensor.logarithmic import log
-from .Tensor.extraops import where
+from .src.autograd.graph import Function
+from .src.autograd.custom import Trace
+from .src.autograd.graph_utils import FlashGraph
+from .src.Tensor.base import scalar, placeholder, vector, matrix
+from .src.Tensor.arithmetic import *
+from .src.Tensor.logarithmic import log
+from .src.Tensor.extraops import where
 
-from .Tensor.utils import variable
+from .src.Tensor.utils import variable
