@@ -6,20 +6,27 @@ class Parameter:
 
 
 class LayerMeta(type):
-    _counters = defaultdict(int)
-
     def __call__(cls, *args, **kwargs):
         instance = super().__call__(*args, **kwargs)
-        base_name = instance.name if instance.name else cls.__name__  # user name or class
-        count = LayerMeta._counters[base_name]
-        instance.name = f"{base_name}{count}"  # always append count
-        LayerMeta._counters[base_name] += 1
+        base_name = instance.name if instance.name else cls.__name__
+        instance.name = instance._next_name(base_name)
         return instance
 
 
 class Layer(metaclass=LayerMeta):
+    _root = None
+
     def __init__(self, name=""):
-        self.name = name 
+        self.name = name
+        if Layer._root is None:
+            Layer._root = self
+            self._counters = defaultdict(int)
+
+    def _next_name(self, base_name):
+        counters = Layer._root._counters #type:ignore
+        count = counters[base_name]
+        counters[base_name] += 1
+        return f"{base_name}{count}"
 
     def add_param(self, name, init_fn, **kwargs):
         setattr(self, name, Parameter(init_fn, **kwargs))
@@ -40,3 +47,17 @@ class Layer(metaclass=LayerMeta):
 
     def params(self):
         return {self.name: self._collect_params()}
+
+    def load(self, new_params):
+        # TODO: implement recursive loading properly
+        self._loaded_params = new_params
+
+    def call(self, *args):
+        raise NotImplementedError
+
+    def __call__(self, *args):
+        for attr in self._initiate():
+            v = getattr(self, attr)
+            if isinstance(v, Layer):
+                args = v.call(*args)
+        return args
