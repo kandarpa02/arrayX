@@ -2,7 +2,7 @@ from .base import internal
 from ..Tensor.base import placeholder, vector, scalar, matrix
 from ..autograd.custom import Trace
 from typing import Any, Union
-from arrx.Tensor.utils import lib
+from arrx.src.Tensor.utils import lib
 
 __all__ = ['where_', 'where_sig']
 

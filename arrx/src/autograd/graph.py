@@ -18,9 +18,9 @@ class _compiler:
         var_list = self.var
         arg_list = ', '.join(v.expr for v in var_list) if var_list else '' #type:ignore
         out_expr = self.out.expr.replace('init_grad', '1') #type:ignore
-        fun_code = f"def func({arg_list}, **kwargs):\n"
-        fun_code += f"    from arrx.internal_ops import OPS\n"
-        fun_code += f"    from arrx.Tensor.utils import lib\n"
+        fun_code = f"def func({arg_list}, *args, **kwargs):\n"
+        fun_code += f"    from arrx.src.internal_ops import OPS\n"
+        fun_code += f"    from arrx.src.Tensor.utils import lib\n"
         fun_code += f"    return {out_expr}"
         namespace = {}
         if debug:
@@ -87,9 +87,9 @@ class _compiler:
             body_lines.append(f"    g{i} = {g.expr}") #type:ignore
 
         body_lines.append(f"    return ({', '.join('g'+str(i) for i in range(len(grad_placeholders)))})")
-        fun_code = f"def back_fn({arg_str}):\n" 
-        fun_code += f"    from arrx.Tensor.utils import lib\n"
-        fun_code += f"    from arrx.internal_ops import OPS\n"
+        fun_code = f"def back_fn({arg_str}, *args, **kwargs):\n" 
+        fun_code += f"    from arrx.src.Tensor.utils import lib\n"
+        fun_code += f"    from arrx.src.internal_ops import OPS\n"
         fun_code += f"    init_grad = lib.numpy.ones({self.out.shape})\n"
         fun_code += "\n".join(body_lines)
 
@@ -153,3 +153,4 @@ class Function:
             return self._bwdjit_normalized(*args)
         else:
             return self.bwd(*args)
+

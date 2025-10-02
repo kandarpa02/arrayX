@@ -1,7 +1,38 @@
+from ..src.Tensor.base import placeholder
+from ..typing import NDarray as ND
+import numpy as np
+from typing import Union
+
+NDarray = Union[ND, np.ndarray]
+
+def keys_recurse(d):
+    keys_= []
+    for k, v in d.items():
+        if isinstance(k, placeholder):
+            keys_.append(k)
+        
+        elif isinstance(v, dict):
+            keys_.extend(keys_recurse(v))
+
+    return tuple(keys_)
+
+def value_recurse(d):
+    value_= []
+    for v in d.values():
+        if isinstance(v, NDarray):
+            value_.append(v)
+
+        elif isinstance(v, dict):
+            value_.extend(value_recurse(v))
+
+    return tuple(value_)
+
 class ParamDict(dict):
     def flatten(self):
         """Return the list of numpy arrays in the correct order for Function"""
-        return tuple([self[v] for v in self.keys()])
+        return value_recurse(self)
     
-    def variables(self):
-        return list(self.keys())
+    def variables(self, idx=None):
+        if idx is None:
+            return keys_recurse(self)
+        return keys_recurse(self)[idx]
