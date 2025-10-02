@@ -1,10 +1,11 @@
 from typing import Sequence, List
 from ..Tensor.base import placeholder
 from ..errors import CompilationError
+from typing import Any, Union
 
 
 class _compiler:
-    def __init__(self, out: placeholder, var: List[placeholder], debug=False):
+    def __init__(self, out: Union[Any, placeholder], var: List[placeholder], debug=False):
         self.out = out
         self.var = var
         self.code = None
@@ -53,17 +54,17 @@ class _compiler:
         def _backward(out):
             # Reset grads in graph (important if called multiple times)
             for n in topological_sort(out):
-                n.grad = None
+                n.gradient = None
 
-            out.grad = placeholder.as_place(self.out, 'init_grad')
+            out.gradient = placeholder.as_place(self.out, 'init_grad')
             for node in reversed(topological_sort(out)):
                 if node.grad_fn:
-                    grads = node.grad_fn(node.grad)
+                    grads = node.grad_fn(node.gradient)
                     for parent, g in zip(node.parents, grads):
-                        if parent.grad is None:
-                            parent.grad = g
+                        if parent.gradient is None:
+                            parent.gradient = g
                         else:
-                            parent.grad = parent.grad + g
+                            parent.gradient = parent.gradient + g
 
         _backward(self.out)
 
@@ -72,7 +73,7 @@ class _compiler:
         arg_str = ', '.join(arg_names) #type:ignore
 
         # collect the grad placeholders for each variable (these are placeholders)
-        grad_placeholders = [v.grad for v in self.var]
+        grad_placeholders = [v.gradient for v in self.var]
 
         # Defensive: ensure grads exist
         for i, g in enumerate(grad_placeholders):

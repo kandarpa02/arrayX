@@ -32,6 +32,8 @@ from .src.autograd.graph_utils import FlashGraph
 from .src.Tensor.base import scalar, placeholder, vector, matrix
 from .src.Tensor.arithmetic import *
 from .src.Tensor.logarithmic import log
+from .src.Tensor.reduction import *
 from .src.Tensor.extraops import where
 
-from .src.Tensor.utils import variable
+def variable(shape=[], name=None) -> placeholder|vector|scalar|matrix:
+    return placeholder.place(*shape, name=name)

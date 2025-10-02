@@ -27,8 +27,22 @@ def value_recurse(d):
 
     return tuple(value_)
 
+def flatten_params(d):
+    flat = {}
+
+    def _flatten(subdict):
+        for k, v in subdict.items():
+            if isinstance(v, dict):
+                _flatten(v)
+            else:
+                flat[k.expr] = v
+
+    _flatten(d)
+    return flat
+
+
 class ParamDict(dict):
-    def flatten(self):
+    def flatten_list(self):
         """Return the list of numpy arrays in the correct order for Function"""
         return value_recurse(self)
     
@@ -36,3 +50,6 @@ class ParamDict(dict):
         if idx is None:
             return keys_recurse(self)
         return keys_recurse(self)[idx]
+    
+    def put_kwargs(self):
+        return flatten_params(self)

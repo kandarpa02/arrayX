@@ -14,7 +14,6 @@ from .utils import (
 
 from ..errors import ShapeError
 
-
 class placeholder:
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         self.expr_given = False if name is None else True
@@ -22,7 +21,7 @@ class placeholder:
         self.shape = tuple(shape)
         self.parents = ()
         self.grad_fn = None
-        self.grad = None
+        self.gradient = None
 
     @staticmethod
     def _make_place(a): 
@@ -226,7 +225,7 @@ class placeholder:
         other = placeholder._make_place(other) 
         _shape = broadcast_shape(self.shape, other.shape)#type:ignore
         obj = placeholder.object(*_shape)
-        out = obj(name=f"(lib.subtract{self.expr}, {other.expr})", shape=_shape) #type:ignore
+        out = obj(name=f"lib.subtract({self.expr}, {other.expr})", shape=_shape) #type:ignore
         out.parents = (self, other)
         def _grad_sub(grad):
             g1 = _unbroadcast(grad, self.shape)

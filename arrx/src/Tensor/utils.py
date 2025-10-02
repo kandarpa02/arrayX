@@ -4,10 +4,6 @@ from typing import Tuple, Union, Sequence
 import uuid
 # from arrx import lib
 
-def variable(shape=[], name=None):
-    from .base import placeholder
-    return placeholder.place(*shape, name=name)
-
 import jax
 import jax.numpy as jnp
 
@@ -26,7 +22,7 @@ class UnifiedLib:
 lib = UnifiedLib(jax, jnp)
 
 def filler_name():
-    return f"anon_{uuid.uuid4().hex[:8]}"
+    return f"var{uuid.uuid4().hex[:8]}"
 
 def broadcast_shape(shape1, shape2):
     """

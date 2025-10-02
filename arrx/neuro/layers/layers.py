@@ -33,7 +33,7 @@ class Layer(metaclass=LayerMeta):
 
     def add_param(self, name: placeholder, init_fn, **kwargs):
         # unchanged — uses hierarchical placeholder name
-        full_name = f"{self.name}/{name.expr}"
+        full_name = f"{self.name}_{name.expr}"
         place = placeholder.place(*name.shape, name=full_name)
         param = ParamDict({place: init_fn(**kwargs)})
         setattr(self, place.expr, param)
@@ -54,7 +54,7 @@ class Layer(metaclass=LayerMeta):
         return params
 
     def params(self):
-        return ParamDict({self.name: self._collect_params()})
+        return ParamDict({self.name: ParamDict(self._collect_params())})
 
     def load(self, new_params):
         # TODO: implement recursive loading properly
