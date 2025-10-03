@@ -1,7 +1,7 @@
 from ..src.Tensor.base import placeholder, vector, scalar, matrix
 from typing import Callable
 
-def data_shift(x, dtype=None, fun_name=''):
+def data_shift(x, dtype=None, fun_name=lambda:None):
     import numpy as np
     from arrx.src.Tensor.utils import lib
     if isinstance(x, lib.ndarray|np.ndarray):
