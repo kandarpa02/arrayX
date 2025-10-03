@@ -5,14 +5,17 @@ from typing import Union
 
 NDarray = Union[ND, np.ndarray]
 
-def keys_recurse(d):
+def keys_recurse(d, name=False):
     keys_= []
     for k, v in d.items():
         if isinstance(k, placeholder):
-            keys_.append(k)
+            if name:
+                keys_.append(k.expr)
+            else:
+                keys_.append(k)
         
         elif isinstance(v, dict):
-            keys_.extend(keys_recurse(v))
+            keys_.extend(keys_recurse(v, name=name))
 
     return tuple(keys_)
 
@@ -42,14 +45,13 @@ def flatten_params(d):
 
 
 class ParamDict(dict):
-    def flatten_list(self):
-        """Return the list of numpy arrays in the correct order for Function"""
+    def to_list(self):
         return value_recurse(self)
     
-    def variables(self, idx=None):
+    def variables(self, name=False, idx=None):
         if idx is None:
-            return keys_recurse(self)
-        return keys_recurse(self)[idx]
+            return keys_recurse(self, name=name)
+        return keys_recurse(self, name=name)[idx]
     
     def put_kwargs(self):
         return flatten_params(self)

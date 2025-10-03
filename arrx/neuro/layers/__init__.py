@@ -1,1 +1,1 @@
-from .layers import Layer
+from .layers import Layer, compile
