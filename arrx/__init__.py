@@ -35,4 +35,4 @@ from .src.Tensor.logarithmic import log
 from .src.Tensor.reduction import *
 from .src.Tensor.extraops import where
 
-from .user_api.basic import variable, constant
+from .user_api.basic import Variable, Constant

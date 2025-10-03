@@ -1,10 +1,25 @@
 from ..src.Tensor.base import placeholder, vector, scalar, matrix
 from typing import Callable
 
-def variable(data=None, *, shape=[], name=None) -> placeholder|vector|scalar|matrix:
+def data_shift(x, dtype=None, fun_name=''):
+    import numpy as np
+    from arrx.src.Tensor.utils import lib
+    if isinstance(x, lib.ndarray|np.ndarray):
+        return x 
+    elif isinstance(x, int|float|list):
+        return lib.array(x, dtype=dtype)
+    else:
+        raise TypeError(
+            f"{fun_name} expects its optional data argument to be array like objects but found {type(x)}, "
+            f"check your input data. "
+        )
+
+
+def Variable(data=None, *, shape=[], dtype=None, name=None) -> placeholder|vector|scalar|matrix:
     flag = False
     if data is not None:
         flag = True
+        data = data_shift(data, dtype, Variable)
     
     if flag:
         out = placeholder.place(*data.shape, name=name) #type:ignore
@@ -17,10 +32,11 @@ def variable(data=None, *, shape=[], name=None) -> placeholder|vector|scalar|mat
 
     return out
 
-def constant(data=None, *, shape=[], name=None) -> placeholder|vector|scalar|matrix:
+def Constant(data=None, *, shape=[], dtype=None, name=None) -> placeholder|vector|scalar|matrix:
     flag = False
     if data is not None:
         flag = True
+        data = data_shift(data, dtype, Constant)
     
     if flag:
         out = placeholder.place(*data.shape, name=name) #type:ignore
