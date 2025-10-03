@@ -35,5 +35,4 @@ from .src.Tensor.logarithmic import log
 from .src.Tensor.reduction import *
 from .src.Tensor.extraops import where
 
-def variable(shape=[], name=None) -> placeholder|vector|scalar|matrix:
-    return placeholder.place(*shape, name=name)
+from .user_api.basic import variable, constant

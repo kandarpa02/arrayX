@@ -22,6 +22,8 @@ class placeholder:
         self.parents = ()
         self.grad_fn = None
         self.gradient = None
+        self.grad_required = False
+        self.value = None
 
     @staticmethod
     def _make_place(a): 

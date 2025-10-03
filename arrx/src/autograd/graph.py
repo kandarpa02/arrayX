@@ -73,7 +73,7 @@ class _compiler:
         arg_str = ', '.join(arg_names) #type:ignore
 
         # collect the grad placeholders for each variable (these are placeholders)
-        grad_placeholders = [v.gradient for v in self.var]
+        grad_placeholders = [v.gradient for v in self.var if v.grad_required]
 
         # Defensive: ensure grads exist
         for i, g in enumerate(grad_placeholders):
@@ -105,7 +105,8 @@ class _compiler:
 
 
 class Function:
-    def __init__(self, out: placeholder, var: List[placeholder], debug=False):
+    def __init__(self, out: placeholder, var: List[placeholder], strict=True, debug=False):
+        self.strict = strict
         self._compiler = _compiler(out, var, debug)
         self.fwd = None
         self.bwd = None
@@ -143,13 +144,17 @@ class Function:
         self.bwd = jit_fn
         return out
 
-    def apply(self, *args):
+    def apply(self, *args): 
+        if not self.strict:
+            args = [arg.value for arg in args if isinstance(arg, placeholder)]
         if self.fwd is None:
             return self._fwdjit_normalized(*args)
         else:
             return self.fwd(*args)
 
     def grad(self, *args):
+        if not self.strict:
+            args = [arg.value for arg in args if isinstance(arg, placeholder)]
         if self.bwd is None:
             return self._bwdjit_normalized(*args)
         else:
