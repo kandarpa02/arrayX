@@ -21,8 +21,21 @@ class UnifiedLib:
 
 lib = UnifiedLib(jax, jnp)
 
-def filler_name():
-    return f"var{uuid.uuid4().hex[:8]}"
+class NameFiller:
+    def __init__(self):
+        self.counters = {}
+
+    def get_name(self, base="var"):
+        """
+        Returns a unique, deterministic name like var_0, var_1, var_2...
+        """
+        if base not in self.counters:
+            self.counters[base] = 0
+        name = f"{base}_{self.counters[base]}"
+        self.counters[base] += 1
+        return name
+    
+name_filler = NameFiller()
 
 def broadcast_shape(shape1, shape2):
     """

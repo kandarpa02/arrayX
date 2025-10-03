@@ -2,7 +2,7 @@ from typing import Any, Sequence
 from .utils import (
     _unbroadcast,
     broadcast_shape,
-    filler_name,
+    name_filler,
     data_by_dim,
     reduced_shape,
     broadcast_to,
@@ -17,7 +17,7 @@ from ..errors import ShapeError
 class placeholder:
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         self.expr_given = False if name is None else True
-        self.expr = name if name is not None else filler_name()
+        self.expr = name if name is not None else name_filler.get_name(base='var')
         self.shape = tuple(shape)
         self.parents = ()
         self.grad_fn = None

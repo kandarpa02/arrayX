@@ -3,7 +3,6 @@ from typing import Any, Sequence
 from .utils import (
     _unbroadcast,
     broadcast_shape,
-    filler_name,
     data_by_dim,
     reduced_shape,
     broadcast_to,
