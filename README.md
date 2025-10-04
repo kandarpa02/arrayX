@@ -2,6 +2,7 @@
 
 **For lightning fast array operations with native autograd support**
 
+## THIS README IS OUTDATED, WILL BE UPDATING THIS SOON!!
 ---
 
 Neural networks are fascinating - with just a few lines of code, you can build models that recognize handwritten digits, classify audio, interpret text, and much more!
