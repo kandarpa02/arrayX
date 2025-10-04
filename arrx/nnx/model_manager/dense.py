@@ -19,7 +19,7 @@ def dense(
         )
     
     with variable_scope(name, reset=reset):
-        w = get_variable('w', [x.shape[-1], units], initializer=initializer, rng=rng)
-        b = get_variable('b', [units,], initializer=zero_init)
-    return x @ w + b
+        w = get_variable('kernel', [units, x.shape[-1]], initializer=initializer, rng=rng)
+        b = get_variable('bias', [units,], initializer=zero_init)
+    return x @ w.transpose() + b #type:ignore
 

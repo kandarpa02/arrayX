@@ -2,6 +2,7 @@ from typing import Sequence, List
 from ..Tensor.base import placeholder
 from ..errors import CompilationError
 from typing import Any, Union
+import warnings
 
 
 class _compiler:
@@ -108,8 +109,26 @@ class Function:
     def __init__(self, out: placeholder, var: List[placeholder], strict=True, debug=False):
         self.strict = strict
         self._compiler = _compiler(out, var, debug)
+        self.debug = debug
         self.fwd = None
         self.bwd = None
+
+    def inspect(self, kind):
+        warnings.simplefilter('always', UserWarning)
+        warnings.warn(
+            "inspect method is beta-only and may be removed in future releases. "
+            "It is meant for inspecting faulty codegens.",
+            category=UserWarning,
+            stacklevel=2
+        )
+        
+        if not self.debug:
+            raise ValueError(
+                "debug is set False, hence no generated codestring to show. "
+                "Set debug=True to perform this operation."
+            )
+
+        return self._compiler.code[kind]  # type: ignore
 
     def _fwdjit_normalized(self, *args):
         import jax
