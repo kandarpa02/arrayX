@@ -402,7 +402,7 @@ class vector(placeholder):
             repr += f", ndarray="
             indented = "\n".join("    " + line for line in self.value.__str__().splitlines()) #type:ignore
             repr += f"\n{indented}"
-            repr += f")"
+        repr += f")"
 
         return repr
     
@@ -671,7 +671,7 @@ class matrix(vector):
             repr += f", ndarray="
             indented = "\n".join("    " + line for line in self.value.__str__().splitlines()) #type:ignore
             repr += f"\n{indented}"
-            repr += f")"
+        repr += f")"
 
         return repr
     
