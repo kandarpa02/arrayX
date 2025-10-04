@@ -10,7 +10,6 @@ class variable_scope:
         self.reset = reset
 
     def __enter__(self):
-        # Determine effective reuse: inherit reuse from outer scopes
         effective_reuse = self.reuse or any(r for _, r in SCOPE_STACK)
         SCOPE_STACK.append((self.name, effective_reuse))
 
@@ -35,7 +34,6 @@ def get_variable(name: str, shape=None, initializer=lambda shape, seed=None: Non
 
     shape = shape or []
 
-    # Build full variable name
     full_scope = "_".join(scope for scope, _ in SCOPE_STACK) if SCOPE_STACK else ""
     full_name = f"{full_scope}_{name}" if full_scope else name
 
