@@ -98,7 +98,7 @@ class placeholder:
 
         if hasattr(self, 'repr'):
             return self.repr() #type:ignore
-        ret = self.name if if_name else f"Placeholder(shape={self.shape})"
+        ret = f"Placeholder(shape={self.shape})"
         return ret
 
     
@@ -372,7 +372,7 @@ class scalar(placeholder):
         if self.parents == ():
             if_name = True
         
-        return self.name if if_name else f"Scalar()"
+        return f"Scalar('{self.name}')"
 
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
@@ -409,7 +409,7 @@ class vector(placeholder):
         if self.parents == ():
             if_name = True
         
-        return self.name if if_name else f"Vector(shape={self.shape})"
+        return f"Vector(shape={self.shape}, '{self.name}')"
 
 
     def sum(self, axis=None, keepdims=False):
@@ -676,4 +676,4 @@ class matrix(vector):
         if self.parents == ():
             if_name = True
         
-        return self.name if if_name else f"Matrix(shape={self.shape})"
+        return f"Matrix(shape={self.shape}, '{self.name}')"
