@@ -372,7 +372,7 @@ class scalar(placeholder):
         if self.parents == ():
             if_name = True
         
-        return f"Scalar('{self.name}')"
+        return f"Array(shape={self.shape}, '{self.name}')"
 
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
@@ -409,7 +409,7 @@ class vector(placeholder):
         if self.parents == ():
             if_name = True
         
-        return f"Vector(shape={self.shape}, '{self.name}')"
+        return f"Array(shape={self.shape}, '{self.name}')"
 
 
     def sum(self, axis=None, keepdims=False):
@@ -676,4 +676,4 @@ class matrix(vector):
         if self.parents == ():
             if_name = True
         
-        return f"Matrix(shape={self.shape}, '{self.name}')"
+        return f"Array(shape={self.shape}, '{self.name}')"
