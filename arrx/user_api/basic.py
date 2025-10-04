@@ -31,7 +31,7 @@ def Variable(data=None, *, shape=[], dtype=None, name=None) -> placeholder|vecto
         out = placeholder.place(*shape, name=name)
         out.grad_required = True
     
-    out.expr = name_filler.get_name('var')
+    out.expr = name_filler.get_name('const') if name is None else name
 
     return out
 
@@ -48,6 +48,6 @@ def Constant(data=None, *, shape=[], dtype=None, name=None) -> placeholder|vecto
     else:
         out = placeholder.place(*shape, name=name)
 
-    out.expr = name_filler.get_name('const')
+    out.expr = name_filler.get_name('const') if name is None else name
 
     return out

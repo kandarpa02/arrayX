@@ -19,14 +19,14 @@ def keys_recurse(d, name=False):
 
     return tuple(keys_)
 
-def value_recurse(d):
+def value_recurse(d, raw=False):
     value_= []
     for v in d.values():
-        if isinstance(v, NDarray):
-            value_.append(v)
+        if isinstance(v, placeholder):
+            value_.append(v.value if raw else v)
 
         elif isinstance(v, dict):
-            value_.extend(value_recurse(v))
+            value_.extend(value_recurse(v, raw=raw))
 
     return tuple(value_)
 
@@ -45,8 +45,8 @@ def flatten_params(d):
 
 
 class ParamDict(dict):
-    def to_list(self):
-        return value_recurse(self)
+    def to_list(self, ndarray=False):
+        return value_recurse(self, raw=ndarray)
     
     def variables(self, name=False, idx=None):
         if idx is None:

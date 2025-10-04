@@ -18,7 +18,7 @@ class placeholder:
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         self.expr_given = False if name is None else True
         self.name = name if name is not None else name_filler.get_name(base='var')
-        self.expr = self.name
+        self.expr = name if name is not None else name_filler.get_name(base='var')
         self.shape = tuple(shape)
         self.parents = ()
         self.grad_fn = None
@@ -372,7 +372,9 @@ class scalar(placeholder):
         if self.parents == ():
             if_name = True
         
-        return f"Array(shape={self.shape}, '{self.name}')"
+        name = self.name if if_name else 'result_node'
+        
+        return f"Array(shape={self.shape}, '{name}')"
 
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
@@ -408,8 +410,10 @@ class vector(placeholder):
         if_name = False
         if self.parents == ():
             if_name = True
+
+        name = self.name if if_name else 'result_node'
         
-        return f"Array(shape={self.shape}, '{self.name}')"
+        return f"Array(shape={self.shape}, '{name}')"
 
 
     def sum(self, axis=None, keepdims=False):
@@ -676,4 +680,6 @@ class matrix(vector):
         if self.parents == ():
             if_name = True
         
-        return f"Array(shape={self.shape}, '{self.name}')"
+        name = self.name if if_name else 'result_node'
+        
+        return f"Array(shape={self.shape}, '{name}')"
