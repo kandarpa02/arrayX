@@ -1,4 +1,5 @@
 from ..src.Tensor.base import placeholder, vector, scalar, matrix
+from ..src.Tensor.utils import name_filler
 from typing import Callable
 
 def data_shift(x, dtype=None, fun_name=lambda:None):
@@ -29,6 +30,8 @@ def Variable(data=None, *, shape=[], dtype=None, name=None) -> placeholder|vecto
     else:
         out = placeholder.place(*shape, name=name)
         out.grad_required = True
+    
+    out.expr = name_filler.get_name('var')
 
     return out
 
@@ -44,5 +47,7 @@ def Constant(data=None, *, shape=[], dtype=None, name=None) -> placeholder|vecto
 
     else:
         out = placeholder.place(*shape, name=name)
+
+    out.expr = name_filler.get_name('const')
 
     return out

@@ -17,7 +17,8 @@ from ..errors import ShapeError
 class placeholder:
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
         self.expr_given = False if name is None else True
-        self.expr = name if name is not None else name_filler.get_name(base='var')
+        self.name = name if name is not None else name_filler.get_name(base='var')
+        self.expr = self.name
         self.shape = tuple(shape)
         self.parents = ()
         self.grad_fn = None
@@ -84,11 +85,22 @@ class placeholder:
         }
         return tmap.get(name, placeholder) #type:ignore
     
-    def __repr__(self):
-        if hasattr(self, 'repr'):
-            return self.repr() #type:ignore
+    def __str__(self):
+        if hasattr(self, 'str'):
+            return self.str() #type:ignore
         ret = f"Placeholder(shape={self.shape})"
         return ret
+    
+    def __repr__(self):
+        if_name = False
+        if self.parents == ():
+            if_name = True
+
+        if hasattr(self, 'repr'):
+            return self.repr() #type:ignore
+        ret = self.name if if_name else f"Placeholder(shape={self.shape})"
+        return ret
+
     
     @property
     def ndim(self):
@@ -338,8 +350,29 @@ class scalar(placeholder):
                 f"A scalar must have no dimensions (shape=())."
             )
 
+    def str(self):
+        if_name = False
+        if self.parents == ():
+            if_name = True
+
+        type = 'Variable' if self.grad_required else 'Constant'
+
+        name = f", name='{self.name if if_name else None}'"
+        repr = f"Array(type='{type}', shape={self.shape}{name}" 
+
+        if self.value is not None:
+            repr += f", ndarray={self.value})"
+        else:
+            repr += f")"
+
+        return repr
+    
     def repr(self):
-        return f"Scalar(shape={self.shape})"
+        if_name = False
+        if self.parents == ():
+            if_name = True
+        
+        return self.name if if_name else f"Scalar()"
 
 class vector(placeholder):
     def __init__(self, shape:Sequence[Any]=[], name=None): #type:ignore
@@ -353,9 +386,30 @@ class vector(placeholder):
                 f"A vector must be one-dimensional."
             )
 
+    def str(self):
+        if_name = False
+        if self.parents == ():
+            if_name = True
+
+        type = 'Variable' if self.grad_required else 'Constant'
+
+        name = f", name='{self.name if if_name else None}'"
+        repr = f"Array(type='{type}', shape={self.shape}{name}" 
+
+        if self.value is not None:
+            repr += f", ndarray="
+            indented = "\n".join("    " + line for line in self.value.__str__().splitlines()) #type:ignore
+            repr += f"\n{indented}"
+            repr += f")"
+
+        return repr
+    
     def repr(self):
-        res = f"Vector(shape={self.shape})" 
-        return res
+        if_name = False
+        if self.parents == ():
+            if_name = True
+        
+        return self.name if if_name else f"Vector(shape={self.shape})"
 
 
     def sum(self, axis=None, keepdims=False):
@@ -599,5 +653,27 @@ class matrix(vector):
                 f"A matrix must have at least 2 dimensions."
             )
 
+    def str(self):
+        if_name = False
+        if self.parents == ():
+            if_name = True
+
+        type = 'Variable' if self.grad_required else 'Constant'
+
+        name = f", name='{self.name if if_name else None}'"
+        repr = f"Array(type='{type}', shape={self.shape}{name}" 
+
+        if self.value is not None:
+            repr += f", ndarray="
+            indented = "\n".join("    " + line for line in self.value.__str__().splitlines()) #type:ignore
+            repr += f"\n{indented}"
+            repr += f")"
+
+        return repr
+    
     def repr(self):
-        return f"Matrix(shape={self.shape})"
+        if_name = False
+        if self.parents == ():
+            if_name = True
+        
+        return self.name if if_name else f"Matrix(shape={self.shape})"

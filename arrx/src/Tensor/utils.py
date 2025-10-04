@@ -26,12 +26,9 @@ class NameFiller:
         self.counters = {}
 
     def get_name(self, base="var"):
-        """
-        Returns a unique, deterministic name like var_0, var_1, var_2...
-        """
         if base not in self.counters:
             self.counters[base] = 0
-        name = f"{base}_{self.counters[base]}"
+        name = f"{base}{self.counters[base]}"
         self.counters[base] += 1
         return name
     
